@@ -1,0 +1,78 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+.ss-nav .brand { font-size: 1.4rem; font-weight: 800; }
+.order-card {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  margin-bottom: 15px;
+  border-left: 4px solid #0284c7;
+}
+.status-badge { padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+.status-queued { background: #fef3c7; color: #92400e; }
+.status-in_progress { background: #dbeafe; color: #1e40af; }
+.status-completed { background: #d1fae5; color: #065f46; }
+.status-cancelled { background: #fee2e2; color: #991b1b; }
+.payment-paid { background: #d1fae5; color: #065f46; }
+.payment-pending { background: #fef3c7; color: #92400e; }
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a href="/spinspg/dashboard" class="brand"><i class="fas fa-soap me-2"></i>SpinSpring</a>
+    <div>
+      <a href="/spinspg/dashboard" class="btn btn-outline-light btn-sm rounded-pill">Dashboard</a>
+      <a href="/spinspg/orders" class="btn btn-light btn-sm rounded-pill">Orders</a>
+      <a href="/spinspg/logout" class="btn btn-outline-light btn-sm rounded-pill ms-1">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <h2 class="mb-4" style="color:#0c4a6e;">All Orders</h2>
+
+  <% if (typeof orders !== 'undefined' && orders.length > 0) { %>
+    <% orders.forEach(function(order) { %>
+      <a href="/spinspg/order/<%= order.id %>" class="text-decoration-none text-dark">
+        <div class="order-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="mb-1 fw-bold"><%= order.order_number %></h6>
+              <small class="text-muted"><%= order.device_name || order.device_id %> • <%= order.customer_name || order.customer_phone || 'Walk-in' %></small>
+            </div>
+            <div class="text-end">
+              <span class="status-badge status-<%= order.order_status %>"><%= order.order_status.replace('_', ' ') %></span><br>
+              <span class="status-badge payment-<%= order.payment_status %> mt-1"><%= order.payment_status %></span>
+            </div>
+          </div>
+          <hr style="border-color:#e0f2fe;">
+          <div class="d-flex justify-content-between">
+            <div>
+              <small class="text-muted"><%= order.service_type.replace('_', ' → ').toUpperCase() %></small>
+              <br><small class="text-muted"><%= order.cycle_type %></small>
+            </div>
+            <div class="fw-bold" style="color:#0284c7;">Ksh <%= order.price %></div>
+          </div>
+          <div class="mt-2">
+            <small class="text-muted">
+              <i class="far fa-clock me-1"></i><%= new Date(order.created_at).toLocaleString() %>
+            </small>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  <% } else { %>
+    <div class="text-center py-5">
+      <i class="fas fa-receipt fa-5x text-muted mb-3"></i>
+      <h4>No Orders Yet</h4>
+      <p class="text-muted">Orders will appear here when customers use your machines</p>
+    </div>
+  <% } %>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

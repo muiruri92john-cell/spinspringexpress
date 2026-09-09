@@ -1,0 +1,266 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #10b981, #059669); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+.ss-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 5px 25px rgba(16,185,129,0.1);
+  border: 1px solid #d1fae5;
+  margin-bottom: 20px;
+}
+.section-title {
+  color: #0c4a6e;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #d1fae5;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.status-badge { padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+.status-queued { background: #fef3c7; color: #92400e; }
+.status-in_progress { background: #dbeafe; color: #1e40af; }
+.status-completed { background: #d1fae5; color: #065f46; }
+.status-cancelled { background: #fee2e2; color: #991b1b; }
+.machine-card {
+  border: 1px solid #d1fae5;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s;
+}
+.machine-card:hover { border-color: #10b981; box-shadow: 0 5px 20px rgba(16,185,129,0.2); }
+.price-display {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 15px;
+}
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <a href="/spinspg/attendant" class="brand text-white text-decoration-none" style="font-size:1.5rem;font-weight:800;">
+      <i class="fas fa-soap me-2"></i>SpinSpring
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-white">Attendant: <%= user.name %></span>
+      <a href="/spinspg/logout" class="btn btn-danger btn-sm rounded-pill">
+        <i class="fas fa-sign-out-alt me-1"></i> Logout
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <h3 class="mb-4" style="color:#0c4a6e;">
+    <i class="fas fa-user-tie me-2"></i>Attendant Panel
+  </h3>
+
+  <!-- Machines -->
+  <div class="ss-card">
+    <div class="section-title">
+      <span><i class="fas fa-washing-machine me-2"></i>Machines Under Your Care</span>
+    </div>
+    <div class="row g-3">
+      <% if (typeof devices !== 'undefined' && devices.length > 0) { %>
+        <% devices.forEach(function(d) { %>
+          <div class="col-md-4 col-6">
+            <div class="machine-card">
+              <i class="fas fa-washing-machine fa-3x mb-2" style="color:#10b981;"></i>
+              <h6><%= d.device_name %></h6>
+              <span class="badge bg-<%= d.status === 'idle' ? 'success' : d.status === 'running' ? 'primary' : 'warning' %>">
+                <%= d.status %>
+              </span>
+              <p class="mt-2 mb-0">
+                <strong>Ksh <%= d.price_per_kg || 50 %>/kg</strong>
+              </p>
+              <small class="text-muted">
+                Max: <%= d.max_capacity_kg || 20 %>kg
+              </small>
+              <br>
+              <a href="/spinspg/device/<%= d.device_id %>" class="btn btn-sm btn-outline-success rounded-pill mt-2">Control</a>
+            </div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <p class="text-muted">No machines assigned to you.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Create Weight-Based Order -->
+  <div class="ss-card">
+    <div class="section-title">
+      <span><i class="fas fa-weight me-2"></i>Start New Order (Weight-Based)</span>
+    </div>
+    <form action="/spinspg/attendant/orders" method="POST" id="weightOrderForm">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Select Machine *</label>
+          <select name="device_id" class="form-select" id="machineSelect" required onchange="updateWeightInfo()">
+            <option value="">-- Select Machine --</option>
+            <% if (typeof devices !== 'undefined') { %>
+              <% devices.forEach(function(d) { %>
+                <option value="<%= d.device_id %>" 
+                        data-price-per-kg="<%= d.price_per_kg || 50 %>"
+                        data-max-kg="<%= d.max_capacity_kg || 20 %>"
+                        data-min-kg="<%= d.min_capacity_kg || 1 %>">
+                  <%= d.device_name %> (Ksh <%= d.price_per_kg || 50 %>/kg)
+                </option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold">Customer</label>
+          <select name="customer_id" class="form-select" required>
+            <option value="">-- Select Customer --</option>
+            <option value="walk-in">🚶 Walk-in Customer</option>
+            <% if (typeof customers !== 'undefined') { %>
+              <% customers.forEach(function(c) { %>
+                <option value="<%= c.customer_unique_id %>"><%= c.full_name %> (<%= c.customer_unique_id %>)</option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Weight (kg) *</label>
+          <input type="number" name="weight_kg" id="weightInput" class="form-control" step="0.01" min="0.1" placeholder="e.g., 5.5" required oninput="updatePrice()">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Service</label>
+          <select name="service_type" class="form-select" required>
+            <option value="wash">Wash</option>
+            <option value="wash_dry">Wash + Dry</option>
+            <option value="dry_only">Dry Only</option>
+            <option value="dishwash">Dishwash</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold">Cycle Type</label>
+          <select name="cycle_type" class="form-select" required>
+            <option value="quick">Quick (15min)</option>
+            <option value="normal" selected>Normal (30min)</option>
+            <option value="heavy">Heavy (60min)</option>
+            <option value="delicate">Delicate (45min)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Real-time Price Display -->
+      <div class="price-display">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <small class="text-muted">Machine Info:</small>
+            <p class="mb-0 fw-bold" id="machineInfo">Select a machine to see pricing</p>
+          </div>
+          <div class="text-end">
+            <small class="text-muted">Calculated Price:</small>
+            <div class="h3 fw-bold" style="color:#0284c7;" id="calculatedPrice">Ksh 0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <input type="hidden" name="payment_status" value="pending">
+
+      <div class="mt-3">
+        <button type="submit" class="btn btn-success rounded-pill px-4">
+          <i class="fas fa-play me-2"></i> Start Order
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Active Orders -->
+  <div class="ss-card">
+    <div class="section-title">
+      <span><i class="fas fa-list me-2"></i>Active Orders</span>
+    </div>
+    <% if (typeof activeOrders !== 'undefined' && activeOrders.length > 0) { %>
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr><th>Order #</th><th>Customer</th><th>Weight</th><th>Service</th><th>Status</th><th>Price</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <% activeOrders.forEach(function(o) { %>
+              <tr>
+                <td style="font-size:0.8rem;"><%= o.order_number %></td>
+                <td><%= o.customer_name === 'walk-in' ? '🚶 Walk-in' : o.customer_name %></td>
+                <td><%= o.weight_kg ? o.weight_kg + 'kg' : 'N/A' %></td>
+                <td><%= o.service_type.replace('_', ' ') %></td>
+                <td><span class="status-badge status-<%= o.order_status %>"><%= o.order_status %></span></td>
+                <td>Ksh <%= o.price %></td>
+                <td>
+                  <form action="/spinspg/order/<%= o.id %>/status" method="POST" style="display:inline;">
+                    <input type="hidden" name="status" value="completed">
+                    <button class="btn btn-sm btn-success rounded-pill">Complete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="text-center py-3">
+        <p class="text-muted">No active orders</p>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+function updateWeightInfo() {
+  const select = document.getElementById('machineSelect');
+  const selected = select.options[select.selectedIndex];
+  
+  if (selected.value) {
+    const pricePerKg = selected.getAttribute('data-price-per-kg');
+    const maxKg = selected.getAttribute('data-max-kg');
+    const minKg = selected.getAttribute('data-min-kg');
+    document.getElementById('machineInfo').textContent = 
+      'Ksh ' + pricePerKg + '/kg | Max: ' + maxKg + 'kg | Min: ' + minKg + 'kg';
+    updatePrice();
+  } else {
+    document.getElementById('machineInfo').textContent = 'Select a machine to see pricing';
+    document.getElementById('calculatedPrice').textContent = 'Ksh 0.00';
+  }
+}
+
+function updatePrice() {
+  const select = document.getElementById('machineSelect');
+  const selected = select.options[select.selectedIndex];
+  const weight = parseFloat(document.getElementById('weightInput').value) || 0;
+  
+  if (selected.value && weight > 0) {
+    const pricePerKg = parseFloat(selected.getAttribute('data-price-per-kg'));
+    const maxKg = parseFloat(selected.getAttribute('data-max-kg'));
+    const minKg = parseFloat(selected.getAttribute('data-min-kg'));
+    
+    if (weight > maxKg) {
+      document.getElementById('calculatedPrice').textContent = 'EXCEEDS MAX!';
+      document.getElementById('calculatedPrice').style.color = '#ef4444';
+    } else if (weight < minKg) {
+      document.getElementById('calculatedPrice').textContent = 'BELOW MIN!';
+      document.getElementById('calculatedPrice').style.color = '#ef4444';
+    } else {
+      const total = weight * pricePerKg;
+      document.getElementById('calculatedPrice').textContent = 'Ksh ' + total.toFixed(2);
+      document.getElementById('calculatedPrice').style.color = '#0284c7';
+    }
+  }
+}
+
+// Auto-refresh
+setInterval(() => { location.reload(); }, 60000);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

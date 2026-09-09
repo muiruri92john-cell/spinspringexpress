@@ -1,0 +1,126 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+.ss-nav .brand { font-size: 1.4rem; font-weight: 800; }
+.report-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 5px 25px rgba(2,132,199,0.1);
+  border: 1px solid #e0f2fe;
+  margin-bottom: 20px;
+}
+.report-stat {
+  background: #f0f9ff;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+}
+.report-stat .value { font-size: 1.8rem; font-weight: 800; color: #0284c7; }
+.report-stat .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+.table-blue th { background: #e0f2fe; color: #0c4a6e; }
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a href="/spinspg/dashboard" class="brand"><i class="fas fa-soap me-2"></i>SpinSpring</a>
+    <div>
+      <a href="/spinspg/dashboard" class="btn btn-outline-light btn-sm rounded-pill">Dashboard</a>
+      <a href="/spinspg/orders" class="btn btn-outline-light btn-sm rounded-pill">Orders</a>
+      <a href="/spinspg/reports" class="btn btn-light btn-sm rounded-pill">Reports</a>
+      <a href="/spinspg/logout" class="btn btn-outline-light btn-sm rounded-pill ms-1">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <h2 class="mb-4" style="color:#0c4a6e;">Reports & Analytics</h2>
+
+  <!-- Summary Stats -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="report-stat">
+        <div class="value">Ksh <%= stats.today_rev || 0 %></div>
+        <div class="label">Today Revenue</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="report-stat">
+        <div class="value">Ksh <%= stats.total_rev || 0 %></div>
+        <div class="label">Total Revenue</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="report-stat">
+        <div class="value"><%= stats.today_cyc || 0 %></div>
+        <div class="label">Today Cycles</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="report-stat">
+        <div class="value"><%= stats.total_cyc || 0 %></div>
+        <div class="label">Total Cycles</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine Performance -->
+  <div class="report-card">
+    <h5 class="mb-3" style="color:#0c4a6e;">Machine Performance</h5>
+    <div class="table-responsive">
+      <table class="table table-blue">
+        <thead>
+          <tr><th>Machine</th><th>Type</th><th>Status</th><th>Cycles</th><th>Revenue</th></tr>
+        </thead>
+        <tbody>
+          <% if (typeof devices !== 'undefined' && devices.length > 0) { %>
+            <% devices.forEach(function(d) { %>
+              <tr>
+                <td><%= d.device_name %></td>
+                <td><%= d.device_type.replace('_', ' ') %></td>
+                <td><span class="badge bg-info"><%= d.status %></span></td>
+                <td><%= d.cycles_completed %></td>
+                <td>Ksh <%= d.total_revenue %></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr><td colspan="5" class="text-center text-muted">No machines registered</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Orders -->
+  <div class="report-card">
+    <h5 class="mb-3" style="color:#0c4a6e;">Recent Orders</h5>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr><th>Order #</th><th>Machine</th><th>Service</th><th>Status</th><th>Price</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          <% if (typeof orders !== 'undefined' && orders.length > 0) { %>
+            <% orders.forEach(function(o) { %>
+              <tr>
+                <td style="font-size:0.8rem;"><%= o.order_number %></td>
+                <td><%= o.device_name || o.device_id %></td>
+                <td><%= o.service_type.replace('_', ' ') %></td>
+                <td><span class="badge bg-<%= o.order_status === 'completed' ? 'success' : 'warning' %>"><%= o.order_status %></span></td>
+                <td>Ksh <%= o.price %></td>
+                <td style="font-size:0.75rem;"><%= new Date(o.created_at).toLocaleString() %></td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr><td colspan="6" class="text-center text-muted">No orders yet</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

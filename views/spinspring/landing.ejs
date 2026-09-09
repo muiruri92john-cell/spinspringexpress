@@ -1,38 +1,482 @@
 <%- include('../layouts/main') %>
 <style>
-.ss-auth { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
+:root {
+  --ss-primary: #0284c7;
+  --ss-secondary: #38bdf8;
+  --ss-accent: #0ea5e9;
+  --ss-light: #f0f9ff;
+  --ss-white: #ffffff;
+  --ss-dark: #0c4a6e;
+  --ss-bg: #f8fafc;
+}
+
+body { background: var(--ss-bg); }
+
+/* Navigation */
+.ss-nav {
+  background: rgba(255,255,255,0.98);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 15px rgba(2,132,199,0.1);
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.ss-nav .brand {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ss-primary);
+  text-decoration: none;
+}
+.ss-nav .brand i { margin-right: 8px; }
+.ss-nav .nav-link {
+  color: var(--ss-dark);
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 50px;
+  transition: all 0.3s;
+  text-decoration: none;
+}
+.ss-nav .nav-link:hover {
+  background: var(--ss-light);
+  color: var(--ss-primary);
+}
+.ss-nav .nav-btn {
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+/* Hero */
+.ss-hero {
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%);
+  padding: 60px 0 100px;
+  position: relative;
+  overflow: hidden;
+}
+.ss-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 50%;
+}
+.ss-hero h1 {
+  color: white;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  margin-bottom: 15px;
+}
+.ss-hero .tagline {
+  color: rgba(255,255,255,0.9);
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  margin-bottom: 25px;
+}
+.ss-hero .hero-image {
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+  min-height: 250px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+}
+.ss-hero .hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ss-hero .hero-image .placeholder-icon {
+  font-size: clamp(3rem, 8vw, 8rem);
+  color: var(--ss-primary);
+  opacity: 0.3;
+}
+
+/* Role Cards */
+.role-section { margin-top: -50px; position: relative; z-index: 10; }
+.role-card {
+  background: white;
+  border-radius: 25px;
+  padding: 30px 20px;
+  text-align: center;
+  box-shadow: 0 15px 40px rgba(2,132,199,0.15);
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  height: 100%;
+}
+.role-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 60px rgba(2,132,199,0.25);
+}
+.role-card.owner { border-color: #0284c7; }
+.role-card.attendant { border-color: #10b981; }
+.role-card.customer { border-color: #f59e0b; }
+.role-card .role-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  font-size: 2rem;
+  color: white;
+}
+.role-card.owner .role-icon { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
+.role-card.attendant .role-icon { background: linear-gradient(135deg, #10b981, #059669); }
+.role-card.customer .role-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.role-card h4 { color: var(--ss-dark); font-weight: 700; font-size: 1.1rem; }
+.role-card p { color: #64748b; font-size: 0.85rem; }
+
+/* Features */
+.feature-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px 15px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  transition: all 0.3s;
+  height: 100%;
+}
+.feature-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
+.feature-card i { font-size: 2.5rem; color: var(--ss-primary); margin-bottom: 12px; }
+.feature-card h5 { color: var(--ss-dark); font-weight: 700; font-size: 1rem; }
+.feature-card p { font-size: 0.8rem; }
+
+/* Gallery */
+.gallery-section { background: white; }
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+.gallery-item {
+  position: relative;
+  border-radius: 15px;
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 200px;
+  background: var(--ss-light);
+  border: 2px dashed #bae6fd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  min-height: 200px;
+}
+.gallery-item .placeholder-icon { font-size: 3rem; color: #bae6fd; }
+.gallery-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(12,74,110,0.9));
+  color: white;
+  padding: 15px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.gallery-item:hover .gallery-overlay { opacity: 1; }
+
+/* Stats */
+.stat-number { font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: 800; color: var(--ss-primary); }
+.stat-label { color: #64748b; font-size: 0.8rem; }
+
+/* CTA */
+.cta-section {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  padding: 50px 0;
+  text-align: center;
+  color: white;
+}
+.cta-section h2 { font-size: clamp(1.3rem, 3vw, 2rem); }
+
+/* Section Titles */
+.section-title { font-size: clamp(1.3rem, 3vw, 2rem); }
+.section-subtitle { font-size: clamp(0.9rem, 1.5vw, 1.1rem); }
+
+/* Responsive Breakpoints */
+@media (max-width: 991px) {
+  .ss-hero { padding: 50px 0 80px; }
+  .role-section { margin-top: -35px; }
+}
+
+@media (max-width: 768px) {
+  .ss-hero { padding: 40px 0 70px; }
+  .ss-hero h1 { font-size: 2rem; }
+  .role-card { padding: 20px 15px; }
+  .role-card .role-icon { width: 55px; height: 55px; font-size: 1.5rem; }
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+  .gallery-item { min-height: 150px; }
+  .gallery-item img { min-height: 150px; }
+  .cta-section .btn { display: block; width: 100%; margin-bottom: 8px; }
+}
+
+@media (max-width: 480px) {
+  .ss-hero { padding: 30px 0 60px; }
+  .gallery-grid { grid-template-columns: 1fr; }
+  .feature-card { padding: 20px 10px; }
+}
 </style>
 </head>
 <body>
-<div class="ss-auth">
-  <div class="ss-auth-card">
-    <div class="text-center mb-4">
-      <i class="fas fa-soap fa-4x" style="color:#0284c7;"></i>
-      <h3 class="mt-2 fw-bold">SpinSpring Express</h3>
-      <p class="text-muted">Owner Login</p>
-    </div>
-    <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
-      <div class="alert alert-danger"><%= error_msg %></div>
-    <% } %>
-    <form action="/login" method="POST">
-      <div class="mb-3">
-        <label class="form-label fw-bold">Email</label>
-        <input type="email" name="email" class="form-control" required>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-bold">Password</label>
-        <input type="password" name="password" class="form-control" required>
-      </div>
-      <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill" style="background:#0284c7;border:none;">
-        <i class="fas fa-sign-in-alt me-2"></i> Login
-      </button>
-    </form>
-    <div class="text-center mt-3">
-      <a href="/register">Register</a> |
-      <a href="/attendant-login">Attendant Login</a> |
-      <a href="/customer-login">Customer Login</a>
+
+<!-- Navigation Bar -->
+<nav class="ss-nav">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a href="/spinspg" class="brand">
+      <i class="fas fa-soap"></i>SpinSpring
+    </a>
+    <button class="navbar-toggler d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#ssNav" style="border:none;font-size:1.5rem;color:var(--ss-primary);">
+      ☰
+    </button>
+    <div class="d-none d-md-flex align-items-center gap-2">
+      <a href="/spinspg" class="nav-link">Home</a>
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#gallery" class="nav-link">Gallery</a>
+      <a href="#roles" class="nav-link">Portals</a>
+      <a href="/spinspg/login" class="nav-btn" style="background:#0284c7;color:white;">Owner Login</a>
+      <a href="/spinspg/attendant-login" class="nav-btn" style="background:#10b981;color:white;">Attendant</a>
+      <a href="/spinspg/customer-login" class="nav-btn" style="background:#f59e0b;color:white;">Customer</a>
     </div>
   </div>
-</div>
+  <!-- Mobile Nav -->
+  <div class="collapse d-md-none" id="ssNav">
+    <div class="container py-2 d-flex flex-column gap-2">
+      <a href="/spinspg" class="nav-link">Home</a>
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#gallery" class="nav-link">Gallery</a>
+      <a href="#roles" class="nav-link">Portals</a>
+      <a href="/spinspg/login" class="nav-btn text-center" style="background:#0284c7;color:white;">Owner Login</a>
+      <a href="/spinspg/attendant-login" class="nav-btn text-center" style="background:#10b981;color:white;">Attendant Login</a>
+      <a href="/spinspg/customer-login" class="nav-btn text-center" style="background:#f59e0b;color:white;">Customer Login</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="ss-hero">
+  <div class="container position-relative">
+    <div class="row align-items-center">
+      <div class="col-lg-6 mb-4 mb-lg-0 text-center text-lg-start">
+        <span class="badge bg-white px-3 py-2 rounded-pill mb-3" style="color:#0284c7;">
+          <i class="fas fa-star me-1"></i> Smart Laundry Automation
+        </span>
+        <h1>SpinSpring</h1>
+        <p class="tagline">Revolutionize your laundry business with IoT-powered washing machines, real-time monitoring, and smart order management.</p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-lg-start">
+          <a href="#roles" class="btn btn-light btn-lg rounded-pill fw-bold">
+            <i class="fas fa-sign-in-alt me-2"></i> Access Portals
+          </a>
+          <a href="#features" class="btn btn-outline-light btn-lg rounded-pill">
+            <i class="fas fa-info-circle me-2"></i> Learn More
+          </a>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="hero-image">
+          <img src="/images/spinspring/dashboard.jpg" alt="SpinSpring Dashboard" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <i class="fas fa-washing-machine placeholder-icon" style="display:none;"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Role Selection -->
+<section id="roles" class="role-section">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="section-title" style="color:var(--ss-dark);font-weight:800;">Choose Your Portal</h2>
+      <p class="section-subtitle text-muted">Select the login that applies to you</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="role-card owner">
+          <div class="role-icon"><i class="fas fa-store"></i></div>
+          <h4>Owner Portal</h4>
+          <p>Manage machines, attendants, customers, and analytics.</p>
+          <a href="/spinspg/login" class="btn btn-primary rounded-pill w-100" style="background:#0284c7;border:none;">
+            Owner Login
+          </a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="role-card attendant">
+          <div class="role-icon"><i class="fas fa-user-tie"></i></div>
+          <h4>Attendant Portal</h4>
+          <p>Start orders, control machines, serve customers.</p>
+          <a href="/spinspg/attendant-login" class="btn btn-success rounded-pill w-100" style="background:#10b981;border:none;">
+            Attendant Login
+          </a>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="role-card customer">
+          <div class="role-icon"><i class="fas fa-id-card"></i></div>
+          <h4>Customer Portal</h4>
+          <p>Track orders, view history, check loyalty points.</p>
+          <a href="/spinspg/customer-login" class="btn btn-warning rounded-pill w-100" style="background:#f59e0b;border:none;color:white;">
+            Customer Login
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="py-4 mt-4" style="background:white;">
+  <div class="container">
+    <div class="row text-center">
+      <div class="col-md-3 col-6 mb-3">
+        <div class="stat-number" data-target="1000">0</div>
+        <div class="stat-label">Machines</div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="stat-number" data-target="50000">0</div>
+        <div class="stat-label">Cycles</div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="stat-number" data-target="500">0</div>
+        <div class="stat-label">Businesses</div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="stat-number" data-target="99.9">0</div>
+        <div class="stat-label">Uptime %</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="py-5" style="background:var(--ss-bg);">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="section-title" style="color:var(--ss-dark);font-weight:800;">Key Features</h2>
+      <p class="section-subtitle text-muted">Everything you need to run a smart laundry business</p>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-3 col-6">
+        <div class="feature-card">
+          <i class="fas fa-wifi"></i>
+          <h5>IoT Connected</h5>
+          <p>ESP32 with WiFi & GSM</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="feature-card">
+          <i class="fas fa-chart-line"></i>
+          <h5>Real-time Monitoring</h5>
+          <p>Live cycle progress</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="feature-card">
+          <i class="fas fa-receipt"></i>
+          <h5>Order Tracking</h5>
+          <p>Complete management</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="feature-card">
+          <i class="fas fa-mobile-alt"></i>
+          <h5>Multi-Role Access</h5>
+          <p>Owner, attendant, customer</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Gallery -->
+<section id="gallery" class="gallery-section py-5">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="section-title" style="color:var(--ss-dark);font-weight:800;">System Gallery</h2>
+      <p class="section-subtitle text-muted">See SpinSpring in action</p>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item">
+        <img src="/images/spinspring/machine.jpg" alt="Washing Machine" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <i class="fas fa-washing-machine placeholder-icon" style="display:none;"></i>
+        <div class="gallery-overlay"><h6>Machine Unit</h6></div>
+      </div>
+      <div class="gallery-item">
+        <img src="/images/spinspring/dashboard.jpg" alt="Dashboard" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <i class="fas fa-desktop placeholder-icon" style="display:none;"></i>
+        <div class="gallery-overlay"><h6>Dashboard</h6></div>
+      </div>
+      <div class="gallery-item">
+        <img src="/images/spinspring/mobile.jpg" alt="Mobile" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <i class="fas fa-mobile-alt placeholder-icon" style="display:none;"></i>
+        <div class="gallery-overlay"><h6>Mobile Access</h6></div>
+      </div>
+      <div class="gallery-item">
+        <img src="/images/spinspring/lcd.jpg" alt="LCD" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <i class="fas fa-tv placeholder-icon" style="display:none;"></i>
+        <div class="gallery-overlay"><h6>LCD Display</h6></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="fw-bold mb-3">Ready to Access Your Portal?</h2>
+    <p class="mb-4">Login below based on your role</p>
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <a href="/spinspg/login" class="btn btn-light btn-lg rounded-pill fw-bold">
+        <i class="fas fa-store me-2"></i> Owner
+      </a>
+      <a href="/spinspg/attendant-login" class="btn btn-outline-light btn-lg rounded-pill">
+        <i class="fas fa-user-tie me-2"></i> Attendant
+      </a>
+      <a href="/spinspg/customer-login" class="btn btn-warning btn-lg rounded-pill fw-bold">
+        <i class="fas fa-id-card me-2"></i> Customer
+      </a>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function animateCounters() {
+  document.querySelectorAll('.stat-number').forEach(counter => {
+    const target = parseFloat(counter.getAttribute('data-target'));
+    const duration = 2000;
+    const step = target / (duration / 16);
+    let current = 0;
+    const update = () => {
+      current += step;
+      if (current < target) {
+        counter.textContent = target === Math.floor(target) ? Math.floor(current) : current.toFixed(1);
+        requestAnimationFrame(update);
+      } else {
+        counter.textContent = target;
+      }
+    };
+    update();
+  });
+}
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) { animateCounters(); observer.disconnect(); }
+  });
+});
+document.querySelectorAll('.stat-number').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>

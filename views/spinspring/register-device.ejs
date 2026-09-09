@@ -1,0 +1,54 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container">
+    <a href="/spinspg/dashboard"><i class="fas fa-arrow-left me-2"></i> Back to Dashboard</a>
+  </div>
+</nav>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow border-0 rounded-4">
+        <div class="card-body p-5">
+          <h3 class="text-center mb-4" style="color:#0c4a6e;">
+            <i class="fas fa-plus-circle me-2" style="color:#0284c7;"></i>Register Machine
+          </h3>
+          <form action="/spinspg/register-device" method="POST">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Machine Name *</label>
+              <input type="text" name="device_name" class="form-control" placeholder="e.g., Washer 1" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Machine Type</label>
+              <select name="device_type" class="form-select">
+                <option value="washing_machine">Washing Machine</option>
+                <option value="dishwasher">Dishwasher</option>
+                <option value="dryer">Dryer</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Location</label>
+              <input type="text" name="location" class="form-control" placeholder="e.g., Main Area">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Price per Cycle (Ksh)</label>
+              <input type="number" name="price_per_cycle" class="form-control" value="300" min="50">
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold" style="background:#0284c7;border:none;">
+              <i class="fas fa-check me-2"></i> Register Machine
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0284c7, #38bdf8, #0ea5e9);
+  padding: 20px;
+}
+.ss-auth-card {
+  background: white;
+  border-radius: 25px;
+  padding: 45px;
+  box-shadow: 0 25px 60px rgba(2,132,199,0.3);
+  max-width: 460px;
+  width: 100%;
+}
+.ss-logo {
+  text-align: center;
+  margin-bottom: 35px;
+}
+.ss-logo i { font-size: 4rem; color: #0284c7; }
+.ss-logo h2 { font-weight: 800; color: #0c4a6e; margin: 10px 0 0; }
+.ss-logo p { color: #64748b; margin: 5px 0 0; }
+</style>
+</head>
+<body>
+<div class="ss-auth">
+  <div class="ss-auth-card">
+    <div class="ss-logo">
+      <i class="fas fa-soap"></i>
+      <h2>SpinSpring</h2>
+      <p>Laundry Automation System</p>
+    </div>
+    <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+      <div class="alert alert-success"><%= success_msg %></div>
+    <% } %>
+    <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+      <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+    <form action="/spinspg/login" method="POST">
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100 py-3 fw-bold" style="background:#0284c7;border:none;border-radius:50px;">
+        <i class="fas fa-sign-in-alt me-2"></i> Login to SpinSpring
+      </button>
+    </form>
+    <div class="text-center mt-3">
+      <p>No account? <a href="/spinspg/register" style="color:#0284c7;">Register here</a></p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

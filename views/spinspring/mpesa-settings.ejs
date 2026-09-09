@@ -1,0 +1,89 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+.ss-card {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 5px 25px rgba(2,132,199,0.1);
+  border: 1px solid #e0f2fe;
+}
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container">
+    <a href="/spinspg/dashboard"><i class="fas fa-arrow-left me-2"></i> Back to Dashboard</a>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <h2 class="mb-4" style="color:#0c4a6e;">
+    <i class="fas fa-mobile-alt me-2"></i>M-PESA Settings
+  </h2>
+
+  <div class="ss-card">
+    <h5 class="mb-3" style="color:#0c4a6e;">Daraja API Configuration</h5>
+    
+    <form action="/spinspg/mpesa-settings" method="POST">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Business Shortcode (Paybill/Till)</label>
+          <input type="text" name="business_shortcode" class="form-control" value="<%= config.business_shortcode || '' %>" placeholder="e.g., 1234567" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Account Type</label>
+          <select name="account_type" class="form-select" required>
+            <option value="till" <%= config.account_type === 'till' ? 'selected' : '' %>>Till Number (Buy Goods)</option>
+            <option value="paybill" <%= config.account_type === 'paybill' ? 'selected' : '' %>>Paybill Number</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Consumer Key</label>
+          <input type="text" name="consumer_key" class="form-control" value="<%= config.consumer_key || '' %>" placeholder="From Safaricom Developer Portal" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Consumer Secret</label>
+          <input type="password" name="consumer_secret" class="form-control" value="<%= config.consumer_secret || '' %>" placeholder="From Safaricom Developer Portal" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Passkey (for STK Push)</label>
+          <input type="text" name="passkey" class="form-control" value="<%= config.passkey || '' %>" placeholder="From Safaricom Developer Portal">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary rounded-pill mt-3" style="background:#0284c7;border:none;">
+        <i class="fas fa-save me-2"></i> Save M-PESA Settings
+      </button>
+    </form>
+  </div>
+
+  <div class="ss-card mt-3">
+    <h5 class="mb-3" style="color:#0c4a6e;">C2B URL Registration (For Paybill/Till)</h5>
+    <p class="text-muted">Register your callback URLs with Safaricom so they send payment confirmations to your system.</p>
+    <form action="/spinspg/mpesa/register-urls" method="POST">
+      <button type="submit" class="btn btn-success rounded-pill">
+        <i class="fas fa-link me-2"></i> Register C2B URLs
+      </button>
+    </form>
+    <small class="text-muted mt-2 d-block">
+      Callback URL: https://ardthonsolutions.com/spinspg/api/mpesa/callback
+    </small>
+  </div>
+
+  <div class="alert alert-info mt-3">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>How to get M-PESA credentials:</strong>
+    <ol class="mb-0 mt-2">
+      <li>Go to <a href="https://developer.safaricom.co.ke" target="_blank">developer.safaricom.co.ke</a></li>
+      <li>Create an account or login</li>
+      <li>Create a new app</li>
+      <li>Select "M-PESA Express (STK Push)" and "C2B" APIs</li>
+      <li>Copy your Consumer Key, Consumer Secret, and Passkey</li>
+      <li>Paste them above</li>
+    </ol>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

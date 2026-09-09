@@ -1,6 +1,21 @@
 <%- include('../layouts/main') %>
 <style>
-.ss-auth { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.ss-auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  padding: 20px;
+}
+.ss-auth-card {
+  background: white;
+  border-radius: 25px;
+  padding: 40px;
+  box-shadow: 0 25px 60px rgba(245,158,11,0.3);
+  max-width: 420px;
+  width: 100%;
+}
 </style>
 </head>
 <body>
@@ -14,18 +29,18 @@
     <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
       <div class="alert alert-danger"><%= error_msg %></div>
     <% } %>
-    <form action="/customer-login" method="POST">
+    <form action="/spinspg/customer-login" method="POST">
       <div class="mb-3">
         <label class="form-label fw-bold">Customer ID</label>
         <input type="text" name="customer_id" class="form-control" placeholder="CUST-XXXX-XXXX" required>
       </div>
-      <button type="submit" class="btn w-100 py-3 fw-bold rounded-pill" style="background:#f59e0b;border:none;color:white;">
+      <button type="submit" class="btn btn-warning w-100 py-3 fw-bold rounded-pill">
         <i class="fas fa-sign-in-alt me-2"></i> Login
       </button>
     </form>
     <div class="text-center mt-3">
-      <a href="/login">Owner Login</a> |
-      <a href="/">Home</a>
+      <a href="/spinspg/login" class="text-muted">Owner Login</a> |
+      <a href="/spinspg/attendant-login" class="text-muted">Attendant Login</a>
     </div>
   </div>
 </div>

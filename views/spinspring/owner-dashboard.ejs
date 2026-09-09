@@ -1,0 +1,209 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+.ss-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 5px 25px rgba(2,132,199,0.1);
+  border: 1px solid #e0f2fe;
+  margin-bottom: 20px;
+}
+.section-title {
+  color: #0c4a6e;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0f2fe;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.table-blue th { background: #e0f2fe; color: #0c4a6e; }
+.btn-sm { padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <a href="/spinspg/owner" class="brand text-white text-decoration-none" style="font-size:1.5rem;font-weight:800;">
+      <i class="fas fa-soap me-2"></i>SpinSpring
+    </a>
+    <div class="d-flex flex-wrap gap-1">
+      <a href="/spinspg/owner" class="btn btn-light btn-sm rounded-pill">🏠 Owner Panel</a>
+      <a href="/spinspg/device-list" class="btn btn-outline-light btn-sm rounded-pill">Machines</a>
+      <a href="/spinspg/orders" class="btn btn-outline-light btn-sm rounded-pill">Orders</a>
+      <a href="/spinspg/reports" class="btn btn-outline-light btn-sm rounded-pill">Reports</a>
+      <a href="/spinspg/logout" class="btn btn-danger btn-sm rounded-pill">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <h2 class="mb-4" style="color:#0c4a6e;">Owner Panel</h2>
+  
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="ss-card text-center">
+        <div class="h3 fw-bold" style="color:#0284c7;">Ksh <%= stats.today_rev || 0 %></div>
+        <small class="text-muted">Today Revenue</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ss-card text-center">
+        <div class="h3 fw-bold" style="color:#0284c7;">Ksh <%= stats.total_rev || 0 %></div>
+        <small class="text-muted">Total Revenue</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ss-card text-center">
+        <div class="h3 fw-bold"><%= stats.total_cyc || 0 %></div>
+        <small class="text-muted">Total Cycles</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="ss-card text-center">
+        <div class="h3 fw-bold"><%= typeof devices !== 'undefined' ? devices.length : 0 %></div>
+        <small class="text-muted">Machines</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machines -->
+  <div class="ss-card">
+    <div class="section-title">
+      <span><i class="fas fa-washing-machine me-2"></i>Your Machines</span>
+      <a href="/spinspg/register-device" class="btn btn-sm rounded-pill" style="background:#0284c7;color:white;">+ Add Machine</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-blue">
+        <thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Price</th><th>Cycles</th><th>Revenue</th></tr></thead>
+        <tbody>
+          <% if (typeof devices !== 'undefined' && devices.length > 0) { %>
+            <% devices.forEach(function(d) { %>
+              <tr>
+                <td><a href="/spinspg/device/<%= d.device_id %>"><%= d.device_name %></a></td>
+                <td><%= d.device_type.replace('_', ' ') %></td>
+                <td><span class="badge bg-info"><%= d.status %></span></td>
+                <td>Ksh <%= d.price_per_cycle %></td>
+                <td><%= d.cycles_completed %></td>
+                <td>Ksh <%= d.total_revenue %></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Attendants -->
+  <div class="ss-card">
+    <div class="section-title">
+      <span><i class="fas fa-users me-2"></i>Attendants</span>
+      <button class="btn btn-sm rounded-pill" style="background:#10b981;color:white;" data-bs-toggle="modal" data-bs-target="#addAttendantModal">+ Add Attendant</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <% if (typeof attendants !== 'undefined' && attendants.length > 0) { %>
+            <% attendants.forEach(function(a) { %>
+              <tr>
+                <td><%= a.full_name %></td>
+                <td><%= a.email %></td>
+                <td><%= a.phone %></td>
+                <td><span class="badge bg-<%= a.is_active ? 'success' : 'danger' %>"><%= a.is_active ? 'Active' : 'Inactive' %></span></td>
+                <td>
+                  <form action="/spinspg/owner/attendants/<%= a.id %>/toggle" method="POST" style="display:inline;">
+                    <button class="btn-sm btn btn-warning"><%= a.is_active ? 'Deactivate' : 'Activate' %></button>
+                  </form>
+                  <form action="/spinspg/owner/attendants/<%= a.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Delete?');">
+                    <button class="btn-sm btn btn-danger">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Customers -->
+  <div class="ss-card">
+    <div class="section-title">
+      <span><i class="fas fa-id-card me-2"></i>Customers</span>
+      <button class="btn btn-sm rounded-pill" style="background:#f59e0b;color:white;" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+ Add Customer</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead><tr><th>Customer ID</th><th>Name</th><th>Phone</th><th>Cycles</th><th>Spent</th></tr></thead>
+        <tbody>
+          <% if (typeof customers !== 'undefined' && customers.length > 0) { %>
+            <% customers.forEach(function(c) { %>
+              <tr>
+                <td style="font-family:monospace;font-size:0.8rem;"><%= c.customer_unique_id %></td>
+                <td><%= c.full_name %></td>
+                <td><%= c.phone %></td>
+                <td><%= c.total_cycles %></td>
+                <td>Ksh <%= c.total_spent %></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Attendant Modal -->
+<div class="modal fade" id="addAttendantModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4">
+      <div class="modal-header" style="background:#0284c7;color:white;">
+        <h5>Add Attendant</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/spinspg/owner/attendants" method="POST">
+        <div class="modal-body">
+          <input type="text" name="full_name" class="form-control mb-2" placeholder="Full Name" required>
+          <input type="email" name="email" class="form-control mb-2" placeholder="Email (unique)" required>
+          <input type="text" name="phone" class="form-control mb-2" placeholder="Phone">
+          <input type="text" name="pin_code" class="form-control mb-2" placeholder="PIN Code (4-6 digits)" maxlength="6" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Attendant</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4">
+      <div class="modal-header" style="background:#f59e0b;color:white;">
+        <h5>Add Customer</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="/spinspg/owner/customers" method="POST">
+        <div class="modal-body">
+          <input type="text" name="full_name" class="form-control mb-2" placeholder="Full Name" required>
+          <input type="text" name="phone" class="form-control mb-2" placeholder="Phone">
+          <input type="email" name="email" class="form-control mb-2" placeholder="Email (optional, unique)">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">Create Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
