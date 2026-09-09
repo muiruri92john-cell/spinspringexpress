@@ -4,16 +4,14 @@ const flash = require('connect-flash');
 const path = require('path');
 const app = express();
 
+// Database
 const mysql = require('mysql2/promise');
 const db = mysql.createPool({
-  host: process.env.DB_HOST || '127.0.0.1',
-  user: process.env.DB_USER || 'buxbtreu_spinspringuser',
-  password: process.env.DB_PASSWORD || 'spinspring@2026',
-  database: process.env.DB_NAME || 'buxbtreu_spinspringwebappdb',
-  port: parseInt(process.env.DB_PORT) || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  host: '127.0.0.1',
+  user: 'buxbtreu_spinspringuser',
+  password: 'spinspring@2026',
+  database: 'buxbtreu_spinspringwebappdb',
+  port: 3306
 });
 
 app.set('view engine', 'ejs');
@@ -21,12 +19,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(session({
-  secret: 'spinspring_secure_session_2024',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 86400000, httpOnly: true }
-}));
+app.use(session({ secret: 'spinspring_2026', resave: false, saveUninitialized: false }));
 app.use(flash());
 
 app.use((req, res, next) => {
@@ -34,25 +27,24 @@ app.use((req, res, next) => {
   res.locals.success_msg = req.flash('success_msg') || [];
   res.locals.error_msg = req.flash('error_msg') || [];
   res.locals.user = req.session.spinUser || null;
-  res.locals.year = new Date().getFullYear();
   next();
 });
 
-// Routes
+// Use SpinSpring routes
 app.use('/', require('./routes/spinspring'));
 
 // 404
 app.use((req, res) => {
-  res.status(404).render('spinspring/404', { title: 'Page Not Found' });
+  res.status(404).send('<h1>404 - Not Found</h1><a href="/">Home</a>');
 });
 
-// Error handler
+// Error
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
-  res.status(500).send('<h1>500 - Server Error</h1><a href="/">Home</a>');
+  res.status(500).send('<h1>500 - Server Error</h1><p>' + err.message + '</p>');
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`SpinSpring Express running on port ${PORT}`);
+  console.log('SpinSpring running on port ' + PORT);
 });
