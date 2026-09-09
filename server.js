@@ -200,8 +200,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-// cPanel Passenger: export app, do NOT call listen (Passenger owns the socket).
-// Plain VPS / local: app.listen when file is run directly.
+// Local / plain-VPS boot: `node server.js` listens here.
+// Under cPanel Passenger, server.js is require()d (require.main !== module),
+// so this block is SKIPPED and app.js (the startup file) boots the listener.
+// That split is intentional: exactly ONE listen call per process.
 let server = null;
 if (require.main === module) {
   server = app.listen(PORT, '0.0.0.0', () => {
