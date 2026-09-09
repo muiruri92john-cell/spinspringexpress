@@ -1,25 +1,23 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const flash = require('connect-flash');
 const path = require('path');
 const app = express();
 
-// Database
-const mysql = require('mysql2/promise');
-const db = mysql.createPool({
-  host: '127.0.0.1',
-  user: 'buxbtreu_spinspringuser',
-  password: 'spinspring@2026',
-  database: 'buxbtreu_spinspringwebappdb',
-  port: 3306
-});
+// Database pool (shared)
+const db = require('./config/database');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(session({ secret: 'spinspring_2026', resave: false, saveUninitialized: false }));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'spinspring_2026',
+  resave: false,
+  saveUninitialized: false
+}));
 app.use(flash());
 
 app.use((req, res, next) => {
@@ -30,18 +28,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use SpinSpring routes
-app.use('/', require('./routes/spinspring'));
+// Health check (for hosting / debugging)
+app.get('/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', db: 'connected', time: new Date().toISOString() });
+  } catch (e) {
+    res.status(500).json({ status: 'error', db: 'disconnected', message: e.message });
+  }
+});
+
+// SpinSpring routes.
+// Mount on BOTH '/' and '/spinspg' so every existing view link works
+// locally (/) and in production under sub-path (/spinspg).
+const spinRoutes = require('./routes/spinspring');
+app.use('/', spinRoutes);
+app.use('/spinspg', spinRoutes);
 
 // 404
 app.use((req, res) => {
   res.status(404).send('<h1>404 - Not Found</h1><a href="/">Home</a>');
 });
 
-// Error
+// Error handler
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
-  res.status(500).send('<h1>500 - Server Error</h1><p>' + err.message + '</p>');
+  console.error('Error:', err);
+  if (req.path.startsWith('/api/')) {
+    return res.status(500).json({ error: 'Server error', message: err.message });
+  }
+  res.status(500).send('<h1>500 - Server Error</h1><p>' + (err.message || '') + '</p><a href="/">Home</a>');
 });
 
 const PORT = process.env.PORT || 3000;
