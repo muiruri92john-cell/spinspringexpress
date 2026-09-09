@@ -6,6 +6,15 @@ const session = require('express-session');
 const MySQLStore = require('express-mysql-session')(session);
 require('dotenv').config();
 
+// Fail fast with a VISIBLE message instead of silently falling back to MemoryStore.
+// (An undefined `store` is exactly what caused the MemoryStore warning in prod.)
+for (const k of ['DB_HOST', 'DB_USER', 'DB_NAME']) {
+  if (!process.env[k]) console.error(`[sessions] WARNING: ${k} is not set — using built-in default`);
+}
+if (!process.env.DB_PASSWORD) {
+  console.error('[sessions] WARNING: DB_PASSWORD is not set — session store login will fail and express-session will fall back to MemoryStore');
+}
+
 const storeOptions = {
   host: process.env.DB_HOST || '127.0.0.1',
   port: parseInt(process.env.DB_PORT, 10) || 3306,
