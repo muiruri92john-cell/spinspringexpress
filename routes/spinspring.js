@@ -45,11 +45,13 @@ function isCustomer(req, res, next) {
 }
 
 // ============ LANDING ============
-router.get('/', (req, res) => {
-  res.render('spinspring/landing', {
-    title: 'SpinSpring Express - Smart Laundry Automation',
-    user: req.session.spinUser || null
-  });
+router.get('/', (req, res, next) => {
+  try {
+    res.render('spinspring/landing', {
+      title: 'SpinSpring Express - Smart Laundry Automation',
+      user: req.session.spinUser || null
+    });
+  } catch (e) { next(e); }
 });
 
 // ============ REGISTER ============
@@ -565,5 +567,13 @@ router.post('/api/mpesa/callback', async (req, res) => {
   console.log('M-PESA callback:', JSON.stringify(req.body).slice(0, 500));
   res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
 });
+
+// Self-test helper: `node routes/spinspring.js` lists registered routes.
+if (require.main === module) {
+  console.log('spinspring router stack size:', router.stack.length);
+  router.stack.forEach((l) => {
+    if (l.route) console.log(' ', Object.keys(l.route.methods).join(',').toUpperCase(), l.route.path);
+  });
+}
 
 module.exports = router;

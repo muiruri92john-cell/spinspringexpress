@@ -108,6 +108,11 @@ app.use('/spinspg', spinRoutes);
 // Direct aliases at app level (belt-and-suspenders): if a proxy strips or
 // keeps a prefix unexpectedly, these still answer on the domain root.
 // NOTE: /health* and /debug-root are defined at the TOP of this file on purpose.
+// The plain /ping self-test MUST be reachable even if an old cached
+// routes/spinspring.js throws during require().
+app.get('/ping-selftest', (req, res) => {
+  res.status(200).json({ status: 'ok', selftest: 'server.js alive without routes' });
+});
 ['/login', '/register', '/owner', '/attendant', '/customer',
  '/attendant-login', '/customer-login', '/orders', '/reports',
  '/settings', '/register-device', '/logout', '/mpesa-settings'
