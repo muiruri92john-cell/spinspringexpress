@@ -1,0 +1,52 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-auth { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+</style>
+</head>
+<body>
+<div class="ss-auth">
+  <div class="ss-auth-card">
+    <div class="text-center mb-4">
+      <i class="fas fa-user-plus fa-4x" style="color:#0284c7;"></i>
+      <h3 class="mt-2 fw-bold">Create Account</h3>
+      <p class="text-muted">Register your laundry business</p>
+    </div>
+    <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+      <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+    <form action="/register" method="POST">
+      <div class="mb-3">
+        <label class="form-label fw-bold">Full Name *</label>
+        <input type="text" name="full_name" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Business Name</label>
+        <input type="text" name="business_name" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Phone</label>
+        <input type="text" name="phone" class="form-control">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Email *</label>
+        <input type="email" name="email" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Password *</label>
+        <input type="password" name="password" class="form-control" required minlength="6">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-bold">Confirm Password *</label>
+        <input type="password" name="password2" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill" style="background:#0284c7;border:none;">
+        <i class="fas fa-user-plus me-2"></i> Create Account
+      </button>
+    </form>
+    <div class="text-center mt-3">
+      <a href="/login">Already have account? Login</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-auth { background: linear-gradient(135deg, #f59e0b, #d97706); }
+</style>
+</head>
+<body>
+<div class="ss-auth">
+  <div class="ss-auth-card">
+    <div class="text-center mb-4">
+      <i class="fas fa-id-card fa-4x" style="color:#f59e0b;"></i>
+      <h3 class="mt-2 fw-bold">Customer Login</h3>
+      <p class="text-muted">Enter your Customer ID</p>
+    </div>
+    <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+      <div class="alert alert-danger"><%= error_msg %></div>
+    <% } %>
+    <form action="/customer-login" method="POST">
+      <div class="mb-3">
+        <label class="form-label fw-bold">Customer ID</label>
+        <input type="text" name="customer_id" class="form-control" placeholder="CUST-XXXX-XXXX" required>
+      </div>
+      <button type="submit" class="btn w-100 py-3 fw-bold rounded-pill" style="background:#f59e0b;border:none;color:white;">
+        <i class="fas fa-sign-in-alt me-2"></i> Login
+      </button>
+    </form>
+    <div class="text-center mt-3">
+      <a href="/login">Owner Login</a> |
+      <a href="/">Home</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

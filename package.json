@@ -1,0 +1,17 @@
+{
+  "name": "spinspringexpress",
+  "version": "1.0.0",
+  "description": "SpinSpring Express - Smart Laundry Automation System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "ejs": "^3.1.9",
+    "mysql2": "^3.6.5",
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1"
+  }
+}
