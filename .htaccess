@@ -1,7 +1,10 @@
 # SpinSpring Express — SAFE cPanel public_html/.htaccess (Apache 2.2 + 2.4 compatible)
-# This file alone NEVER runs Node.js. It only protects files + serves static.
-# Your Node app must run via cPanel >> Setup Node.js App (Passenger).
+# PASSENGER NOTE: when a Node.js app is registered for this domain in
+# cPanel >> Setup Node.js App, Passenger handles routing BEFORE .htaccess.
+# This file must NOT proxy/rewrite /health or / — doing so causes 403/404.
+# It only forces HTTPS + protects files. Node serves /health and / itself.
 
+# NOTE: "DirectoryIndex disabled" 500s on Apache 2.2 — keep the 2.4/2.2-safe form.
 DirectoryIndex index.html index.php
 
 <IfModule mod_rewrite.c>

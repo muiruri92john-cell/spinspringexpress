@@ -5,12 +5,35 @@ const flash = require('connect-flash');
 const path = require('path');
 const app = express();
 
-// Database pool (shared)
-const db = require('./config/database');
-const { sessionStore, closeSessionStore } = require('./config/sessionStore');
-
 // Behind cPanel/Apache proxy — needed for secure cookies + correct protocol.
 app.set('trust proxy', 1);
+
+// ---- LIGHTWEIGHT PROBES FIRST (no session/DB/flash deps) ----
+// If THESE 404, traffic never reached Node (Passenger mapping / app stopped).
+// If these answer but '/' 403s, Apache served public_html instead of Node.
+app.get(['/health', '/healthz', '/ping'], (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    app: 'spinspringexpress',
+    time: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// Root debug: proves Node owns '/' and shows mount state (remove later).
+app.get('/debug-root', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Node owns this domain root',
+    originalUrl: req.originalUrl,
+    path: req.path,
+    host: req.get('host')
+  });
+});
+
+// Database pool (shared) — loaded AFTER probes so probes stay dependency-free.
+const db = require('./config/database');
+const { sessionStore, closeSessionStore } = require('./config/sessionStore');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -50,9 +73,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check (for hosting / debugging) — wrapped so DB failures
-// return visible JSON instead of hanging the request.
-app.get('/health', (req, res, next) => Promise.resolve((async () => {
+// Deep health (DB + session store) — use when /health is ok but pages fail.
+app.get('/health/db', (req, res, next) => Promise.resolve((async () => {
   const checks = { time: new Date().toISOString(), sessionStore: 'unknown', db: 'unknown' };
   try {
     await db.query('SELECT 1');
@@ -76,12 +98,22 @@ app.get('/health', (req, res, next) => Promise.resolve((async () => {
   res.status(ok ? 200 : 500).json({ status: ok ? 'ok' : 'error', ...checks });
 })()).catch(next));
 
-// SpinSpring routes.
-// Mount on BOTH '/' and '/spinspg' so every existing view link works
-// locally (/) and in production under sub-path (/spinspg).
+// SpinSpring routes (dual mounts = both URL styles work).
+// Domain-root deploy (spinspringexpress.co.ke/): '/' mount serves everything,
+// '/spinspg' mount keeps every absolute /spinspg/... link in views working.
 const spinRoutes = require('./routes/spinspring');
 app.use('/', spinRoutes);
 app.use('/spinspg', spinRoutes);
+
+// Direct aliases at app level (belt-and-suspenders): if a proxy strips or
+// keeps a prefix unexpectedly, these still answer on the domain root.
+// NOTE: /health* and /debug-root are defined at the TOP of this file on purpose.
+['/login', '/register', '/owner', '/attendant', '/customer',
+ '/attendant-login', '/customer-login', '/orders', '/reports',
+ '/settings', '/register-device', '/logout', '/mpesa-settings'
+].forEach((p) => {
+  app.get('/spinspg' + p, (req, res) => res.redirect(p));
+});
 
 // 404 — always visible, never a blank page
 app.use((req, res) => {
