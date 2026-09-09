@@ -35,6 +35,8 @@
 <div class="container py-4">
   <h2 class="mb-4" style="color:#0c4a6e;">All Orders</h2>
 
+  <%- include('../partials/flash') %>
+
   <% if (typeof orders !== 'undefined' && orders.length > 0) { %>
     <% orders.forEach(function(order) { %>
       <a href="/spinspg/order/<%= order.id %>" class="text-decoration-none text-dark">

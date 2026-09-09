@@ -2,6 +2,23 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 
+// Wrap async route handlers so ANY thrown/rejected error reaches the
+// visible error page in server.js instead of hanging or blank-screening.
+const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// Auto-wrap ALL async handlers registered on this router (Express 4 does
+// not catch rejected promises by itself). Already-wrapped handlers are
+// normal functions so they pass through untouched.
+['get', 'post', 'put', 'patch', 'delete', 'all'].forEach((m) => {
+  const orig = router[m].bind(router);
+  router[m] = (path, ...handlers) => orig(
+    path,
+    ...handlers.map((h) => (
+      typeof h === 'function' && h.constructor.name === 'AsyncFunction' ? ah(h) : h
+    ))
+  );
+});
+
 // Auth Middleware
 function isAuth(req, res, next) {
   if (req.session.spinUser) return next();
@@ -129,10 +146,9 @@ router.get('/owner', isOwner, async (req, res) => {
       stats: stats[0] || {}
     });
   } catch (err) {
-    res.render('spinspring/owner-dashboard', {
-      title: 'Owner Panel', user: req.session.spinUser,
-      devices: [], attendants: [], customers: [], stats: {}
-    });
+    // Don't silently render an empty dashboard — show the real failure
+    err.status = 500;
+    throw err;
   }
 });
 
@@ -215,7 +231,7 @@ router.post('/attendant-login', async (req, res) => {
   res.redirect('/attendant');
 });
 
-router.get('/attendant', isAttendant, async (req, res) => {
+router.get('/attendant', isAttendant, ah(async (req, res) => {
   const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
   const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE owner_id = ?', [ownerId]);
   const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE owner_id = ? AND is_active = 1', [ownerId]);
@@ -224,7 +240,7 @@ router.get('/attendant', isAttendant, async (req, res) => {
     title: 'Attendant Panel', user: req.session.spinUser,
     devices, customers, activeOrders
   });
-});
+}));
 
 router.post('/attendant/orders', isAttendant, async (req, res) => {
   try {
@@ -347,7 +363,7 @@ router.post('/customer-login', async (req, res) => {
   res.redirect('/customer');
 });
 
-router.get('/customer', isCustomer, async (req, res) => {
+router.get('/customer', isCustomer, ah(async (req, res) => {
   const customerId = req.session.spinUser.customerId;
   const [customerData] = await req.db.query('SELECT * FROM ss_customers WHERE customer_unique_id = ?', [customerId]);
   const [orders] = await req.db.query('SELECT * FROM ss_orders WHERE customer_name = ? ORDER BY created_at DESC LIMIT 20', [customerId]);
@@ -356,7 +372,7 @@ router.get('/customer', isCustomer, async (req, res) => {
     title: 'My Account', user: req.session.spinUser,
     customer: customerData[0] || {}, orders, activeOrders
   });
-});
+}));
 
 // ============ LOGOUT ============
 router.get('/logout', (req, res) => {
@@ -365,7 +381,7 @@ router.get('/logout', (req, res) => {
 });
 
 // ============ API ============
-router.post('/api/sync', async (req, res) => {
+router.post('/api/sync', ah(async (req, res) => {
   const deviceId = req.headers['x-device-id'];
   const apiKey = req.headers['x-api-key'];
   if (!deviceId || !apiKey) return res.status(401).json({ error: 'Missing credentials' });
@@ -382,7 +398,7 @@ router.post('/api/sync', async (req, res) => {
     await req.db.query(`UPDATE ss_commands SET status = 'sent' WHERE id IN (${placeholders})`, commands.map(c => c.id));
   }
   res.json({ status: 'success', commands: commands.map(c => ({ type: c.command_type, value: c.command_value })) });
-});
+}));
 
 router.get('/api/time', (req, res) => {
   const now = new Date();

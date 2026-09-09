@@ -27,6 +27,7 @@
 </nav>
 
 <div class="container py-4">
+  <%- include('../partials/flash') %>
   <div class="mb-4">
     <h2 style="color:#0c4a6e;"><%= device.device_name %></h2>
     <span class="status-badge status-<%= device.status %>"><%= device.status %></span>

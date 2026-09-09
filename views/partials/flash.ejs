@@ -1,0 +1,21 @@
+<% /* Global flash banner — renders error_msg / success_msg set via req.flash */ %>
+<% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length) { %>
+  <div class="container mt-3">
+    <% (Array.isArray(success_msg) ? success_msg : [success_msg]).forEach(function(m) { %>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i><%= m %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+<% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length) { %>
+  <div class="container mt-3">
+    <% (Array.isArray(error_msg) ? error_msg : [error_msg]).forEach(function(m) { %>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i><%= m %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <% }) %>
+  </div>
+<% } %>

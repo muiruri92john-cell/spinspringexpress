@@ -109,3 +109,26 @@ CREATE TABLE IF NOT EXISTS `ss_mpesa_config` (
   `passkey` VARCHAR(190) DEFAULT NULL,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
+
+-- Persistent express-session storage (express-mysql-session).
+-- Same shape the library auto-creates with createDatabaseTable: true.
+-- Included here so DB users WITHOUT CREATE privilege can import it manually.
+CREATE TABLE IF NOT EXISTS `sessions` (
+  `session_id` VARCHAR(128) NOT NULL,
+  `expires` INT(11) UNSIGNED NOT NULL,
+  `data` MEDIUMTEXT DEFAULT NULL,
+  PRIMARY KEY (`session_id`)
+) ENGINE=InnoDB;
+
+-- Visible error log (written by server.js error handler, best-effort).
+CREATE TABLE IF NOT EXISTS `ss_error_logs` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `ref` VARCHAR(20) DEFAULT NULL,
+  `method` VARCHAR(10) DEFAULT NULL,
+  `url` VARCHAR(500) DEFAULT NULL,
+  `status` INT DEFAULT NULL,
+  `message` TEXT DEFAULT NULL,
+  `stack` MEDIUMTEXT DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`created_at`)
+) ENGINE=InnoDB;
