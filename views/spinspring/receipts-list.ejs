@@ -1,0 +1,40 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container">
+    <a href="/owner">← Back to Owner Panel</a>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <h2 style="color:#0c4a6e;">All Receipts</h2>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Receipt #</th><th>Customer</th><th>Type</th><th>Total</th><th>Payment</th><th>Date</th></tr></thead>
+      <tbody>
+        <% if (typeof receipts !== 'undefined' && receipts.length > 0) { %>
+          <% receipts.forEach(function(r) { %>
+            <tr>
+              <td style="font-size:0.8rem;"><%= r.receipt_number %></td>
+              <td><%= r.customer_name %></td>
+              <td><%= r.billing_type.replace('_',' ') %></td>
+              <td>Ksh <%= r.total_amount %></td>
+              <td><%= r.payment_method %></td>
+              <td style="font-size:0.8rem;"><%= new Date(r.created_at).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="6" class="text-center">No receipts yet</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

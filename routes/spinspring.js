@@ -382,6 +382,123 @@ router.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
+
+// ============ RECEIPT GENERATION ============
+
+// Generate receipt for customer
+router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
+  try {
+    const {
+      device_id, customer_id, billing_type, weight_kg, rate_per_kg,
+      cycle_price, quantity, discount, payment_method
+    } = req.body;
+
+    const receiptNumber = 'RCPT-' + Date.now().toString(36).toUpperCase();
+    const orderNumber = 'SS-' + Date.now().toString(36).toUpperCase();
+
+    // Calculate totals
+    let subtotal = 0;
+    if (billing_type === 'per_weight') {
+      subtotal = parseFloat(weight_kg) * parseFloat(rate_per_kg);
+    } else {
+      subtotal = parseFloat(cycle_price) * parseInt(quantity);
+    }
+
+    const discountAmount = parseFloat(discount) || 0;
+    const totalAmount = subtotal - discountAmount;
+
+    // Get customer info
+    let customerName = 'Walk-in';
+    let customerPhone = '';
+    if (customer_id && customer_id !== 'walk-in') {
+      const [customers] = await req.db.query(
+        'SELECT * FROM ss_customers WHERE customer_unique_id = ?',
+        [customer_id]
+      );
+      if (customers.length > 0) {
+        customerName = customers[0].full_name;
+        customerPhone = customers[0].phone || '';
+      }
+    }
+
+    // Save receipt
+    await req.db.query(
+      `INSERT INTO ss_receipts (receipt_number, order_number, device_id, customer_id, customer_name, customer_phone, billing_type, weight_kg, rate_per_kg, cycle_price, quantity, subtotal, discount, total_amount, payment_method, payment_status, attendant_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)`,
+      [receiptNumber, orderNumber, device_id, customer_id, customerName, customerPhone, billing_type, weight_kg, rate_per_kg, cycle_price, quantity, subtotal, discountAmount, totalAmount, payment_method, req.session.spinUser.name]
+    );
+
+    // Also create order
+    await req.db.query(
+      "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, customer_phone, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, ?, 'wash', 'normal', ?, 'paid', 'queued')",
+      [orderNumber, device_id, req.session.spinUser.ownerId || req.session.spinUser.id, customer_id, customerPhone, totalAmount]
+    );
+
+    // Update customer stats
+    if (customer_id && customer_id !== 'walk-in') {
+      await req.db.query(
+        'UPDATE ss_customers SET total_cycles = total_cycles + 1, total_spent = total_spent + ?, loyalty_points = loyalty_points + FLOOR(?/100) WHERE customer_unique_id = ?',
+        [totalAmount, totalAmount, customer_id]
+      );
+    }
+
+    // Update device revenue
+    await req.db.query(
+      'UPDATE ss_devices SET today_revenue = today_revenue + ?, total_revenue = total_revenue + ? WHERE device_id = ?',
+      [totalAmount, totalAmount, device_id]
+    );
+
+    // Store receipt for display
+    req.session.lastReceipt = {
+      receipt_number: receiptNumber,
+      order_number: orderNumber,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      billing_type,
+      weight_kg,
+      rate_per_kg,
+      cycle_price,
+      quantity,
+      subtotal,
+      discount: discountAmount,
+      total: totalAmount,
+      payment_method,
+      attendant: req.session.spinUser.name,
+      date: new Date()
+    };
+
+    res.redirect('/receipt');
+  } catch (err) {
+    console.error('Receipt error:', err);
+    req.flash('error_msg', 'Failed to generate receipt');
+    res.redirect('/attendant');
+  }
+});
+
+// Display receipt
+router.get('/receipt', isAuth, (req, res) => {
+  const receipt = req.session.lastReceipt;
+  if (!receipt) return res.redirect('/attendant');
+  delete req.session.lastReceipt;
+  res.render('spinspring/receipt', {
+    title: 'Receipt - SpinSpring Express',
+    receipt
+  });
+});
+
+// View all receipts (owner)
+router.get('/owner/receipts', isOwner, async (req, res) => {
+  const ownerId = req.session.spinUser.id;
+  const [receipts] = await req.db.query(
+    'SELECT r.*, d.device_name FROM ss_receipts r LEFT JOIN ss_devices d ON r.device_id = d.device_id WHERE r.attendant_name IN (SELECT full_name FROM ss_attendants WHERE owner_id = ?) OR r.device_id IN (SELECT device_id FROM ss_devices WHERE owner_id = ?) ORDER BY r.created_at DESC LIMIT 50',
+    [ownerId, ownerId]
+  );
+  res.render('spinspring/receipts-list', {
+    title: 'Receipts - SpinSpring Express',
+    receipts
+  });
+});
+
 // ============ API ============
 router.post('/api/sync', ah(async (req, res) => {
   const deviceId = req.headers['x-device-id'];

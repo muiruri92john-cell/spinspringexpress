@@ -44,12 +44,12 @@
 <body>
 <nav class="ss-nav">
   <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-    <a href="/spinspg/attendant" class="brand text-white text-decoration-none" style="font-size:1.5rem;font-weight:800;">
+    <a href="/attendant" class="brand text-white text-decoration-none" style="font-size:1.5rem;font-weight:800;">
       <i class="fas fa-soap me-2"></i>SpinSpring
     </a>
     <div class="d-flex align-items-center gap-2">
       <span class="text-white">Attendant: <%= user.name %></span>
-      <a href="/spinspg/logout" class="btn btn-danger btn-sm rounded-pill">
+      <a href="/logout" class="btn btn-danger btn-sm rounded-pill">
         <i class="fas fa-sign-out-alt me-1"></i> Logout
       </a>
     </div>
@@ -61,7 +61,12 @@
     <i class="fas fa-user-tie me-2"></i>Attendant Panel
   </h3>
 
-  <%- include('../partials/flash') %>
+  <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+    <div class="alert alert-success"><%= success_msg %></div>
+  <% } %>
+  <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+    <div class="alert alert-danger"><%= error_msg %></div>
+  <% } %>
 
   <!-- Machines -->
   <div class="ss-card">
@@ -79,13 +84,9 @@
                 <%= d.status %>
               </span>
               <p class="mt-2 mb-0">
-                <strong>Ksh <%= d.price_per_kg || 50 %>/kg</strong>
+                <strong>Ksh <%= d.price_per_cycle || 300 %>/cycle</strong>
               </p>
-              <small class="text-muted">
-                Max: <%= d.max_capacity_kg || 20 %>kg
-              </small>
-              <br>
-              <a href="/spinspg/device/<%= d.device_id %>" class="btn btn-sm btn-outline-success rounded-pill mt-2">Control</a>
+              <a href="/device-detail/<%= d.device_id %>" class="btn btn-sm btn-outline-success rounded-pill mt-2">Control</a>
             </div>
           </div>
         <% }) %>
@@ -95,87 +96,120 @@
     </div>
   </div>
 
-  <!-- Create Weight-Based Order -->
+  <!-- Billing Type Selection -->
   <div class="ss-card">
     <div class="section-title">
-      <span><i class="fas fa-weight me-2"></i>Start New Order (Weight-Based)</span>
+      <span><i class="fas fa-receipt me-2"></i>Generate Receipt / Bill</span>
     </div>
-    <form action="/spinspg/attendant/orders" method="POST" id="weightOrderForm">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label fw-bold">Select Machine *</label>
-          <select name="device_id" class="form-select" id="machineSelect" required onchange="updateWeightInfo()">
-            <option value="">-- Select Machine --</option>
-            <% if (typeof devices !== 'undefined') { %>
-              <% devices.forEach(function(d) { %>
-                <option value="<%= d.device_id %>" 
-                        data-price-per-kg="<%= d.price_per_kg || 50 %>"
-                        data-max-kg="<%= d.max_capacity_kg || 20 %>"
-                        data-min-kg="<%= d.min_capacity_kg || 1 %>">
-                  <%= d.device_name %> (Ksh <%= d.price_per_kg || 50 %>/kg)
-                </option>
-              <% }) %>
-            <% } %>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-bold">Customer</label>
-          <select name="customer_id" class="form-select" required>
-            <option value="">-- Select Customer --</option>
-            <option value="walk-in">🚶 Walk-in Customer</option>
-            <% if (typeof customers !== 'undefined') { %>
-              <% customers.forEach(function(c) { %>
-                <option value="<%= c.customer_unique_id %>"><%= c.full_name %> (<%= c.customer_unique_id %>)</option>
-              <% }) %>
-            <% } %>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold">Weight (kg) *</label>
-          <input type="number" name="weight_kg" id="weightInput" class="form-control" step="0.01" min="0.1" placeholder="e.g., 5.5" required oninput="updatePrice()">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold">Service</label>
-          <select name="service_type" class="form-select" required>
-            <option value="wash">Wash</option>
-            <option value="wash_dry">Wash + Dry</option>
-            <option value="dry_only">Dry Only</option>
-            <option value="dishwash">Dishwash</option>
-          </select>
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-bold">Cycle Type</label>
-          <select name="cycle_type" class="form-select" required>
-            <option value="quick">Quick (15min)</option>
-            <option value="normal" selected>Normal (30min)</option>
-            <option value="heavy">Heavy (60min)</option>
-            <option value="delicate">Delicate (45min)</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Real-time Price Display -->
-      <div class="price-display">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-          <div>
-            <small class="text-muted">Machine Info:</small>
-            <p class="mb-0 fw-bold" id="machineInfo">Select a machine to see pricing</p>
-          </div>
-          <div class="text-end">
-            <small class="text-muted">Calculated Price:</small>
-            <div class="h3 fw-bold" style="color:#0284c7;" id="calculatedPrice">Ksh 0.00</div>
-          </div>
-        </div>
-      </div>
-
-      <input type="hidden" name="payment_status" value="pending">
-
-      <div class="mt-3">
-        <button type="submit" class="btn btn-success rounded-pill px-4">
-          <i class="fas fa-play me-2"></i> Start Order
+    
+    <!-- Billing Type Toggle -->
+    <div class="mb-3">
+      <label class="form-label fw-bold">Select Billing Type</label>
+      <div class="btn-group w-100" role="group">
+        <button type="button" class="btn btn-success" id="btnCycle" onclick="showCycleBilling()">
+          <i class="fas fa-cog me-1"></i> Per Cycle
+        </button>
+        <button type="button" class="btn btn-outline-success" id="btnWeight" onclick="showWeightBilling()">
+          <i class="fas fa-weight me-1"></i> Per Weight (kg)
         </button>
       </div>
-    </form>
+    </div>
+
+    <!-- Per Cycle Billing -->
+    <div id="cycleBilling">
+      <form action="/attendant/generate-receipt" method="POST">
+        <input type="hidden" name="billing_type" value="per_cycle">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Machine *</label>
+            <select name="device_id" class="form-select" required>
+              <option value="">-- Select --</option>
+              <% devices.forEach(function(d) { %>
+                <option value="<%= d.device_id %>"><%= d.device_name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Customer *</label>
+            <select name="customer_id" class="form-select" required>
+              <option value="walk-in">Walk-in</option>
+              <% if (typeof customers !== 'undefined') { %>
+                <% customers.forEach(function(c) { %>
+                  <option value="<%= c.customer_unique_id %>"><%= c.full_name %></option>
+                <% }) %>
+              <% } %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Price/Cycle (Ksh)</label>
+            <input type="number" name="cycle_price" class="form-control" value="300" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Quantity</label>
+            <input type="number" name="quantity" class="form-control" value="1" min="1" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Payment</label>
+            <select name="payment_method" class="form-select">
+              <option value="cash">Cash</option>
+              <option value="mpesa">M-PESA</option>
+              <option value="card">Card</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success rounded-pill mt-3 px-4">
+          <i class="fas fa-receipt me-2"></i> Generate Receipt
+        </button>
+      </form>
+    </div>
+
+    <!-- Per Weight Billing -->
+    <div id="weightBilling" style="display:none;">
+      <form action="/attendant/generate-receipt" method="POST">
+        <input type="hidden" name="billing_type" value="per_weight">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Machine *</label>
+            <select name="device_id" class="form-select" required>
+              <option value="">-- Select --</option>
+              <% devices.forEach(function(d) { %>
+                <option value="<%= d.device_id %>"><%= d.device_name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">Customer *</label>
+            <select name="customer_id" class="form-select" required>
+              <option value="walk-in">Walk-in</option>
+              <% if (typeof customers !== 'undefined') { %>
+                <% customers.forEach(function(c) { %>
+                  <option value="<%= c.customer_unique_id %>"><%= c.full_name %></option>
+                <% }) %>
+              <% } %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Weight (kg) *</label>
+            <input type="number" name="weight_kg" class="form-control" step="0.01" min="0.1" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Rate/Kg (Ksh)</label>
+            <input type="number" name="rate_per_kg" class="form-control" value="50" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Payment</label>
+            <select name="payment_method" class="form-select">
+              <option value="cash">Cash</option>
+              <option value="mpesa">M-PESA</option>
+              <option value="card">Card</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success rounded-pill mt-3 px-4">
+          <i class="fas fa-receipt me-2"></i> Generate Receipt
+        </button>
+      </form>
+    </div>
   </div>
 
   <!-- Active Orders -->
@@ -187,23 +221,16 @@
       <div class="table-responsive">
         <table class="table">
           <thead>
-            <tr><th>Order #</th><th>Customer</th><th>Weight</th><th>Service</th><th>Status</th><th>Price</th><th>Actions</th></tr>
+            <tr><th>Order #</th><th>Customer</th><th>Service</th><th>Status</th><th>Price</th></tr>
           </thead>
           <tbody>
             <% activeOrders.forEach(function(o) { %>
               <tr>
                 <td style="font-size:0.8rem;"><%= o.order_number %></td>
-                <td><%= o.customer_name === 'walk-in' ? '🚶 Walk-in' : o.customer_name %></td>
-                <td><%= o.weight_kg ? o.weight_kg + 'kg' : 'N/A' %></td>
+                <td><%= o.customer_name === 'walk-in' ? 'Walk-in' : o.customer_name %></td>
                 <td><%= o.service_type.replace('_', ' ') %></td>
                 <td><span class="status-badge status-<%= o.order_status %>"><%= o.order_status %></span></td>
                 <td>Ksh <%= o.price %></td>
-                <td>
-                  <form action="/spinspg/order/<%= o.id %>/status" method="POST" style="display:inline;">
-                    <input type="hidden" name="status" value="completed">
-                    <button class="btn btn-sm btn-success rounded-pill">Complete</button>
-                  </form>
-                </td>
               </tr>
             <% }) %>
           </tbody>
@@ -218,48 +245,21 @@
 </div>
 
 <script>
-function updateWeightInfo() {
-  const select = document.getElementById('machineSelect');
-  const selected = select.options[select.selectedIndex];
-  
-  if (selected.value) {
-    const pricePerKg = selected.getAttribute('data-price-per-kg');
-    const maxKg = selected.getAttribute('data-max-kg');
-    const minKg = selected.getAttribute('data-min-kg');
-    document.getElementById('machineInfo').textContent = 
-      'Ksh ' + pricePerKg + '/kg | Max: ' + maxKg + 'kg | Min: ' + minKg + 'kg';
-    updatePrice();
-  } else {
-    document.getElementById('machineInfo').textContent = 'Select a machine to see pricing';
-    document.getElementById('calculatedPrice').textContent = 'Ksh 0.00';
-  }
+function showCycleBilling() {
+  document.getElementById('cycleBilling').style.display = 'block';
+  document.getElementById('weightBilling').style.display = 'none';
+  document.getElementById('btnCycle').className = 'btn btn-success';
+  document.getElementById('btnWeight').className = 'btn btn-outline-success';
 }
 
-function updatePrice() {
-  const select = document.getElementById('machineSelect');
-  const selected = select.options[select.selectedIndex];
-  const weight = parseFloat(document.getElementById('weightInput').value) || 0;
-  
-  if (selected.value && weight > 0) {
-    const pricePerKg = parseFloat(selected.getAttribute('data-price-per-kg'));
-    const maxKg = parseFloat(selected.getAttribute('data-max-kg'));
-    const minKg = parseFloat(selected.getAttribute('data-min-kg'));
-    
-    if (weight > maxKg) {
-      document.getElementById('calculatedPrice').textContent = 'EXCEEDS MAX!';
-      document.getElementById('calculatedPrice').style.color = '#ef4444';
-    } else if (weight < minKg) {
-      document.getElementById('calculatedPrice').textContent = 'BELOW MIN!';
-      document.getElementById('calculatedPrice').style.color = '#ef4444';
-    } else {
-      const total = weight * pricePerKg;
-      document.getElementById('calculatedPrice').textContent = 'Ksh ' + total.toFixed(2);
-      document.getElementById('calculatedPrice').style.color = '#0284c7';
-    }
-  }
+function showWeightBilling() {
+  document.getElementById('cycleBilling').style.display = 'none';
+  document.getElementById('weightBilling').style.display = 'block';
+  document.getElementById('btnCycle').className = 'btn btn-outline-success';
+  document.getElementById('btnWeight').className = 'btn btn-success';
 }
 
-// Auto-refresh
+// Auto-refresh every 60 seconds
 setInterval(() => { location.reload(); }, 60000);
 </script>
 
