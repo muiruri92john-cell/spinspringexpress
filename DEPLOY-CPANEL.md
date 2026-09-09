@@ -90,6 +90,16 @@ DIAGNOSIS of "/health 404 + landing 403":
       and table ss_error_logs.
 
 6) TROUBLESHOOTING:
+   - "/ping still 404 after uploading app.js" — you did NOT restart correctly.
+     CloudLinux caches the old entry file. Do EXACTLY: Setup Node.js App >>
+     STOP, wait 10s, START (not just Restart). Then re-upload check: open
+     File Manager /home/buxbtreu/spinspringexpress/app.js — first line must be
+     "// cPanel Passenger (CloudLinux) entry point." If it still shows the old
+     3-line file, your upload went to the wrong folder.
+     Also confirm: Application root EXACTLY /home/buxbtreu/spinspringexpress,
+     startup file EXACTLY app.js, URL covers / (domain root).
+     Proof the NEW file is live: logs must contain "[spinspring] boot:".
+     No boot line = old code still running or app stopped.
    - "Internal Server Error" on every page -> rename public_html/.htaccess to
      .htaccess.bak and reload. Loads now = bad .htaccess (restore ours).
      Still 500 = app failed to start: check Node app logs (missing module?

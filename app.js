@@ -6,6 +6,8 @@
 // Fix: boot the listener HERE, explicitly.
 const app = require('./server.js');
 
+// CloudLinux Passenger requires the app to be listening on the injected PORT.
+// NOTE: cPanel "Setup Node.js App" sets PORT for you — do NOT hard-code it.
 const PORT = process.env.PORT || 3000;
 
 // Startup diagnostics — visible in cPanel >> Setup Node.js App >> logs.
