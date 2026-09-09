@@ -61,6 +61,12 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('SpinSpring running on port ' + PORT);
-});
+// cPanel Passenger: export app, do NOT call listen (Passenger owns the socket).
+// Plain VPS / local: app.listen when file is run directly.
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('SpinSpring running on port ' + PORT);
+  });
+}
+
+module.exports = app;

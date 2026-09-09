@@ -1,0 +1,33 @@
+# SpinSpring Express — SAFE cPanel public_html/.htaccess (Apache 2.2 + 2.4 compatible)
+# This file alone NEVER runs Node.js. It only protects files + serves static.
+# Your Node app must run via cPanel >> Setup Node.js App (Passenger).
+
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Protect sensitive files — Apache 2.2 + 2.4 compatible
+<FilesMatch "^(\.env|\.git|server\.js|app\.js|package\.json|package-lock\.json)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Block direct access to app folders if wrongly uploaded inside public_html
+<IfModule mod_rewrite.c>
+  RewriteRule ^(node_modules|config|routes|views|tmp)/ - [R=404,L]
+</IfModule>
+
+# Disable directory listing (safe form)
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
