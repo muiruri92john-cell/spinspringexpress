@@ -2,13 +2,9 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 
-// Wrap async route handlers so ANY thrown/rejected error reaches the
-// visible error page in server.js instead of hanging or blank-screening.
+// Async wrapper
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-// Auto-wrap ALL async handlers registered on this router (Express 4 does
-// not catch rejected promises by itself). Already-wrapped handlers are
-// normal functions so they pass through untouched.
 ['get', 'post', 'put', 'patch', 'delete', 'all'].forEach((m) => {
   const orig = router[m].bind(router);
   router[m] = (path, ...handlers) => orig(
@@ -133,22 +129,27 @@ router.post('/login', async (req, res) => {
 router.get('/owner', isOwner, async (req, res) => {
   try {
     const userId = req.session.spinUser.id;
-    const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE owner_id = ?', [userId]);
-    const [attendants] = await req.db.query('SELECT * FROM ss_attendants WHERE owner_id = ?', [userId]);
-    const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE owner_id = ?', [userId]);
+    const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE owner_id = ? ORDER BY created_at DESC', [userId]);
+    const [attendants] = await req.db.query('SELECT * FROM ss_attendants WHERE owner_id = ? ORDER BY created_at DESC', [userId]);
+    const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE owner_id = ? ORDER BY created_at DESC', [userId]);
     const [stats] = await req.db.query(
       'SELECT COALESCE(SUM(today_revenue),0) as today_rev, COALESCE(SUM(total_revenue),0) as total_rev, COALESCE(SUM(today_cycles),0) as today_cyc, COALESCE(SUM(cycles_completed),0) as total_cyc FROM ss_devices WHERE owner_id = ?',
+      [userId]
+    );
+    const [orders] = await req.db.query('SELECT * FROM ss_orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 10', [userId]);
+    const [receipts] = await req.db.query(
+      'SELECT r.* FROM ss_receipts r JOIN ss_devices d ON r.device_id = d.device_id WHERE d.owner_id = ? ORDER BY r.created_at DESC LIMIT 10',
       [userId]
     );
 
     res.render('spinspring/owner-dashboard', {
       title: 'Owner Panel - SpinSpring Express',
       user: req.session.spinUser,
-      devices, attendants, customers,
+      devices, attendants, customers, orders, receipts,
       stats: stats[0] || {}
     });
   } catch (err) {
-    // Don't silently render an empty dashboard — show the real failure
+    console.error('Owner dashboard error:', err);
     err.status = 500;
     throw err;
   }
@@ -161,52 +162,57 @@ router.get('/register-device', isOwner, (req, res) => {
 
 router.post('/register-device', isOwner, async (req, res) => {
   try {
-    const { device_name, device_type, location, price_per_cycle } = req.body;
+    const { device_name, device_type, location, price_per_cycle, price_per_kg, max_capacity_kg } = req.body;
     const deviceId = 'SPIN-' + Date.now().toString(36).toUpperCase() + '-' + crypto.randomBytes(3).toString('hex').toUpperCase();
     const apiKey = 'SS-' + crypto.randomBytes(16).toString('hex');
 
     await req.db.query(
-      "INSERT INTO ss_devices (device_id, device_name, device_type, api_key, owner_id, location_area, price_per_cycle, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'offline')",
-      [deviceId, device_name, device_type, apiKey, req.session.spinUser.id, location, price_per_cycle || 300]
+      "INSERT INTO ss_devices (device_id, device_name, device_type, api_key, owner_id, location_area, price_per_cycle, price_per_kg, max_capacity_kg, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline')",
+      [deviceId, device_name, device_type, apiKey, req.session.spinUser.id, location, price_per_cycle || 300, price_per_kg || 50, max_capacity_kg || 20]
     );
 
-    req.session.newSpinDevice = { device_id: deviceId, device_name, api_key };
-    res.redirect('/device-credentials');
+    // AUTO-REDIRECT to dashboard (not device-credentials page)
+    req.flash('success_msg', '✅ Machine "' + device_name + '" registered! ID: ' + deviceId);
+    res.redirect('/owner');
   } catch (err) {
-    req.flash('error_msg', 'Registration failed');
+    console.error('Register device error:', err);
+    req.flash('error_msg', 'Registration failed: ' + err.message);
     res.redirect('/register-device');
   }
 });
 
-router.get('/device-credentials', isOwner, (req, res) => {
-  const device = req.session.newSpinDevice;
-  if (!device) return res.redirect('/owner');
-  delete req.session.newSpinDevice;
-  res.render('spinspring/device-credentials', { title: 'Device Credentials', device });
-});
-
 // Create Attendant
 router.post('/owner/attendants', isOwner, async (req, res) => {
-  const { full_name, email, phone, pin_code } = req.body;
-  const [existing] = await req.db.query('SELECT id FROM ss_attendants WHERE email = ?', [email]);
-  if (existing.length > 0) {
-    req.flash('error_msg', 'Email already exists');
-    return res.redirect('/owner');
+  try {
+    const { full_name, email, phone, pin_code } = req.body;
+    const [existing] = await req.db.query('SELECT id FROM ss_attendants WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      req.flash('error_msg', 'Email already exists');
+      return res.redirect('/owner');
+    }
+    await req.db.query('INSERT INTO ss_attendants (owner_id, full_name, email, phone, pin_code) VALUES (?, ?, ?, ?, ?)',
+      [req.session.spinUser.id, full_name, email, phone, pin_code]);
+    req.flash('success_msg', '✅ Attendant "' + full_name + '" created!');
+    res.redirect('/owner');
+  } catch (e) {
+    req.flash('error_msg', 'Failed to create attendant');
+    res.redirect('/owner');
   }
-  await req.db.query('INSERT INTO ss_attendants (owner_id, full_name, email, phone, pin_code) VALUES (?, ?, ?, ?, ?)',
-    [req.session.spinUser.id, full_name, email, phone, pin_code]);
-  req.flash('success_msg', 'Attendant created!');
-  res.redirect('/owner');
 });
 
 // Create Customer
 router.post('/owner/customers', isOwner, async (req, res) => {
-  const { full_name, phone, email } = req.body;
-  const customerId = 'CUST-' + Date.now().toString(36).toUpperCase().slice(-4) + '-' + Math.random().toString(36).toUpperCase().slice(-4);
-  await req.db.query('INSERT INTO ss_customers (owner_id, customer_unique_id, full_name, phone, email) VALUES (?, ?, ?, ?, ?)',
-    [req.session.spinUser.id, customerId, full_name, phone, email || null]);
-  req.flash('success_msg', 'Customer created! ID: ' + customerId);
-  res.redirect('/owner');
+  try {
+    const { full_name, phone, email } = req.body;
+    const customerId = 'CUST-' + Date.now().toString(36).toUpperCase().slice(-4) + '-' + Math.random().toString(36).toUpperCase().slice(-4);
+    await req.db.query('INSERT INTO ss_customers (owner_id, customer_unique_id, full_name, phone, email) VALUES (?, ?, ?, ?, ?)',
+      [req.session.spinUser.id, customerId, full_name, phone, email || null]);
+    req.flash('success_msg', '✅ Customer "' + full_name + '" created! ID: ' + customerId);
+    res.redirect('/owner');
+  } catch (e) {
+    req.flash('error_msg', 'Failed to create customer');
+    res.redirect('/owner');
+  }
 });
 
 // ============ ATTENDANT ============
@@ -215,41 +221,46 @@ router.get('/attendant-login', (req, res) => {
 });
 
 router.post('/attendant-login', async (req, res) => {
-  const { email, pin_code } = req.body;
-  const [attendants] = await req.db.query(
-    'SELECT * FROM ss_attendants WHERE email = ? AND pin_code = ? AND is_active = 1',
-    [email, pin_code]
-  );
-  if (attendants.length === 0) {
-    req.flash('error_msg', 'Invalid credentials');
-    return res.redirect('/attendant-login');
+  try {
+    const { email, pin_code } = req.body;
+    const [attendants] = await req.db.query(
+      'SELECT * FROM ss_attendants WHERE email = ? AND pin_code = ? AND is_active = 1',
+      [email, pin_code]
+    );
+    if (attendants.length === 0) {
+      req.flash('error_msg', 'Invalid credentials');
+      return res.redirect('/attendant-login');
+    }
+    req.session.spinUser = {
+      id: attendants[0].id,
+      name: attendants[0].full_name,
+      role: 'attendant',
+      ownerId: attendants[0].owner_id
+    };
+    res.redirect('/attendant');
+  } catch (err) {
+    req.flash('error_msg', 'Login failed');
+    res.redirect('/attendant-login');
   }
-  req.session.spinUser = {
-    id: attendants[0].id,
-    name: attendants[0].full_name,
-    role: 'attendant',
-    ownerId: attendants[0].owner_id
-  };
-  res.redirect('/attendant');
 });
 
 router.get('/attendant', isAttendant, ah(async (req, res) => {
   const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
-  const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE owner_id = ?', [ownerId]);
-  const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE owner_id = ? AND is_active = 1', [ownerId]);
-  const [activeOrders] = await req.db.query("SELECT * FROM ss_orders WHERE user_id = ? AND order_status IN ('queued','in_progress')", [ownerId]);
+  const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE owner_id = ? ORDER BY created_at DESC', [ownerId]);
+  const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE owner_id = ? AND is_active = 1 ORDER BY full_name', [ownerId]);
+  const [activeOrders] = await req.db.query("SELECT * FROM ss_orders WHERE user_id = ? AND order_status IN ('queued','in_progress') ORDER BY created_at DESC", [ownerId]);
   res.render('spinspring/attendant-dashboard', {
     title: 'Attendant Panel', user: req.session.spinUser,
     devices, customers, activeOrders
   });
 }));
 
+// Create Order
 router.post('/attendant/orders', isAttendant, async (req, res) => {
   try {
     const { device_id, customer_id, service_type, cycle_type, price, weight_kg } = req.body;
     const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
 
-    // Look up machine for weight-based pricing
     const [devs] = await req.db.query('SELECT * FROM ss_devices WHERE device_id = ? AND owner_id = ?', [device_id, ownerId]);
     if (devs.length === 0) {
       req.flash('error_msg', 'Invalid machine selected');
@@ -263,42 +274,30 @@ router.post('/attendant/orders', isAttendant, async (req, res) => {
 
     let finalPrice = parseFloat(price || 0);
     let weightPrice = null;
-    // If weight supplied, compute price from weight (weight-based model)
     if (weight_kg !== undefined && weight_kg !== '' && !isNaN(weight)) {
-      if (weight <= 0) {
-        req.flash('error_msg', 'Weight must be greater than 0');
-        return res.redirect('/attendant');
-      }
-      if (weight > maxKg) {
-        req.flash('error_msg', 'Weight exceeds machine max capacity (' + maxKg + 'kg)');
-        return res.redirect('/attendant');
-      }
-      if (weight < minKg) {
-        req.flash('error_msg', 'Weight below machine minimum load (' + minKg + 'kg)');
-        return res.redirect('/attendant');
-      }
+      if (weight <= 0) { req.flash('error_msg', 'Weight must be > 0'); return res.redirect('/attendant'); }
+      if (weight > maxKg) { req.flash('error_msg', 'Weight exceeds max (' + maxKg + 'kg)'); return res.redirect('/attendant'); }
       finalPrice = Math.round(weight * pricePerKg * 100) / 100;
       weightPrice = finalPrice;
     }
     if (!finalPrice || isNaN(finalPrice) || finalPrice <= 0) {
-      req.flash('error_msg', 'Invalid price computed');
+      req.flash('error_msg', 'Invalid price');
       return res.redirect('/attendant');
     }
 
     const orderNumber = 'SS-' + Date.now().toString(36).toUpperCase();
-    // customer_name column stores customer_unique_id or 'walk-in' (legacy schema)
     await req.db.query(
       "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, weight_kg, price_per_kg, total_weight_price, price, payment_status, order_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'queued')",
       [orderNumber, device_id, ownerId, customer_id || 'walk-in', service_type || 'wash', cycle_type || 'normal', isNaN(weight) ? null : weight, pricePerKg, weightPrice, finalPrice]
     );
-    // Queue a start command for the ESP32 device
     try {
       await req.db.query(
         "INSERT INTO ss_commands (device_id, command_type, command_value, status) VALUES (?, 'start_cycle', ?, 'pending')",
         [device_id, (cycle_type || 'normal')]
       );
     } catch (e) { console.error('queue command failed:', e.message); }
-    req.flash('success_msg', 'Order ' + orderNumber + ' created! Ksh ' + finalPrice);
+
+    req.flash('success_msg', '✅ Order ' + orderNumber + ' created! Ksh ' + finalPrice);
     res.redirect('/attendant');
   } catch (err) {
     console.error('create order:', err.message);
@@ -307,7 +306,7 @@ router.post('/attendant/orders', isAttendant, async (req, res) => {
   }
 });
 
-// Attendant completes / cancels an order
+// Order status update
 router.post('/order/:id/status', isAttendant, async (req, res) => {
   try {
     const { status } = req.body;
@@ -324,7 +323,6 @@ router.post('/order/:id/status', isAttendant, async (req, res) => {
     }
     const extra = status === 'completed' ? ', end_time = NOW()' : (status === 'in_progress' ? ', start_time = NOW()' : '');
     await req.db.query(`UPDATE ss_orders SET order_status = ?${extra} WHERE id = ?`, [status, req.params.id]);
-    // If completed, bump customer loyalty + device counters
     if (status === 'completed') {
       const o = rows[0];
       try {
@@ -338,7 +336,7 @@ router.post('/order/:id/status', isAttendant, async (req, res) => {
     res.redirect('/attendant');
   } catch (err) {
     console.error('order status:', err.message);
-    req.flash('error_msg', 'Failed to update order');
+    req.flash('error_msg', 'Failed to update');
     res.redirect('/attendant');
   }
 });
@@ -349,20 +347,25 @@ router.get('/customer-login', (req, res) => {
 });
 
 router.post('/customer-login', async (req, res) => {
-  const { customer_id } = req.body;
-  const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE customer_unique_id = ? AND is_active = 1', [customer_id]);
-  if (customers.length === 0) {
-    req.flash('error_msg', 'Invalid customer ID');
-    return res.redirect('/customer-login');
+  try {
+    const { customer_id } = req.body;
+    const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE customer_unique_id = ? AND is_active = 1', [customer_id]);
+    if (customers.length === 0) {
+      req.flash('error_msg', 'Invalid customer ID');
+      return res.redirect('/customer-login');
+    }
+    req.session.spinUser = {
+      id: customers[0].id,
+      name: customers[0].full_name,
+      customerId: customers[0].customer_unique_id,
+      role: 'customer',
+      ownerId: customers[0].owner_id
+    };
+    res.redirect('/customer');
+  } catch (err) {
+    req.flash('error_msg', 'Login failed');
+    res.redirect('/customer-login');
   }
-  req.session.spinUser = {
-    id: customers[0].id,
-    name: customers[0].full_name,
-    customerId: customers[0].customer_unique_id,
-    role: 'customer',
-    ownerId: customers[0].owner_id
-  };
-  res.redirect('/customer');
 });
 
 router.get('/customer', isCustomer, ah(async (req, res) => {
@@ -370,9 +373,10 @@ router.get('/customer', isCustomer, ah(async (req, res) => {
   const [customerData] = await req.db.query('SELECT * FROM ss_customers WHERE customer_unique_id = ?', [customerId]);
   const [orders] = await req.db.query('SELECT * FROM ss_orders WHERE customer_name = ? ORDER BY created_at DESC LIMIT 20', [customerId]);
   const [activeOrders] = await req.db.query("SELECT * FROM ss_orders WHERE customer_name = ? AND order_status IN ('queued','in_progress')", [customerId]);
+  const [receipts] = await req.db.query('SELECT * FROM ss_receipts WHERE customer_id = ? ORDER BY created_at DESC LIMIT 20', [customerId]);
   res.render('spinspring/customer-dashboard', {
     title: 'My Account', user: req.session.spinUser,
-    customer: customerData[0] || {}, orders, activeOrders
+    customer: customerData[0] || {}, orders, activeOrders, receipts
   });
 }));
 
@@ -382,10 +386,7 @@ router.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
-
 // ============ RECEIPT GENERATION ============
-
-// Generate receipt for customer
 router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
   try {
     const {
@@ -396,25 +397,20 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
     const receiptNumber = 'RCPT-' + Date.now().toString(36).toUpperCase();
     const orderNumber = 'SS-' + Date.now().toString(36).toUpperCase();
 
-    // Calculate totals
     let subtotal = 0;
     if (billing_type === 'per_weight') {
-      subtotal = parseFloat(weight_kg) * parseFloat(rate_per_kg);
+      subtotal = parseFloat(weight_kg || 0) * parseFloat(rate_per_kg || 0);
     } else {
-      subtotal = parseFloat(cycle_price) * parseInt(quantity);
+      subtotal = parseFloat(cycle_price || 0) * parseInt(quantity || 1);
     }
 
     const discountAmount = parseFloat(discount) || 0;
-    const totalAmount = subtotal - discountAmount;
+    const totalAmount = Math.round((subtotal - discountAmount) * 100) / 100;
 
-    // Get customer info
     let customerName = 'Walk-in';
     let customerPhone = '';
     if (customer_id && customer_id !== 'walk-in') {
-      const [customers] = await req.db.query(
-        'SELECT * FROM ss_customers WHERE customer_unique_id = ?',
-        [customer_id]
-      );
+      const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE customer_unique_id = ?', [customer_id]);
       if (customers.length > 0) {
         customerName = customers[0].full_name;
         customerPhone = customers[0].phone || '';
@@ -428,10 +424,10 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
       [receiptNumber, orderNumber, device_id, customer_id, customerName, customerPhone, billing_type, weight_kg, rate_per_kg, cycle_price, quantity, subtotal, discountAmount, totalAmount, payment_method, req.session.spinUser.name]
     );
 
-    // Also create order
+    // Create order (without customer_phone - not in schema)
     await req.db.query(
-      "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, customer_phone, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, ?, 'wash', 'normal', ?, 'paid', 'queued')",
-      [orderNumber, device_id, req.session.spinUser.ownerId || req.session.spinUser.id, customer_id, customerPhone, totalAmount]
+      "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, 'wash', 'normal', ?, 'paid', 'queued')",
+      [orderNumber, device_id, req.session.spinUser.ownerId || req.session.spinUser.id, customer_id, totalAmount]
     );
 
     // Update customer stats
@@ -448,7 +444,6 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
       [totalAmount, totalAmount, device_id]
     );
 
-    // Store receipt for display
     req.session.lastReceipt = {
       receipt_number: receiptNumber,
       order_number: orderNumber,
@@ -470,7 +465,7 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
     res.redirect('/receipt');
   } catch (err) {
     console.error('Receipt error:', err);
-    req.flash('error_msg', 'Failed to generate receipt');
+    req.flash('error_msg', 'Failed to generate receipt: ' + err.message);
     res.redirect('/attendant');
   }
 });
@@ -486,20 +481,52 @@ router.get('/receipt', isAuth, (req, res) => {
   });
 });
 
-// View all receipts (owner)
+// Owner: All receipts
 router.get('/owner/receipts', isOwner, async (req, res) => {
-  const ownerId = req.session.spinUser.id;
-  const [receipts] = await req.db.query(
-    'SELECT r.*, d.device_name FROM ss_receipts r LEFT JOIN ss_devices d ON r.device_id = d.device_id WHERE r.attendant_name IN (SELECT full_name FROM ss_attendants WHERE owner_id = ?) OR r.device_id IN (SELECT device_id FROM ss_devices WHERE owner_id = ?) ORDER BY r.created_at DESC LIMIT 50',
-    [ownerId, ownerId]
-  );
-  res.render('spinspring/receipts-list', {
-    title: 'Receipts - SpinSpring Express',
-    receipts
-  });
+  try {
+    const ownerId = req.session.spinUser.id;
+    const [receipts] = await req.db.query(
+      'SELECT r.*, d.device_name FROM ss_receipts r LEFT JOIN ss_devices d ON r.device_id = d.device_id WHERE d.owner_id = ? ORDER BY r.created_at DESC LIMIT 100',
+      [ownerId]
+    );
+    res.render('spinspring/receipts-list', {
+      title: 'Receipts - SpinSpring Express',
+      receipts
+    });
+  } catch (e) {
+    res.render('spinspring/receipts-list', { title: 'Receipts', receipts: [] });
+  }
 });
 
-// ============ API ============
+// ============ LIVE DATA API (AJAX) ============
+router.get('/api/live-data', isAuth, async (req, res) => {
+  try {
+    const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
+    const [devices] = await req.db.query(
+      'SELECT device_id, device_name, status, current_cycle, cycle_progress, price_per_cycle, today_revenue, cycles_completed FROM ss_devices WHERE owner_id = ?',
+      [ownerId]
+    );
+    const [activeOrders] = await req.db.query(
+      "SELECT order_number, customer_name, service_type, order_status, price FROM ss_orders WHERE user_id = ? AND order_status IN ('queued','in_progress') ORDER BY created_at DESC",
+      [ownerId]
+    );
+    const [stats] = await req.db.query(
+      'SELECT COALESCE(SUM(today_revenue),0) as today_rev, COALESCE(SUM(total_revenue),0) as total_rev, COALESCE(SUM(cycles_completed),0) as total_cyc FROM ss_devices WHERE owner_id = ?',
+      [ownerId]
+    );
+    res.json({
+      success: true,
+      devices: devices || [],
+      activeOrders: activeOrders || [],
+      stats: stats[0] || {},
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// ============ API: ESP32 SYNC ============
 router.post('/api/sync', ah(async (req, res) => {
   const deviceId = req.headers['x-device-id'];
   const apiKey = req.headers['x-api-key'];
@@ -599,7 +626,7 @@ router.post('/settings/business', isOwner, async (req, res) => {
 });
 
 router.post('/settings/defaults', isOwner, (req, res) => {
-  req.flash('success_msg', 'Defaults saved (applies to new machines)');
+  req.flash('success_msg', 'Defaults saved');
   res.redirect('/settings');
 });
 
@@ -624,7 +651,7 @@ router.get('/mpesa-settings', isOwner, async (req, res) => {
   try {
     const [rows] = await req.db.query('SELECT * FROM ss_mpesa_config WHERE owner_id = ? LIMIT 1', [req.session.spinUser.id]);
     if (rows.length) config = rows[0];
-  } catch (e) { /* table may not exist yet */ }
+  } catch (e) { }
   res.render('spinspring/mpesa-settings', { title: 'M-PESA Settings', user: req.session.spinUser, config });
 });
 
@@ -637,11 +664,6 @@ router.post('/mpesa-settings', isOwner, async (req, res) => {
     );
     req.flash('success_msg', 'M-PESA settings saved');
   } catch (e) { req.flash('error_msg', 'Save failed: ' + e.message); }
-  res.redirect('/mpesa-settings');
-});
-
-router.post('/mpesa/register-urls', isOwner, (req, res) => {
-  req.flash('success_msg', 'C2B URL registration queued (callback: /api/mpesa/callback)');
   res.redirect('/mpesa-settings');
 });
 
@@ -685,7 +707,6 @@ router.post('/api/mpesa/callback', async (req, res) => {
   res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
 });
 
-// Self-test helper: `node routes/spinspring.js` lists registered routes.
 if (require.main === module) {
   console.log('spinspring router stack size:', router.stack.length);
   router.stack.forEach((l) => {

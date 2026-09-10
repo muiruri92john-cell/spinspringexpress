@@ -207,5 +207,64 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// AJAX Live Refresh - updates without page reload
+let refreshInterval;
+
+function startLiveRefresh() {
+  refreshInterval = setInterval(() => {
+    fetch('/api/live-data')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          updateDashboardUI(data);
+        }
+      })
+      .catch(err => console.log('Refresh error:', err));
+  }, 10000); // Every 10 seconds
+}
+
+function updateDashboardUI(data) {
+  // Update stats
+  if (data.stats) {
+    const todayRev = document.getElementById('live-today-rev');
+    if (todayRev) todayRev.textContent = 'Ksh ' + data.stats.today_rev;
+    
+    const totalRev = document.getElementById('live-total-rev');
+    if (totalRev) totalRev.textContent = 'Ksh ' + data.stats.total_rev;
+  }
+  
+  // Update device statuses
+  if (data.devices) {
+    data.devices.forEach(device => {
+      const statusEl = document.getElementById('status-' + device.device_id);
+      if (statusEl) {
+        statusEl.textContent = device.status;
+        statusEl.className = 'badge bg-' + (device.status === 'idle' ? 'success' : device.status === 'running' ? 'primary' : 'warning');
+      }
+      
+      const progressEl = document.getElementById('progress-' + device.device_id);
+      if (progressEl) {
+        progressEl.style.width = device.cycle_progress + '%';
+      }
+    });
+  }
+  
+  // Update refresh indicator
+  const indicator = document.getElementById('refresh-indicator');
+  if (indicator) {
+    indicator.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+  }
+}
+
+// Start on page load
+document.addEventListener('DOMContentLoaded', startLiveRefresh);
+
+// Stop when page hidden (save bandwidth)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) clearInterval(refreshInterval);
+  else startLiveRefresh();
+});
+</script>
 </body>
 </html>
