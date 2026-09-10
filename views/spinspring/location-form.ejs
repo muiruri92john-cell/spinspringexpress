@@ -1,0 +1,294 @@
+<%- include('../layouts/main') %>
+
+<style>
+.form-section {
+  background: white;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.08);
+  border: 1px solid #e0f2fe;
+  margin-bottom: 20px;
+}
+.form-section h5 {
+  color: #0c4a6e;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e0f2fe;
+  margin-bottom: 20px;
+}
+#map {
+  height: 350px;
+  border-radius: 12px;
+  border: 2px solid #e0f2fe;
+  margin-bottom: 15px;
+}
+</style>
+
+<!-- Leaflet map (free OpenStreetMap) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<div class="container py-4">
+  <%- include('../partials/flash') %>
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 style="color:#0c4a6e;">
+        <i class="fas fa-map-marker-alt me-2"></i>
+        <%= isEdit ? 'Edit' : 'New' %> Location
+      </h2>
+    </div>
+    <a href="/owner/locations" class="btn btn-outline-secondary rounded-pill">
+      <i class="fas fa-arrow-left me-2"></i>Back
+    </a>
+  </div>
+
+  <form method="POST" 
+        action="<%= isEdit ? '/owner/locations/' + location.id : '/owner/locations' %>">
+    
+    <!-- ─── BASIC INFO ─────────────────────────── -->
+    <div class="form-section">
+      <h5><i class="fas fa-info-circle me-2"></i>Basic Info</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Location Name *</label>
+          <input type="text" name="location_name" class="form-control" required
+                 value="<%= location?.location_name || '' %>"
+                 placeholder="e.g., Westlands Branch">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Location Code</label>
+          <input type="text" name="location_code" class="form-control"
+                 value="<%= location?.location_code || '' %>"
+                 placeholder="Auto-generated if empty">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── ADDRESS ────────────────────────────── -->
+    <div class="form-section">
+      <h5><i class="fas fa-map-pin me-2"></i>Address</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Address Line 1 *</label>
+          <input type="text" name="address_line1" class="form-control" required
+                 value="<%= location?.address_line1 || '' %>"
+                 placeholder="Building, street">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Address Line 2</label>
+          <input type="text" name="address_line2" class="form-control"
+                 value="<%= location?.address_line2 || '' %>"
+                 placeholder="Floor, unit, landmark">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">City</label>
+          <input type="text" name="city" class="form-control"
+                 value="<%= location?.city || 'Nairobi' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">County</label>
+          <input type="text" name="county" class="form-control"
+                 value="<%= location?.county || '' %>"
+                 placeholder="e.g., Nairobi">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Postal Code</label>
+          <input type="text" name="postal_code" class="form-control"
+                 value="<%= location?.postal_code || '' %>">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── GEOLOCATION ────────────────────────── -->
+    <div class="form-section">
+      <h5>
+        <i class="fas fa-globe-africa me-2"></i>Location on Map
+        <button type="button" id="useMyLocation" class="btn btn-sm btn-outline-primary rounded-pill ms-2">
+          <i class="fas fa-location-arrow me-1"></i>Use My Current Location
+        </button>
+      </h5>
+      <div id="map"></div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Latitude</label>
+          <input type="number" id="latitude" name="latitude" class="form-control"
+                 step="0.00000001" 
+                 value="<%= location?.latitude || '' %>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Longitude</label>
+          <input type="number" id="longitude" name="longitude" class="form-control"
+                 step="0.00000001"
+                 value="<%= location?.longitude || '' %>">
+        </div>
+      </div>
+      <small class="text-muted d-block mt-2">
+        <i class="fas fa-info-circle me-1"></i>
+        Click on the map to set the exact position
+      </small>
+    </div>
+
+    <!-- ─── CONTACT ────────────────────────────── -->
+    <div class="form-section">
+      <h5><i class="fas fa-phone me-2"></i>Contact</h5>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Phone</label>
+          <input type="tel" name="phone" class="form-control"
+                 value="<%= location?.phone || '' %>"
+                 placeholder="+254...">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">WhatsApp</label>
+          <input type="tel" name="whatsapp" class="form-control"
+                 value="<%= location?.whatsapp || '' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Email</label>
+          <input type="email" name="email" class="form-control"
+                 value="<%= location?.email || '' %>">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── HOURS ──────────────────────────────── -->
+    <div class="form-section">
+      <h5><i class="fas fa-clock me-2"></i>Operating Hours</h5>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Opening Time</label>
+          <input type="time" name="opening_time" class="form-control"
+                 value="<%= location?.opening_time?.slice(0,5) || '08:00' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Closing Time</label>
+          <input type="time" name="closing_time" class="form-control"
+                 value="<%= location?.closing_time?.slice(0,5) || '20:00' %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Open Days</label>
+          <input type="text" name="open_days" class="form-control"
+                 value="<%= location?.open_days || 'Mon,Tue,Wed,Thu,Fri,Sat,Sun' %>"
+                 placeholder="Mon,Tue,Wed...">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PICKUP ─────────────────────────────── -->
+    <div class="form-section">
+      <h5><i class="fas fa-truck me-2"></i>Pickup & Delivery</h5>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Pickup Radius (km)</label>
+          <input type="number" name="pickup_radius_km" class="form-control"
+                 step="0.5" min="0"
+                 value="<%= location?.pickup_radius_km || 5 %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Pickup Fee (KES)</label>
+          <input type="number" name="pickup_fee_kes" class="form-control"
+                 step="0.01" min="0"
+                 value="<%= location?.pickup_fee_kes || 0 %>">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">Delivery Fee (KES)</label>
+          <input type="number" name="delivery_fee_kes" class="form-control"
+                 step="0.01" min="0"
+                 value="<%= location?.delivery_fee_kes || 0 %>">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── OPTIONS ────────────────────────────── -->
+    <div class="form-section">
+      <h5><i class="fas fa-cog me-2"></i>Options</h5>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="is_primary" id="isPrimary"
+               <%= location?.is_primary ? 'checked' : '' %>>
+        <label class="form-check-label" for="isPrimary">
+          <strong>Set as primary location</strong> (the default for new orders)
+        </label>
+      </div>
+      <div class="mt-3">
+        <label class="form-label fw-bold">Internal Notes</label>
+        <textarea name="notes" class="form-control" rows="3"
+                  placeholder="Anything the staff should know..."><%= location?.notes || '' %></textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary rounded-pill px-4"
+              style="background:#0284c7;border:none;">
+        <i class="fas fa-save me-2"></i>
+        <%= isEdit ? 'Update' : 'Create' %> Location
+      </button>
+      <a href="/owner/locations" class="btn btn-outline-secondary rounded-pill px-4">
+        Cancel
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function() {
+  const defaultLat = <%= location?.latitude || -1.2921 %>;   // Nairobi default
+  const defaultLng = <%= location?.longitude || 36.8219 %>;
+
+  const map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+  const latInput = document.getElementById('latitude');
+  const lngInput = document.getElementById('longitude');
+
+  function updateInputs(lat, lng) {
+    latInput.value = lat.toFixed(8);
+    lngInput.value = lng.toFixed(8);
+  }
+
+  function setMarker(lat, lng) {
+    marker.setLatLng([lat, lng]);
+    updateInputs(lat, lng);
+  }
+
+  marker.on('dragend', () => {
+    const pos = marker.getLatLng();
+    updateInputs(pos.lat, pos.lng);
+  });
+
+  map.on('click', (e) => {
+    setMarker(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Use My Location button
+  document.getElementById('useMyLocation')?.addEventListener('click', () => {
+    if (!navigator.geolocation) return alert('Geolocation not supported');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 16);
+        setMarker(lat, lng);
+      },
+      (err) => alert('Could not get location: ' + err.message),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  // Initialize marker from inputs if set
+  if (latInput.value && lngInput.value) {
+    setMarker(parseFloat(latInput.value), parseFloat(lngInput.value));
+    map.setView([parseFloat(latInput.value), parseFloat(lngInput.value)], 14);
+  }
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

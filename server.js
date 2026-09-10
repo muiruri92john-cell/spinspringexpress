@@ -73,6 +73,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Location routes ────────────────────────────────────
+const locationRoutes = require('./routes/locations');
+app.use('/', locationRoutes);
+
+// Public find-nearest page
+app.get('/find-location', (req, res) => {
+  res.render('spinspring/find-location', {
+    title: 'Find Nearest Branch - SpinSpring Express',
+    user: req.session.spinUser || null,
+  });
+});
+
 // Deep health (DB + session store) — use when /health is ok but pages fail.
 app.get('/health/db', (req, res, next) => Promise.resolve((async () => {
   const checks = { time: new Date().toISOString(), sessionStore: 'unknown', db: 'unknown' };

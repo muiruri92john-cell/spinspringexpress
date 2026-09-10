@@ -1,0 +1,353 @@
+<%- include('../layouts/main') %>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+.ss-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(2, 132, 199, 0.08);
+  border: 1px solid #e0f2fe;
+  margin-bottom: 20px;
+}
+.ss-card h5 {
+  color: #0c4a6e;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e0f2fe;
+  margin-bottom: 20px;
+}
+.ss-stat {
+  background: #f0f9ff;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  height: 100%;
+}
+.ss-stat .value { font-size: 1.6rem; font-weight: 800; color: #0284c7; }
+.ss-stat .label { font-size: 0.75rem; color: #64748b; margin-top: 4px; text-transform: uppercase; }
+
+#map { height: 300px; border-radius: 12px; }
+
+.badge-primary-loc { background: #10b981; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+.badge-inactive { background: #e2e8f0; color: #64748b; padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+
+.info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+.info-row:last-child { border: none; }
+.info-row .lbl { color: #64748b; width: 130px; flex-shrink: 0; }
+.info-row .val { color: #0c4a6e; font-weight: 600; }
+.info-row i { width: 20px; color: #0284c7; }
+
+.status-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.status-idle { background: #e0f2fe; color: #0284c7; }
+.status-running { background: #d1fae5; color: #065f46; }
+.status-offline { background: #e2e8f0; color: #475569; }
+</style>
+
+<!-- NAV -->
+<nav style="background:linear-gradient(135deg,#0284c7,#0ea5e9);padding:15px 0;">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a href="/owner/locations" style="color:white;text-decoration:none;">
+      <i class="fas fa-arrow-left me-2"></i>All Locations
+    </a>
+    <div class="d-flex gap-2">
+      <a href="/owner/locations/<%= location.id %>/edit"
+         class="btn btn-light btn-sm rounded-pill">
+        <i class="fas fa-edit me-1"></i>Edit
+      </a>
+      <button class="btn btn-light btn-sm rounded-pill" onclick="location.reload()">
+        <i class="fas fa-sync-alt me-1"></i>Refresh
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <%- include('../partials/flash') %>
+
+  <!-- HEADER -->
+  <div class="mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div>
+        <h2 style="color:#0c4a6e;">
+          <i class="fas fa-map-marker-alt me-2"></i>
+          <%= location.location_name %>
+        </h2>
+        <div>
+          <code style="font-size:0.85rem;color:#64748b;"><%= location.location_code %></code>
+          <% if (location.is_primary) { %>
+            <span class="badge-primary-loc ms-2">PRIMARY</span>
+          <% } %>
+          <% if (!location.is_active) { %>
+            <span class="badge-inactive ms-2">INACTIVE</span>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+      <div class="ss-stat">
+        <div class="value"><%= stats.device_count || 0 %></div>
+        <div class="label">Devices</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="ss-stat">
+        <div class="value">Ksh <%= Number(stats.today_revenue || 0).toLocaleString() %></div>
+        <div class="label">Today Revenue</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="ss-stat">
+        <div class="value">Ksh <%= Number(stats.total_revenue || 0).toLocaleString() %></div>
+        <div class="label">Total Revenue</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="ss-stat">
+        <div class="value"><%= stats.total_cycles || 0 %></div>
+        <div class="label">Total Cycles</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- LEFT: INFO + MAP -->
+    <div class="col-lg-6">
+      <!-- Location Info -->
+      <div class="ss-card">
+        <h5><i class="fas fa-info-circle me-2"></i>Location Info</h5>
+
+        <div class="info-row">
+          <div class="lbl"><i class="fas fa-map-pin"></i> Address</div>
+          <div class="val">
+            <%= location.address_line1 %>
+            <% if (location.address_line2) { %><br><%= location.address_line2 %><% } %>
+            <br><%= location.city %><% if (location.county) { %>, <%= location.county %><% } %>
+          </div>
+        </div>
+
+        <% if (location.phone) { %>
+          <div class="info-row">
+            <div class="lbl"><i class="fas fa-phone"></i> Phone</div>
+            <div class="val"><%= location.phone %></div>
+          </div>
+        <% } %>
+
+        <% if (location.whatsapp) { %>
+          <div class="info-row">
+            <div class="lbl"><i class="fab fa-whatsapp"></i> WhatsApp</div>
+            <div class="val"><%= location.whatsapp %></div>
+          </div>
+        <% } %>
+
+        <% if (location.email) { %>
+          <div class="info-row">
+            <div class="lbl"><i class="fas fa-envelope"></i> Email</div>
+            <div class="val"><%= location.email %></div>
+          </div>
+        <% } %>
+
+        <div class="info-row">
+          <div class="lbl"><i class="fas fa-clock"></i> Hours</div>
+          <div class="val">
+            <%= String(location.opening_time).slice(0, 5) %> -
+            <%= String(location.closing_time).slice(0, 5) %>
+            <br><small class="text-muted"><%= location.open_days %></small>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="lbl"><i class="fas fa-truck"></i> Pickup</div>
+          <div class="val">
+            Radius: <%= location.pickup_radius_km %> km<br>
+            Fee: Ksh <%= Number(location.pickup_fee_kes).toLocaleString() %>
+          </div>
+        </div>
+
+        <% if (location.notes) { %>
+          <div class="info-row">
+            <div class="lbl"><i class="fas fa-sticky-note"></i> Notes</div>
+            <div class="val"><%= location.notes %></div>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Map -->
+      <% if (location.latitude && location.longitude) { %>
+        <div class="ss-card">
+          <h5><i class="fas fa-map me-2"></i>Location on Map</h5>
+          <div id="map"></div>
+          <div class="mt-2 small text-muted">
+            Lat: <%= location.latitude %>, Lng: <%= location.longitude %>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=<%= location.latitude %>,<%= location.longitude %>"
+               target="_blank" class="btn btn-sm btn-outline-primary rounded-pill ms-2">
+              <i class="fas fa-directions me-1"></i>Directions
+            </a>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- RIGHT: DEVICES -->
+    <div class="col-lg-6">
+      <div class="ss-card">
+        <h5>
+          <i class="fas fa-server me-2"></i>Devices
+          <span class="badge bg-primary ms-2"><%= devices.length %></span>
+        </h5>
+
+        <% if (devices.length === 0) { %>
+          <p class="text-muted mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            No devices assigned to this location yet.
+          </p>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>Device</th>
+                  <th>Status</th>
+                  <th>Cycle</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% devices.forEach(d => { %>
+                  <tr>
+                    <td>
+                      <strong><%= d.device_name %></strong><br>
+                      <small class="text-muted"><%= d.device_id %></small>
+                    </td>
+                    <td>
+                      <span class="status-pill status-<%= d.status %>"><%= d.status %></span>
+                    </td>
+                    <td>
+                      <% if (d.current_cycle) { %>
+                        <%= d.current_cycle %><br>
+                        <small class="text-muted"><%= d.cycle_progress || 0 %>%</small>
+                      <% } else { %>
+                        <span class="text-muted">—</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <a href="/device/<%= d.device_id %>"
+                         class="btn btn-sm btn-outline-primary rounded-pill">
+                        <i class="fas fa-cog"></i>
+                      </a>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Recent Orders -->
+      <div class="ss-card">
+        <h5>
+          <i class="fas fa-shopping-bag me-2"></i>Recent Orders
+          <span class="badge bg-primary ms-2"><%= orders.length %></span>
+        </h5>
+
+        <% if (orders.length === 0) { %>
+          <p class="text-muted mb-0">
+            <i class="fas fa-info-circle me-1"></i>No orders yet.
+          </p>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Order #</th>
+                  <th>Device</th>
+                  <th>Status</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% orders.forEach(o => { %>
+                  <tr>
+                    <td><a href="/order/<%= o.id %>" style="font-size:0.8rem;"><%= o.order_number %></a></td>
+                    <td><small><%= o.device_name || '—' %></small></td>
+                    <td><span class="badge bg-info"><%= o.order_status %></span></td>
+                    <td>Ksh <%= Number(o.price).toLocaleString() %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Recent Receipts -->
+      <div class="ss-card">
+        <h5>
+          <i class="fas fa-receipt me-2"></i>Recent Receipts
+          <span class="badge bg-primary ms-2"><%= receipts.length %></span>
+        </h5>
+
+        <% if (receipts.length === 0) { %>
+          <p class="text-muted mb-0">
+            <i class="fas fa-info-circle me-1"></i>No receipts yet.
+          </p>
+        <% } else { %>
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Receipt #</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% receipts.forEach(r => { %>
+                  <tr>
+                    <td><small><%= r.receipt_number %></small></td>
+                    <td><small><%= r.customer_name || 'Walk-in' %></small></td>
+                    <td>Ksh <%= Number(r.total_amount).toLocaleString() %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if (location.latitude && location.longitude) { %>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function() {
+  const lat = <%= location.latitude %>;
+  const lng = <%= location.longitude %>;
+
+  const map = L.map('map').setView([lat, lng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  L.marker([lat, lng]).addTo(map)
+    .bindPopup('<strong><%= location.location_name %></strong><br><%= location.address_line1 %>')
+    .openPopup();
+})();
+</script>
+<% } %>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
