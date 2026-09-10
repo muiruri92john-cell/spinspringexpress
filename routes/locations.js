@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const LocationModel = require('../models/location');
 
+
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -43,6 +44,7 @@ router.get('/owner/locations/new', isOwner, (req, res) => {
     isEdit: false,
   });
 });
+
 
 // ─── CREATE ──────────────────────────────────────────
 router.post('/owner/locations', isOwner, ah(async (req, res) => {
