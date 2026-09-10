@@ -125,6 +125,181 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// ============ QUOTE CALCULATOR ============
+
+// Serve pricing data (for AJAX)
+router.get('/api/pricing', async (req, res) => {
+  try {
+    const [services] = await req.db.query('SELECT * FROM ss_pricing WHERE is_active = 1 ORDER BY id');
+    const [addons] = await req.db.query('SELECT * FROM ss_addons WHERE is_active = 1 ORDER BY id');
+    res.json({ success: true, services, addons });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Calculate quote (server-side authoritative pricing)
+router.post('/api/quote/calculate', async (req, res) => {
+  try {
+    const { items = [], addons = [], express = false, pickup = 'none' } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'No items provided' });
+    }
+
+    // Load pricing from DB
+    const [services] = await req.db.query('SELECT * FROM ss_pricing WHERE is_active = 1');
+    const [addonRows] = await req.db.query('SELECT * FROM ss_addons WHERE is_active = 1');
+
+    const priceMap = {};
+    services.forEach(s => { priceMap[s.service_key] = s; });
+
+    const addonMap = {};
+    addonRows.forEach(a => { addonMap[a.addon_key] = a; });
+
+    let subtotal = 0;
+    let totalWeight = 0;
+    const breakdown = [];
+
+    // Calculate each item
+    items.forEach((item, idx) => {
+      const service = priceMap[item.service_key];
+      if (!service) {
+        breakdown.push({ item: item.service_key, error: 'Unknown service', line_total: 0 });
+        return;
+      }
+
+      let qty = parseFloat(item.quantity) || 0;
+      if (qty <= 0) {
+        breakdown.push({ item: service.service_name, error: 'Invalid quantity', line_total: 0 });
+        return;
+      }
+
+      // Sanity check
+      if (service.unit === 'kg' && qty > 100) qty = 100;
+      if (service.unit === 'piece' && qty > 500) qty = 500;
+      if (service.unit === 'sqft' && qty > 10000) qty = 10000;
+
+      const lineTotal = Math.round(qty * parseFloat(service.price) * 100) / 100;
+      subtotal += lineTotal;
+      if (service.unit === 'kg') totalWeight += qty;
+
+      breakdown.push({
+        item: service.service_name,
+        quantity: qty,
+        unit: service.unit,
+        rate: parseFloat(service.price),
+        line_total: lineTotal
+      });
+    });
+
+    // Apply minimum order per kg-based service
+    const minCharge = 1000;
+    const kgItems = breakdown.filter(b => b.unit === 'kg');
+    if (kgItems.length > 0 && subtotal < minCharge) {
+      breakdown.push({
+        item: 'Minimum order adjustment',
+        note: 'Applies to wash services',
+        line_total: minCharge - subtotal
+      });
+      subtotal = minCharge;
+    }
+
+    // Apply addons
+    let addonTotal = 0;
+    addons.forEach(key => {
+      const addon = addonMap[key];
+      if (!addon) return;
+      let addonCost = 0;
+      if (addon.type === 'per_kg') {
+        addonCost = parseFloat(addon.price) * totalWeight;
+      } else {
+        addonCost = parseFloat(addon.price);
+      }
+      addonCost = Math.round(addonCost * 100) / 100;
+      addonTotal += addonCost;
+      breakdown.push({
+        item: addon.addon_name,
+        note: addon.type === 'per_kg' ? `Ksh ${addon.price}/kg × ${totalWeight}kg` : 'Fixed price',
+        line_total: addonCost
+      });
+    });
+
+    // Express service
+    let expressCost = 0;
+    if (express) {
+      expressCost = 1000;
+      breakdown.push({
+        item: '⚡ Express Service (3 hours)',
+        line_total: expressCost
+      });
+    }
+
+    // Pickup fee
+    let pickupCost = 0;
+    if (pickup === 'nairobi') {
+      pickupCost = 500;
+      breakdown.push({ item: 'Pickup & Delivery (Nairobi)', line_total: pickupCost });
+    } else if (pickup === 'westlands') {
+      pickupCost = 0;
+      breakdown.push({ item: 'Pickup (Westlands) - FREE', line_total: 0 });
+    }
+
+    const total = Math.round((subtotal + addonTotal + expressCost + pickupCost) * 100) / 100;
+
+    res.json({
+      success: true,
+      subtotal: Math.round(subtotal * 100) / 100,
+      addons_total: Math.round(addonTotal * 100) / 100,
+      express_cost: expressCost,
+      pickup_cost: pickupCost,
+      total,
+      total_weight: Math.round(totalWeight * 100) / 100,
+      item_count: items.length,
+      breakdown,
+      currency: 'KES',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Quote error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Save quote (optional - for follow-up)
+router.post('/api/quote/save', async (req, res) => {
+  try {
+    const { items, addons, express, pickup, total, customer_name, customer_phone, customer_email } = req.body;
+
+    await req.db.query(`
+      CREATE TABLE IF NOT EXISTS ss_quotes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        quote_ref VARCHAR(30) UNIQUE,
+        customer_name VARCHAR(100),
+        customer_phone VARCHAR(20),
+        customer_email VARCHAR(100),
+        items JSON,
+        addons JSON,
+        express TINYINT DEFAULT 0,
+        pickup VARCHAR(30),
+        total DECIMAL(10,2),
+        status ENUM('new','contacted','converted','expired') DEFAULT 'new',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB
+    `);
+
+    const quoteRef = 'QT-' + Date.now().toString(36).toUpperCase();
+    await req.db.query(
+      'INSERT INTO ss_quotes (quote_ref, customer_name, customer_phone, customer_email, items, addons, express, pickup, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [quoteRef, customer_name || null, customer_phone || null, customer_email || null, JSON.stringify(items), JSON.stringify(addons), express ? 1 : 0, pickup || 'none', total]
+    );
+
+    res.json({ success: true, quote_ref: quoteRef });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // ============ OWNER DASHBOARD ============
 router.get('/owner', isOwner, async (req, res) => {
   try {

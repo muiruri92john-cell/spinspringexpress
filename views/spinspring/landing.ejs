@@ -437,6 +437,7 @@ nav.ss-nav, .ss-nav {
       <i class="fas fa-bars"></i>
     </button>
     <ul class="nav-menu" id="navMenu">
+      <li><a href="#quote" class="nav-link" style="background:#10b981;color:white !important;">💰 Get Quote</a></li>
       <li><a href="#pricing" class="nav-link">Pricing</a></li>
       <li><a href="#services" class="nav-link">Services</a></li>
       <li><a href="#gallery" class="nav-link">Gallery</a></li>
@@ -543,6 +544,167 @@ nav.ss-nav, .ss-nav {
     </div>
   </div>
 </section>
+
+
+<!-- ===== QUOTE CALCULATOR ===== -->
+<section id="quote" class="ss-section" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
+  <div class="container">
+    <div class="ss-section-title">
+      <h2>💰 Get Instant Quote</h2>
+      <p>Real-time pricing based on your selections</p>
+    </div>
+
+    <div class="row g-4">
+      <!-- LEFT: Item Builder -->
+      <div class="col-lg-7">
+        <div class="pricing-card" style="border:2px solid #0284c7;">
+
+          <!-- Service Items -->
+          <h4><i class="fas fa-list me-2"></i>Select Services</h4>
+          <div id="quoteItems">
+            <!-- Item row template -->
+            <div class="quote-item-row" style="display:flex;gap:8px;margin-bottom:10px;align-items:end;">
+              <div style="flex:2;">
+                <label class="form-label small mb-1">Service</label>
+                <select class="form-select form-select-sm q-service">
+                  <option value="">-- Select --</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label class="form-label small mb-1">Qty</label>
+                <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
+              </div>
+              <div style="flex:1;">
+                <label class="form-label small mb-1">Unit</label>
+                <input type="text" class="form-control form-control-sm q-unit" readonly>
+              </div>
+              <div>
+                <button type="button" class="btn btn-sm btn-outline-danger q-remove" title="Remove">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" id="addQuoteItem" class="btn btn-sm btn-outline-primary rounded-pill mb-3">
+            <i class="fas fa-plus me-1"></i> Add Item
+          </button>
+
+          <!-- Addons -->
+          <h4 class="mt-3"><i class="fas fa-plus-circle me-2"></i>Add-ons</h4>
+          <div id="quoteAddons" class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input q-addon" type="checkbox" value="stain" id="addonStain">
+              <label class="form-check-label" for="addonStain">Stain Treatment (+KES 200)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input q-addon" type="checkbox" value="rush" id="addonRush">
+              <label class="form-check-label" for="addonRush">Same-Day Rush (+KES 500)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input q-addon" type="checkbox" value="softener" id="addonSoftener">
+              <label class="form-check-label" for="addonSoftener">Premium Fabric Softener (+KES 100)</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input q-addon" type="checkbox" value="folding_extra" id="addonFolding">
+              <label class="form-check-label" for="addonFolding">Extra Care Folding (+KES 50/kg)</label>
+            </div>
+          </div>
+
+          <!-- Express + Pickup -->
+          <h4 class="mt-3"><i class="fas fa-truck me-2"></i>Delivery Options</h4>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="qExpress">
+            <label class="form-check-label" for="qExpress">⚡ Express Service (3 hours, +KES 1,000)</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small mb-1">Pickup & Delivery</label>
+            <select id="qPickup" class="form-select form-select-sm">
+              <option value="none">No pickup (drop-off)</option>
+              <option value="westlands">Westlands (FREE)</option>
+              <option value="nairobi">Rest of Nairobi (+KES 500)</option>
+            </select>
+          </div>
+
+          <!-- Customer Info (optional) -->
+          <h4 class="mt-3"><i class="fas fa-user me-2"></i>Your Info (optional)</h4>
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <input type="text" id="qName" class="form-control form-control-sm" placeholder="Name">
+            </div>
+            <div class="col-md-4">
+              <input type="tel" id="qPhone" class="form-control form-control-sm" placeholder="Phone">
+            </div>
+            <div class="col-md-4">
+              <input type="email" id="qEmail" class="form-control form-control-sm" placeholder="Email">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Live Quote Summary -->
+      <div class="col-lg-5">
+        <div class="pricing-card" style="border:2px solid #10b981; position:sticky; top:100px;">
+          <h4 style="color:#10b981;"><i class="fas fa-calculator me-2"></i>Live Quote</h4>
+
+          <div id="quoteBreakdown" style="max-height:400px; overflow-y:auto; margin-bottom:15px;">
+            <p class="text-muted text-center py-3">Add items to see pricing</p>
+          </div>
+
+          <div class="price-row" style="border-top:2px solid #e0f2fe; padding-top:15px;">
+            <span><strong>Subtotal</strong></span>
+            <span class="price" id="qSubtotal">KES 0.00</span>
+          </div>
+          <div class="price-row">
+            <span>Add-ons</span>
+            <span class="price" id="qAddons">KES 0.00</span>
+          </div>
+          <div class="price-row">
+            <span>Express</span>
+            <span class="price" id="qExpressCost">KES 0.00</span>
+          </div>
+          <div class="price-row">
+            <span>Pickup</span>
+            <span class="price" id="qPickupCost">KES 0.00</span>
+          </div>
+          <div class="price-row" style="border-top:2px solid #10b981; margin-top:10px; padding-top:15px;">
+            <span style="font-size:1.2rem;"><strong>TOTAL</strong></span>
+            <span class="price" id="qTotal" style="font-size:1.4rem; color:#10b981;">KES 0.00</span>
+          </div>
+
+          <div class="mt-3">
+            <button id="qWhatsApp" class="btn btn-success w-100 rounded-pill mb-2" disabled>
+              <i class="fab fa-whatsapp me-2"></i> Send Quote via WhatsApp
+            </button>
+            <button id="qSave" class="btn btn-outline-primary w-100 rounded-pill mb-2" disabled>
+              <i class="fas fa-save me-2"></i> Save Quote for Follow-up
+            </button>
+            <div id="qSaved" class="text-center text-success small" style="display:none;">
+              <i class="fas fa-check-circle me-1"></i> Saved: <span id="qRef"></span>
+            </div>
+          </div>
+
+          <div class="alert alert-info small mt-3 mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            Prices are estimates. Final quote confirmed on pickup.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Add "Quote" link to nav bar -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var nav = document.getElementById('navMenu');
+  if (nav && !document.querySelector('a[href="#quote"]')) {
+    var li = document.createElement('li');
+    li.innerHTML = '<a href="#quote" class="nav-link">Get Quote</a>';
+    nav.insertBefore(li, nav.querySelector('li:last-child'));
+  }
+});
+</script>
 
 <!-- ===== PRICING ===== -->
 <section id="pricing" class="ss-section" style="background:#f8fafc;">
@@ -876,6 +1038,508 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
     }
   });
 });
+</script>
+
+
+<script>
+// ============ REAL-TIME QUOTE CALCULATOR ============
+(function() {
+  const quoteState = {
+    services: [],
+    addons: [],
+    pricing: {},
+    addonPricing: {}
+  };
+
+  // Load pricing data
+  fetch('/api/pricing')
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        quoteState.services = data.services;
+        quoteState.addons = data.addons;
+        data.services.forEach(s => { quoteState.pricing[s.service_key] = s; });
+        data.addons.forEach(a => { quoteState.addonPricing[a.addon_key] = a; });
+        populateServiceSelects();
+        recalculate();
+      }
+    })
+    .catch(err => console.error('Pricing load failed:', err));
+
+  // Populate all service dropdowns
+  function populateServiceSelects() {
+    const selects = document.querySelectorAll('.q-service');
+    selects.forEach(sel => {
+      sel.innerHTML = '<option value="">-- Select Service --</option>';
+      quoteState.services.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.service_key;
+        opt.textContent = `${s.service_name} (KES ${s.price}/${s.unit})`;
+        opt.dataset.unit = s.unit;
+        opt.dataset.price = s.price;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  // Add new item row
+  function addItemRow() {
+    const container = document.getElementById('quoteItems');
+    const row = document.createElement('div');
+    row.className = 'quote-item-row';
+    row.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;align-items:end;';
+    row.innerHTML = `
+      <div style="flex:2;">
+        <label class="form-label small mb-1">Service</label>
+        <select class="form-select form-select-sm q-service">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label class="form-label small mb-1">Qty</label>
+        <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
+      </div>
+      <div style="flex:1;">
+        <label class="form-label small mb-1">Unit</label>
+        <input type="text" class="form-control form-control-sm q-unit" readonly>
+      </div>
+      <div>
+        <button type="button" class="btn btn-sm btn-outline-danger q-remove"><i class="fas fa-trash"></i></button>
+      </div>
+    `;
+    container.appendChild(row);
+    populateServiceSelects();
+    attachRowHandlers(row);
+  }
+
+  // Attach handlers to a row
+  function attachRowHandlers(row) {
+    const sel = row.querySelector('.q-service');
+    const qty = row.querySelector('.q-qty');
+    const unit = row.querySelector('.q-unit');
+    const rm = row.querySelector('.q-remove');
+
+    sel.addEventListener('change', () => {
+      const opt = sel.options[sel.selectedIndex];
+      unit.value = opt.dataset.unit || '';
+      recalculate();
+    });
+
+    qty.addEventListener('input', () => {
+      recalculate();
+    });
+
+    rm.addEventListener('click', () => {
+      row.remove();
+      recalculate();
+    });
+  }
+
+  // Collect state from DOM
+  function getItems() {
+    const rows = document.querySelectorAll('.quote-item-row');
+    const items = [];
+    rows.forEach(row => {
+      const sel = row.querySelector('.q-service');
+      const qty = row.querySelector('.q-qty');
+      if (sel.value && parseFloat(qty.value) > 0) {
+        items.push({
+          service_key: sel.value,
+          quantity: parseFloat(qty.value)
+        });
+      }
+    });
+    return items;
+  }
+
+  function getAddons() {
+    const checked = document.querySelectorAll('.q-addon:checked');
+    return Array.from(checked).map(c => c.value);
+  }
+
+  // Recalculate quote via server
+  async function recalculate() {
+    const items = getItems();
+    const addons = getAddons();
+    const express = document.getElementById('qExpress')?.checked || false;
+    const pickup = document.getElementById('qPickup')?.value || 'none';
+
+    if (items.length === 0) {
+      renderQuote({ subtotal: 0, addons_total: 0, express_cost: 0, pickup_cost: 0, total: 0, breakdown: [] });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/quote/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, addons, express, pickup })
+      });
+      const data = await res.json();
+      if (data.success) {
+        renderQuote(data);
+      } else {
+        console.error('Quote error:', data.error);
+      }
+    } catch (err) {
+      console.error('Quote fetch error:', err);
+    }
+  }
+
+  // Render quote to UI
+  function renderQuote(data) {
+    const fmt = n => 'KES ' + (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString();
+
+    document.getElementById('qSubtotal').textContent = fmt(data.subtotal);
+    document.getElementById('qAddons').textContent = fmt(data.addons_total);
+    document.getElementById('qExpressCost').textContent = fmt(data.express_cost);
+    document.getElementById('qPickupCost').textContent = fmt(data.pickup_cost);
+    document.getElementById('qTotal').textContent = fmt(data.total);
+
+    // Breakdown
+    const bd = document.getElementById('quoteBreakdown');
+    if (!data.breakdown || data.breakdown.length === 0) {
+      bd.innerHTML = '<p class="text-muted text-center py-3">Add items to see pricing</p>';
+    } else {
+      bd.innerHTML = data.breakdown.map(b => `
+        <div class="price-row">
+          <span>
+            ${b.item}
+            ${b.quantity ? ` <small class="text-muted">(${b.quantity}${b.unit || ''})</small>` : ''}
+            ${b.note ? `<br><small class="text-muted">${b.note}</small>` : ''}
+          </span>
+          <span class="price">${fmt(b.line_total || 0)}</span>
+        </div>
+      `).join('');
+    }
+
+    // Enable buttons
+    const wa = document.getElementById('qWhatsApp');
+    const sv = document.getElementById('qSave');
+    const enabled = data.total > 0;
+    if (wa) wa.disabled = !enabled;
+    if (sv) sv.disabled = !enabled;
+
+    // Store current quote for sending
+    quoteState.current = data;
+  }
+
+  // Initialize
+  const addBtn = document.getElementById('addQuoteItem');
+  if (addBtn) {
+    addBtn.addEventListener('click', addItemRow);
+    // Add first row
+    addItemRow();
+  }
+
+  // Event listeners
+  document.getElementById('qExpress')?.addEventListener('change', recalculate);
+  document.getElementById('qPickup')?.addEventListener('change', recalculate);
+  document.querySelectorAll('.q-addon').forEach(cb => cb.addEventListener('change', recalculate));
+
+  // WhatsApp
+  document.getElementById('qWhatsApp')?.addEventListener('click', function() {
+    const d = quoteState.current;
+    if (!d) return;
+
+    const lines = [
+      'Hi SpinSpring Express,',
+      'I would like a quote:',
+      ''
+    ];
+    d.breakdown.forEach(b => {
+      lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit||''})` : ''} — KES ${b.line_total}`);
+    });
+    lines.push('');
+    lines.push(`TOTAL: KES ${d.total}`);
+    lines.push('');
+    lines.push('Name: ' + (document.getElementById('qName')?.value || ''));
+    lines.push('Phone: ' + (document.getElementById('qPhone')?.value || ''));
+
+    const text = encodeURIComponent(lines.join('\n'));
+    window.open('https://wa.me/254793972143?text=' + text, '_blank');
+  });
+
+  // Save quote
+  document.getElementById('qSave')?.addEventListener('click', async function() {
+    const d = quoteState.current;
+    if (!d) return;
+
+    try {
+      const res = await fetch('/api/quote/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: getItems(),
+          addons: getAddons(),
+          express: document.getElementById('qExpress')?.checked || false,
+          pickup: document.getElementById('qPickup')?.value || 'none',
+          total: d.total,
+          customer_name: document.getElementById('qName')?.value || null,
+          customer_phone: document.getElementById('qPhone')?.value || null,
+          customer_email: document.getElementById('qEmail')?.value || null
+        })
+      });
+      const r = await res.json();
+      if (r.success) {
+        document.getElementById('qRef').textContent = r.quote_ref;
+        document.getElementById('qSaved').style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
+  });
+})();
+</script>
+<script>
+// ============ REAL-TIME QUOTE CALCULATOR ============
+(function() {
+  const quoteState = {
+    services: [],
+    addons: [],
+    pricing: {},
+    addonPricing: {}
+  };
+
+  // Load pricing data
+  fetch('/api/pricing')
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        quoteState.services = data.services;
+        quoteState.addons = data.addons;
+        data.services.forEach(s => { quoteState.pricing[s.service_key] = s; });
+        data.addons.forEach(a => { quoteState.addonPricing[a.addon_key] = a; });
+        populateServiceSelects();
+        recalculate();
+      }
+    })
+    .catch(err => console.error('Pricing load failed:', err));
+
+  // Populate all service dropdowns
+  function populateServiceSelects() {
+    const selects = document.querySelectorAll('.q-service');
+    selects.forEach(sel => {
+      sel.innerHTML = '<option value="">-- Select Service --</option>';
+      quoteState.services.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.service_key;
+        opt.textContent = `${s.service_name} (KES ${s.price}/${s.unit})`;
+        opt.dataset.unit = s.unit;
+        opt.dataset.price = s.price;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  // Add new item row
+  function addItemRow() {
+    const container = document.getElementById('quoteItems');
+    const row = document.createElement('div');
+    row.className = 'quote-item-row';
+    row.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;align-items:end;';
+    row.innerHTML = `
+      <div style="flex:2;">
+        <label class="form-label small mb-1">Service</label>
+        <select class="form-select form-select-sm q-service">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label class="form-label small mb-1">Qty</label>
+        <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
+      </div>
+      <div style="flex:1;">
+        <label class="form-label small mb-1">Unit</label>
+        <input type="text" class="form-control form-control-sm q-unit" readonly>
+      </div>
+      <div>
+        <button type="button" class="btn btn-sm btn-outline-danger q-remove"><i class="fas fa-trash"></i></button>
+      </div>
+    `;
+    container.appendChild(row);
+    populateServiceSelects();
+    attachRowHandlers(row);
+  }
+
+  // Attach handlers to a row
+  function attachRowHandlers(row) {
+    const sel = row.querySelector('.q-service');
+    const qty = row.querySelector('.q-qty');
+    const unit = row.querySelector('.q-unit');
+    const rm = row.querySelector('.q-remove');
+
+    sel.addEventListener('change', () => {
+      const opt = sel.options[sel.selectedIndex];
+      unit.value = opt.dataset.unit || '';
+      recalculate();
+    });
+
+    qty.addEventListener('input', () => {
+      recalculate();
+    });
+
+    rm.addEventListener('click', () => {
+      row.remove();
+      recalculate();
+    });
+  }
+
+  // Collect state from DOM
+  function getItems() {
+    const rows = document.querySelectorAll('.quote-item-row');
+    const items = [];
+    rows.forEach(row => {
+      const sel = row.querySelector('.q-service');
+      const qty = row.querySelector('.q-qty');
+      if (sel.value && parseFloat(qty.value) > 0) {
+        items.push({
+          service_key: sel.value,
+          quantity: parseFloat(qty.value)
+        });
+      }
+    });
+    return items;
+  }
+
+  function getAddons() {
+    const checked = document.querySelectorAll('.q-addon:checked');
+    return Array.from(checked).map(c => c.value);
+  }
+
+  // Recalculate quote via server
+  async function recalculate() {
+    const items = getItems();
+    const addons = getAddons();
+    const express = document.getElementById('qExpress')?.checked || false;
+    const pickup = document.getElementById('qPickup')?.value || 'none';
+
+    if (items.length === 0) {
+      renderQuote({ subtotal: 0, addons_total: 0, express_cost: 0, pickup_cost: 0, total: 0, breakdown: [] });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/quote/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, addons, express, pickup })
+      });
+      const data = await res.json();
+      if (data.success) {
+        renderQuote(data);
+      } else {
+        console.error('Quote error:', data.error);
+      }
+    } catch (err) {
+      console.error('Quote fetch error:', err);
+    }
+  }
+
+  // Render quote to UI
+  function renderQuote(data) {
+    const fmt = n => 'KES ' + (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString();
+
+    document.getElementById('qSubtotal').textContent = fmt(data.subtotal);
+    document.getElementById('qAddons').textContent = fmt(data.addons_total);
+    document.getElementById('qExpressCost').textContent = fmt(data.express_cost);
+    document.getElementById('qPickupCost').textContent = fmt(data.pickup_cost);
+    document.getElementById('qTotal').textContent = fmt(data.total);
+
+    // Breakdown
+    const bd = document.getElementById('quoteBreakdown');
+    if (!data.breakdown || data.breakdown.length === 0) {
+      bd.innerHTML = '<p class="text-muted text-center py-3">Add items to see pricing</p>';
+    } else {
+      bd.innerHTML = data.breakdown.map(b => `
+        <div class="price-row">
+          <span>
+            ${b.item}
+            ${b.quantity ? ` <small class="text-muted">(${b.quantity}${b.unit || ''})</small>` : ''}
+            ${b.note ? `<br><small class="text-muted">${b.note}</small>` : ''}
+          </span>
+          <span class="price">${fmt(b.line_total || 0)}</span>
+        </div>
+      `).join('');
+    }
+
+    // Enable buttons
+    const wa = document.getElementById('qWhatsApp');
+    const sv = document.getElementById('qSave');
+    const enabled = data.total > 0;
+    if (wa) wa.disabled = !enabled;
+    if (sv) sv.disabled = !enabled;
+
+    // Store current quote for sending
+    quoteState.current = data;
+  }
+
+  // Initialize
+  const addBtn = document.getElementById('addQuoteItem');
+  if (addBtn) {
+    addBtn.addEventListener('click', addItemRow);
+    // Add first row
+    addItemRow();
+  }
+
+  // Event listeners
+  document.getElementById('qExpress')?.addEventListener('change', recalculate);
+  document.getElementById('qPickup')?.addEventListener('change', recalculate);
+  document.querySelectorAll('.q-addon').forEach(cb => cb.addEventListener('change', recalculate));
+
+  // WhatsApp
+  document.getElementById('qWhatsApp')?.addEventListener('click', function() {
+    const d = quoteState.current;
+    if (!d) return;
+
+    const lines = [
+      'Hi SpinSpring Express,',
+      'I would like a quote:',
+      ''
+    ];
+    d.breakdown.forEach(b => {
+      lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit||''})` : ''} — KES ${b.line_total}`);
+    });
+    lines.push('');
+    lines.push(`TOTAL: KES ${d.total}`);
+    lines.push('');
+    lines.push('Name: ' + (document.getElementById('qName')?.value || ''));
+    lines.push('Phone: ' + (document.getElementById('qPhone')?.value || ''));
+
+    const text = encodeURIComponent(lines.join('\n'));
+    window.open('https://wa.me/254793972143?text=' + text, '_blank');
+  });
+
+  // Save quote
+  document.getElementById('qSave')?.addEventListener('click', async function() {
+    const d = quoteState.current;
+    if (!d) return;
+
+    try {
+      const res = await fetch('/api/quote/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: getItems(),
+          addons: getAddons(),
+          express: document.getElementById('qExpress')?.checked || false,
+          pickup: document.getElementById('qPickup')?.value || 'none',
+          total: d.total,
+          customer_name: document.getElementById('qName')?.value || null,
+          customer_phone: document.getElementById('qPhone')?.value || null,
+          customer_email: document.getElementById('qEmail')?.value || null
+        })
+      });
+      const r = await res.json();
+      if (r.success) {
+        document.getElementById('qRef').textContent = r.quote_ref;
+        document.getElementById('qSaved').style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
+  });
+})();
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
