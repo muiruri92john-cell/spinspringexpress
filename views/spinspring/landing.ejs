@@ -1,8 +1,7 @@
 <%- include('../layouts/main') %>
-<style>
-/* ===== FORCE OVERRIDE OF GLOBAL .ss-nav CSS ===== */
-body { padding-top: 0 !important; margin-top: 0 !important; background: #f8fafc; }
 
+<style>
+/* ===== CSS VARIABLES ===== */
 :root {
   --ss-primary: #0284c7;
   --ss-secondary: #38bdf8;
@@ -14,12 +13,20 @@ body { padding-top: 0 !important; margin-top: 0 !important; background: #f8fafc;
   --ss-bg: #f8fafc;
 }
 
-/* ===== NAV BAR ===== */
-nav.ss-nav, .ss-nav {
-  background: #ffffff !important;
+/* ===== GLOBAL OVERRIDES ===== */
+body {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  background: var(--ss-bg);
+}
+
+/* ===== NAVIGATION ===== */
+nav.ss-nav,
+.ss-nav {
+  background: var(--ss-white) !important;
   background-image: none !important;
   padding: 15px 0 !important;
-  box-shadow: 0 2px 15px rgba(2,132,199,0.15) !important;
+  box-shadow: 0 2px 15px rgba(2, 132, 199, 0.15) !important;
   display: block !important;
   position: sticky !important;
   top: 0 !important;
@@ -40,7 +47,7 @@ nav.ss-nav, .ss-nav {
 
 .ss-nav a.brand,
 .ss-nav .brand {
-  color: #0284c7 !important;
+  color: var(--ss-primary) !important;
   font-size: 1.5rem !important;
   font-weight: 800 !important;
   text-decoration: none !important;
@@ -65,7 +72,7 @@ nav.ss-nav, .ss-nav {
 }
 
 .ss-nav a.nav-link {
-  color: #0c4a6e !important;
+  color: var(--ss-dark) !important;
   font-weight: 600 !important;
   padding: 10px 18px !important;
   border-radius: 50px !important;
@@ -76,8 +83,8 @@ nav.ss-nav, .ss-nav {
 }
 
 .ss-nav a.nav-link:hover {
-  background: #f0f9ff !important;
-  color: #0284c7 !important;
+  background: var(--ss-light) !important;
+  color: var(--ss-primary) !important;
 }
 
 .ss-nav a.nav-btn {
@@ -94,13 +101,13 @@ nav.ss-nav, .ss-nav {
 
 .ss-nav a.nav-btn:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15) !important;
   color: white !important;
 }
 
 .ss-nav .nav-toggle {
   display: none;
-  background: #0284c7;
+  background: var(--ss-primary);
   color: white;
   border: none;
   padding: 10px 15px;
@@ -109,48 +116,46 @@ nav.ss-nav, .ss-nav {
   cursor: pointer;
 }
 
-@media (max-width: 991px) {
-  .ss-nav .nav-toggle { display: block !important; }
-  .ss-nav ul.nav-menu {
-    display: none !important;
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .ss-nav ul.nav-menu.show { display: flex !important; }
-  .ss-nav a.nav-link, .ss-nav a.nav-btn { width: 100%; text-align: center; }
-}
-
-/* ===== HERO ===== */
+/* ===== HERO SECTION ===== */
 .ss-hero {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%);
   padding: 80px 0 100px;
   position: relative;
   overflow: hidden;
 }
+
 .ss-hero::before {
   content: '';
   position: absolute;
-  top: -50%; right: -20%;
-  width: 500px; height: 500px;
-  background: rgba(255,255,255,0.05);
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 50%;
 }
-.ss-hero-content { position: relative; z-index: 2; }
+
+.ss-hero-content {
+  position: relative;
+  z-index: 2;
+}
+
 .ss-hero h1 {
   color: white;
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 800;
   margin-bottom: 15px;
 }
+
 .ss-hero .tagline {
-  color: rgba(255,255,255,0.95);
+  color: rgba(255, 255, 255, 0.95);
   font-size: clamp(1rem, 2vw, 1.3rem);
   margin-bottom: 25px;
 }
+
 .ss-hero .badge-light {
   background: white;
-  color: #0284c7;
+  color: var(--ss-primary);
   padding: 8px 20px;
   border-radius: 50px;
   font-weight: 700;
@@ -158,13 +163,15 @@ nav.ss-nav, .ss-nav {
   margin-bottom: 20px;
   font-size: 0.9rem;
 }
+
 .hero-image-box {
   background: white;
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
+
 .hero-image-box img {
   width: 100%;
   border-radius: 15px;
@@ -177,16 +184,19 @@ nav.ss-nav, .ss-nav {
   display: block !important;
   visibility: visible !important;
 }
+
 .ss-section-title {
   text-align: center;
   margin-bottom: 50px;
 }
+
 .ss-section-title h2 {
-  color: #0c4a6e;
+  color: var(--ss-dark);
   font-size: clamp(1.5rem, 3vw, 2.2rem);
   font-weight: 800;
   margin-bottom: 10px;
 }
+
 .ss-section-title p {
   color: #64748b;
   font-size: 1.05rem;
@@ -197,23 +207,26 @@ nav.ss-nav, .ss-nav {
   background: white;
   border-radius: 20px;
   padding: 30px;
-  box-shadow: 0 5px 25px rgba(2,132,199,0.1);
+  box-shadow: 0 5px 25px rgba(2, 132, 199, 0.1);
   border: 1px solid #e0f2fe;
   height: 100%;
   transition: all 0.3s;
 }
+
 .pricing-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(2,132,199,0.2);
+  box-shadow: 0 15px 40px rgba(2, 132, 199, 0.2);
 }
+
 .pricing-card h4 {
-  color: #0284c7;
+  color: var(--ss-primary);
   font-weight: 800;
   border-bottom: 2px solid #e0f2fe;
   padding-bottom: 15px;
   margin-bottom: 20px;
   font-size: 1.2rem;
 }
+
 .price-row {
   display: flex;
   justify-content: space-between;
@@ -222,10 +235,14 @@ nav.ss-nav, .ss-nav {
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.95rem;
 }
-.price-row:last-child { border-bottom: none; }
+
+.price-row:last-child {
+  border-bottom: none;
+}
+
 .price-row .price {
   font-weight: 700;
-  color: #0284c7;
+  color: var(--ss-primary);
   font-size: 1rem;
   white-space: nowrap;
 }
@@ -236,44 +253,42 @@ nav.ss-nav, .ss-nav {
   border-radius: 20px;
   padding: 30px 20px;
   text-align: center;
-  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
   height: 100%;
 }
+
 .service-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
+
 .service-card .icon-wrap {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #f0f9ff;
+  background: var(--ss-light);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
 }
+
 .service-card .icon-wrap i {
   font-size: 2rem;
-  color: #0284c7;
+  color: var(--ss-primary);
 }
+
 .service-card h5 {
-  color: #0c4a6e;
+  color: var(--ss-dark);
   font-weight: 700;
   margin-bottom: 10px;
 }
+
 .service-card p {
   color: #64748b;
   font-size: 0.9rem;
   margin: 0;
-}
-.service-card img {
-  width: 100%;
-  height: 180px;
-  object-fit: cover;
-  border-radius: 15px;
-  margin-bottom: 15px;
 }
 
 /* ===== PROCESS CARDS ===== */
@@ -282,9 +297,10 @@ nav.ss-nav, .ss-nav {
   border-radius: 20px;
   padding: 35px 25px;
   text-align: center;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
   height: 100%;
 }
+
 .step-num {
   width: 60px;
   height: 60px;
@@ -297,13 +313,15 @@ nav.ss-nav, .ss-nav {
   font-weight: 800;
   font-size: 1.5rem;
   margin: 0 auto 20px;
-  box-shadow: 0 5px 15px rgba(2,132,199,0.3);
+  box-shadow: 0 5px 15px rgba(2, 132, 199, 0.3);
 }
+
 .process-card h5 {
-  color: #0c4a6e;
+  color: var(--ss-dark);
   font-weight: 700;
   margin-bottom: 10px;
 }
+
 .process-card p {
   color: #64748b;
   font-size: 0.9rem;
@@ -315,76 +333,95 @@ nav.ss-nav, .ss-nav {
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 20px;
 }
+
 .gallery-item {
   position: relative;
   border-radius: 15px;
   overflow: hidden;
   aspect-ratio: 4/3;
-  background: #f0f9ff;
+  background: var(--ss-light);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
+
 .gallery-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.5s;
 }
-.gallery-item:hover img { transform: scale(1.05); }
+
+.gallery-item:hover img {
+  transform: scale(1.05);
+}
+
 .gallery-item .placeholder-icon {
   font-size: 4rem;
   color: #bae6fd;
 }
+
 .gallery-overlay {
   position: absolute;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(transparent, rgba(12,74,110,0.95));
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(12, 74, 110, 0.95));
   color: white;
   padding: 20px;
   transform: translateY(100%);
   transition: transform 0.3s;
 }
-.gallery-item:hover .gallery-overlay { transform: translateY(0); }
+
+.gallery-item:hover .gallery-overlay {
+  transform: translateY(0);
+}
 
 /* ===== TESTIMONIALS ===== */
 .testimonial-card {
   background: white;
   border-radius: 20px;
   padding: 30px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
   height: 100%;
 }
+
 .testimonial-card .stars {
   color: #f59e0b;
   font-size: 1.1rem;
   margin-bottom: 15px;
 }
+
 .testimonial-card p {
   color: #64748b;
   font-style: italic;
   margin-bottom: 15px;
 }
-.testimonial-card strong { color: #0c4a6e; }
+
+.testimonial-card strong {
+  color: var(--ss-dark);
+}
 
 /* ===== STATS ===== */
 .stat-box {
   text-align: center;
   padding: 20px;
 }
+
 .stat-box .num {
   font-size: clamp(1.8rem, 4vw, 2.8rem);
   font-weight: 800;
-  color: #0284c7;
+  color: var(--ss-primary);
 }
+
 .stat-box .lbl {
   color: #64748b;
   font-size: 0.9rem;
   margin-top: 5px;
 }
 
-/* ===== CTA ===== */
+/* ===== CTA SECTION ===== */
 .cta-section {
   background: linear-gradient(135deg, #0284c7, #0ea5e9);
   padding: 70px 0;
@@ -406,26 +443,64 @@ nav.ss-nav, .ss-nav {
   align-items: center;
   justify-content: center;
   font-size: 32px;
-  box-shadow: 0 5px 25px rgba(37,211,102,0.5);
+  box-shadow: 0 5px 25px rgba(37, 211, 102, 0.5);
   z-index: 9998;
   text-decoration: none;
   animation: waBounce 2s infinite;
 }
-.wa-float:hover { color: white; transform: scale(1.1); }
+
+.wa-float:hover {
+  color: white;
+  transform: scale(1.1);
+}
+
 @keyframes waBounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
 
 /* ===== RESPONSIVE ===== */
+@media (max-width: 991px) {
+  .ss-nav .nav-toggle {
+    display: block !important;
+  }
+
+  .ss-nav ul.nav-menu {
+    display: none !important;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ss-nav ul.nav-menu.show {
+    display: flex !important;
+  }
+
+  .ss-nav a.nav-link,
+  .ss-nav a.nav-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 @media (max-width: 768px) {
-  .ss-hero { padding: 50px 0 70px; }
-  .ss-section { padding: 50px 0; }
-  .wa-float { width: 50px; height: 50px; font-size: 26px; bottom: 20px; right: 20px; }
+  .ss-hero {
+    padding: 50px 0 70px;
+  }
+
+  .ss-section {
+    padding: 50px 0;
+  }
+
+  .wa-float {
+    width: 50px;
+    height: 50px;
+    font-size: 26px;
+    bottom: 20px;
+    right: 20px;
+  }
 }
 </style>
-</head>
-<body>
 
 <!-- ===== NAVIGATION ===== -->
 <nav class="ss-nav">
@@ -433,7 +508,7 @@ nav.ss-nav, .ss-nav {
     <a href="/" class="brand">
       <i class="fas fa-soap"></i> SpinSpring Express
     </a>
-    <button class="nav-toggle" onclick="document.getElementById('navMenu').classList.toggle('show')">
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
       <i class="fas fa-bars"></i>
     </button>
     <ul class="nav-menu" id="navMenu">
@@ -455,11 +530,13 @@ nav.ss-nav, .ss-nav {
   <div class="container ss-hero-content">
     <div class="row align-items-center">
       <div class="col-lg-7">
-        <span class="badge-light"><i class="fas fa-star me-1"></i> Premium Laundry Service in Nairobi</span>
+        <span class="badge-light">
+          <i class="fas fa-star me-1"></i> Premium Laundry Service in Nairobi
+        </span>
         <h1>✨ Premium care, 24hr turnaround</h1>
         <p class="tagline">Full-service laundry and dry cleaning with pickup and delivery. Your clothes, treated like our own.</p>
         <div class="d-flex flex-wrap gap-3 mt-4">
-          <a href="https://wa.me/254793972143" class="btn btn-light btn-lg rounded-pill fw-bold px-4" target="_blank">
+          <a href="https://wa.me/254793972143" class="btn btn-light btn-lg rounded-pill fw-bold px-4" target="_blank" rel="noopener">
             <i class="fab fa-whatsapp me-2"></i> Schedule a Pick-up
           </a>
           <a href="#pricing" class="btn btn-outline-light btn-lg rounded-pill px-4">
@@ -483,8 +560,8 @@ nav.ss-nav, .ss-nav {
       </div>
       <div class="col-lg-5 text-center mt-4 mt-lg-0">
         <div class="hero-image-box">
-          <!-- HERO IMAGE - Replace with your actual image -->
-          <img src="/images/spinspring/hero-image.jpg" alt="SpinSpring Express"
+          <img src="/images/spinspring/hero-image.jpg" 
+               alt="SpinSpring Express"
                onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
           <div style="display:none; padding:40px; text-align:center;">
             <i class="fas fa-washing-machine fa-5x mb-3" style="color:#0284c7;"></i>
@@ -545,7 +622,6 @@ nav.ss-nav, .ss-nav {
   </div>
 </section>
 
-
 <!-- ===== QUOTE CALCULATOR ===== -->
 <section id="quote" class="ss-section" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
   <div class="container">
@@ -558,33 +634,9 @@ nav.ss-nav, .ss-nav {
       <!-- LEFT: Item Builder -->
       <div class="col-lg-7">
         <div class="pricing-card" style="border:2px solid #0284c7;">
-
           <!-- Service Items -->
           <h4><i class="fas fa-list me-2"></i>Select Services</h4>
-          <div id="quoteItems">
-            <!-- Item row template -->
-            <div class="quote-item-row" style="display:flex;gap:8px;margin-bottom:10px;align-items:end;">
-              <div style="flex:2;">
-                <label class="form-label small mb-1">Service</label>
-                <select class="form-select form-select-sm q-service">
-                  <option value="">-- Select --</option>
-                </select>
-              </div>
-              <div style="flex:1;">
-                <label class="form-label small mb-1">Qty</label>
-                <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
-              </div>
-              <div style="flex:1;">
-                <label class="form-label small mb-1">Unit</label>
-                <input type="text" class="form-control form-control-sm q-unit" readonly>
-              </div>
-              <div>
-                <button type="button" class="btn btn-sm btn-outline-danger q-remove" title="Remove">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
-          </div>
+          <div id="quoteItems"></div>
 
           <button type="button" id="addQuoteItem" class="btn btn-sm btn-outline-primary rounded-pill mb-3">
             <i class="fas fa-plus me-1"></i> Add Item
@@ -626,7 +678,7 @@ nav.ss-nav, .ss-nav {
             </select>
           </div>
 
-          <!-- Customer Info (optional) -->
+          <!-- Customer Info -->
           <h4 class="mt-3"><i class="fas fa-user me-2"></i>Your Info (optional)</h4>
           <div class="row g-2 mb-3">
             <div class="col-md-4">
@@ -694,18 +746,6 @@ nav.ss-nav, .ss-nav {
   </div>
 </section>
 
-<!-- Add "Quote" link to nav bar -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  var nav = document.getElementById('navMenu');
-  if (nav && !document.querySelector('a[href="#quote"]')) {
-    var li = document.createElement('li');
-    li.innerHTML = '<a href="#quote" class="nav-link">Get Quote</a>';
-    nav.insertBefore(li, nav.querySelector('li:last-child'));
-  }
-});
-</script>
-
 <!-- ===== PRICING ===== -->
 <section id="pricing" class="ss-section" style="background:#f8fafc;">
   <div class="container">
@@ -714,7 +754,6 @@ document.addEventListener('DOMContentLoaded', function() {
       <p>All prices in KES. Minimum order KES 1,000.</p>
     </div>
     <div class="row g-4">
-      <!-- Drop-off -->
       <div class="col-md-4">
         <div class="pricing-card">
           <h4><i class="fas fa-tag me-2"></i>Drop-off</h4>
@@ -723,7 +762,6 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="price-row"><span>Minimum order</span><span class="price">KES 1,000</span></div>
         </div>
       </div>
-      <!-- Dry Cleaning -->
       <div class="col-md-4">
         <div class="pricing-card">
           <h4><i class="fas fa-tshirt me-2"></i>Dry Cleaning</h4>
@@ -733,7 +771,6 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="price-row"><span>Leather Jacket</span><span class="price">KES 2,500</span></div>
         </div>
       </div>
-      <!-- Special Items -->
       <div class="col-md-4">
         <div class="pricing-card">
           <h4><i class="fas fa-star me-2"></i>Special Items</h4>
@@ -764,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 
     <div class="text-center mt-5">
-      <a href="https://wa.me/254793972143" class="btn btn-success rounded-pill px-5 py-3 fw-bold" target="_blank">
+      <a href="https://wa.me/254793972143" class="btn btn-success rounded-pill px-5 py-3 fw-bold" target="_blank" rel="noopener">
         <i class="fab fa-whatsapp me-2"></i> WhatsApp us for a quote
       </a>
     </div>
@@ -958,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <h2 class="fw-bold mb-3">Ready to Get Started?</h2>
     <p class="lead mb-4">Schedule a free pickup or drop off at any of our Nairobi locations.</p>
     <div class="d-flex flex-wrap justify-content-center gap-3">
-      <a href="https://wa.me/254793972143" class="btn btn-light btn-lg rounded-pill fw-bold px-4" target="_blank">
+      <a href="https://wa.me/254793972143" class="btn btn-light btn-lg rounded-pill fw-bold px-4" target="_blank" rel="noopener">
         <i class="fab fa-whatsapp me-2"></i> Schedule a Pick-up
       </a>
       <a href="/login" class="btn btn-outline-light btn-lg rounded-pill px-4">
@@ -998,13 +1035,13 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="col-md-3 mb-4">
         <h6>Contact</h6>
-        <a href="https://wa.me/254793972143" class="text-white-50 d-block mb-1" style="text-decoration:none;" target="_blank">
+        <a href="https://wa.me/254793972143" class="text-white-50 d-block mb-1" style="text-decoration:none;" target="_blank" rel="noopener">
           <i class="fab fa-whatsapp me-2"></i>+254 793 972 143
         </a>
         <a href="mailto:hello@spinspringexpress.co.ke" class="text-white-50 d-block mb-1" style="text-decoration:none;">
           <i class="fas fa-envelope me-2"></i>hello@spinspringexpress.co.ke
         </a>
-        <a href="https://instagram.com/spinspring_kenya" class="text-white-50 d-block mb-1" style="text-decoration:none;" target="_blank">
+        <a href="https://instagram.com/spinspring_kenya" class="text-white-50 d-block mb-1" style="text-decoration:none;" target="_blank" rel="noopener">
           <i class="fab fa-instagram me-2"></i>@spinspring_kenya
         </a>
       </div>
@@ -1017,531 +1054,335 @@ document.addEventListener('DOMContentLoaded', function() {
 </footer>
 
 <!-- ===== WHATSAPP FLOAT ===== -->
-<a href="https://wa.me/254793972143" class="wa-float" target="_blank" title="Chat on WhatsApp">
+<a href="https://wa.me/254793972143" class="wa-float" target="_blank" rel="noopener" title="Chat on WhatsApp">
   <i class="fab fa-whatsapp"></i>
 </a>
 
-<script>
-// Mobile nav toggle
-document.querySelector('.nav-toggle')?.addEventListener('click', function() {
-  document.getElementById('navMenu')?.classList.toggle('show');
-});
-
-// Smooth scroll
-document.querySelectorAll('a[href^="#"]').forEach(function(a) {
-  a.addEventListener('click', function(e) {
-    var target = document.querySelector(this.getAttribute('href'));
-    if (target) {
-      e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      document.getElementById('navMenu')?.classList.remove('show');
-    }
-  });
-});
-</script>
-
-
-<script>
-// ============ REAL-TIME QUOTE CALCULATOR ============
-(function() {
-  const quoteState = {
-    services: [],
-    addons: [],
-    pricing: {},
-    addonPricing: {}
-  };
-
-  // Load pricing data
-  fetch('/api/pricing')
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        quoteState.services = data.services;
-        quoteState.addons = data.addons;
-        data.services.forEach(s => { quoteState.pricing[s.service_key] = s; });
-        data.addons.forEach(a => { quoteState.addonPricing[a.addon_key] = a; });
-        populateServiceSelects();
-        recalculate();
-      }
-    })
-    .catch(err => console.error('Pricing load failed:', err));
-
-  // Populate all service dropdowns
-  function populateServiceSelects() {
-    const selects = document.querySelectorAll('.q-service');
-    selects.forEach(sel => {
-      sel.innerHTML = '<option value="">-- Select Service --</option>';
-      quoteState.services.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.service_key;
-        opt.textContent = `${s.service_name} (KES ${s.price}/${s.unit})`;
-        opt.dataset.unit = s.unit;
-        opt.dataset.price = s.price;
-        sel.appendChild(opt);
-      });
-    });
-  }
-
-  // Add new item row
-  function addItemRow() {
-    const container = document.getElementById('quoteItems');
-    const row = document.createElement('div');
-    row.className = 'quote-item-row';
-    row.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;align-items:end;';
-    row.innerHTML = `
-      <div style="flex:2;">
-        <label class="form-label small mb-1">Service</label>
-        <select class="form-select form-select-sm q-service">
-          <option value="">-- Select --</option>
-        </select>
-      </div>
-      <div style="flex:1;">
-        <label class="form-label small mb-1">Qty</label>
-        <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
-      </div>
-      <div style="flex:1;">
-        <label class="form-label small mb-1">Unit</label>
-        <input type="text" class="form-control form-control-sm q-unit" readonly>
-      </div>
-      <div>
-        <button type="button" class="btn btn-sm btn-outline-danger q-remove"><i class="fas fa-trash"></i></button>
-      </div>
-    `;
-    container.appendChild(row);
-    populateServiceSelects();
-    attachRowHandlers(row);
-  }
-
-  // Attach handlers to a row
-  function attachRowHandlers(row) {
-    const sel = row.querySelector('.q-service');
-    const qty = row.querySelector('.q-qty');
-    const unit = row.querySelector('.q-unit');
-    const rm = row.querySelector('.q-remove');
-
-    sel.addEventListener('change', () => {
-      const opt = sel.options[sel.selectedIndex];
-      unit.value = opt.dataset.unit || '';
-      recalculate();
-    });
-
-    qty.addEventListener('input', () => {
-      recalculate();
-    });
-
-    rm.addEventListener('click', () => {
-      row.remove();
-      recalculate();
-    });
-  }
-
-  // Collect state from DOM
-  function getItems() {
-    const rows = document.querySelectorAll('.quote-item-row');
-    const items = [];
-    rows.forEach(row => {
-      const sel = row.querySelector('.q-service');
-      const qty = row.querySelector('.q-qty');
-      if (sel.value && parseFloat(qty.value) > 0) {
-        items.push({
-          service_key: sel.value,
-          quantity: parseFloat(qty.value)
-        });
-      }
-    });
-    return items;
-  }
-
-  function getAddons() {
-    const checked = document.querySelectorAll('.q-addon:checked');
-    return Array.from(checked).map(c => c.value);
-  }
-
-  // Recalculate quote via server
-  async function recalculate() {
-    const items = getItems();
-    const addons = getAddons();
-    const express = document.getElementById('qExpress')?.checked || false;
-    const pickup = document.getElementById('qPickup')?.value || 'none';
-
-    if (items.length === 0) {
-      renderQuote({ subtotal: 0, addons_total: 0, express_cost: 0, pickup_cost: 0, total: 0, breakdown: [] });
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/quote/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, addons, express, pickup })
-      });
-      const data = await res.json();
-      if (data.success) {
-        renderQuote(data);
-      } else {
-        console.error('Quote error:', data.error);
-      }
-    } catch (err) {
-      console.error('Quote fetch error:', err);
-    }
-  }
-
-  // Render quote to UI
-  function renderQuote(data) {
-    const fmt = n => 'KES ' + (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString();
-
-    document.getElementById('qSubtotal').textContent = fmt(data.subtotal);
-    document.getElementById('qAddons').textContent = fmt(data.addons_total);
-    document.getElementById('qExpressCost').textContent = fmt(data.express_cost);
-    document.getElementById('qPickupCost').textContent = fmt(data.pickup_cost);
-    document.getElementById('qTotal').textContent = fmt(data.total);
-
-    // Breakdown
-    const bd = document.getElementById('quoteBreakdown');
-    if (!data.breakdown || data.breakdown.length === 0) {
-      bd.innerHTML = '<p class="text-muted text-center py-3">Add items to see pricing</p>';
-    } else {
-      bd.innerHTML = data.breakdown.map(b => `
-        <div class="price-row">
-          <span>
-            ${b.item}
-            ${b.quantity ? ` <small class="text-muted">(${b.quantity}${b.unit || ''})</small>` : ''}
-            ${b.note ? `<br><small class="text-muted">${b.note}</small>` : ''}
-          </span>
-          <span class="price">${fmt(b.line_total || 0)}</span>
-        </div>
-      `).join('');
-    }
-
-    // Enable buttons
-    const wa = document.getElementById('qWhatsApp');
-    const sv = document.getElementById('qSave');
-    const enabled = data.total > 0;
-    if (wa) wa.disabled = !enabled;
-    if (sv) sv.disabled = !enabled;
-
-    // Store current quote for sending
-    quoteState.current = data;
-  }
-
-  // Initialize
-  const addBtn = document.getElementById('addQuoteItem');
-  if (addBtn) {
-    addBtn.addEventListener('click', addItemRow);
-    // Add first row
-    addItemRow();
-  }
-
-  // Event listeners
-  document.getElementById('qExpress')?.addEventListener('change', recalculate);
-  document.getElementById('qPickup')?.addEventListener('change', recalculate);
-  document.querySelectorAll('.q-addon').forEach(cb => cb.addEventListener('change', recalculate));
-
-  // WhatsApp
-  document.getElementById('qWhatsApp')?.addEventListener('click', function() {
-    const d = quoteState.current;
-    if (!d) return;
-
-    const lines = [
-      'Hi SpinSpring Express,',
-      'I would like a quote:',
-      ''
-    ];
-    d.breakdown.forEach(b => {
-      lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit||''})` : ''} — KES ${b.line_total}`);
-    });
-    lines.push('');
-    lines.push(`TOTAL: KES ${d.total}`);
-    lines.push('');
-    lines.push('Name: ' + (document.getElementById('qName')?.value || ''));
-    lines.push('Phone: ' + (document.getElementById('qPhone')?.value || ''));
-
-    const text = encodeURIComponent(lines.join('\n'));
-    window.open('https://wa.me/254793972143?text=' + text, '_blank');
-  });
-
-  // Save quote
-  document.getElementById('qSave')?.addEventListener('click', async function() {
-    const d = quoteState.current;
-    if (!d) return;
-
-    try {
-      const res = await fetch('/api/quote/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: getItems(),
-          addons: getAddons(),
-          express: document.getElementById('qExpress')?.checked || false,
-          pickup: document.getElementById('qPickup')?.value || 'none',
-          total: d.total,
-          customer_name: document.getElementById('qName')?.value || null,
-          customer_phone: document.getElementById('qPhone')?.value || null,
-          customer_email: document.getElementById('qEmail')?.value || null
-        })
-      });
-      const r = await res.json();
-      if (r.success) {
-        document.getElementById('qRef').textContent = r.quote_ref;
-        document.getElementById('qSaved').style.display = 'block';
-      }
-    } catch (err) {
-      console.error('Save failed:', err);
-    }
-  });
-})();
-</script>
-<script>
-// ============ REAL-TIME QUOTE CALCULATOR ============
-(function() {
-  const quoteState = {
-    services: [],
-    addons: [],
-    pricing: {},
-    addonPricing: {}
-  };
-
-  // Load pricing data
-  fetch('/api/pricing')
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        quoteState.services = data.services;
-        quoteState.addons = data.addons;
-        data.services.forEach(s => { quoteState.pricing[s.service_key] = s; });
-        data.addons.forEach(a => { quoteState.addonPricing[a.addon_key] = a; });
-        populateServiceSelects();
-        recalculate();
-      }
-    })
-    .catch(err => console.error('Pricing load failed:', err));
-
-  // Populate all service dropdowns
-  function populateServiceSelects() {
-    const selects = document.querySelectorAll('.q-service');
-    selects.forEach(sel => {
-      sel.innerHTML = '<option value="">-- Select Service --</option>';
-      quoteState.services.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.service_key;
-        opt.textContent = `${s.service_name} (KES ${s.price}/${s.unit})`;
-        opt.dataset.unit = s.unit;
-        opt.dataset.price = s.price;
-        sel.appendChild(opt);
-      });
-    });
-  }
-
-  // Add new item row
-  function addItemRow() {
-    const container = document.getElementById('quoteItems');
-    const row = document.createElement('div');
-    row.className = 'quote-item-row';
-    row.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;align-items:end;';
-    row.innerHTML = `
-      <div style="flex:2;">
-        <label class="form-label small mb-1">Service</label>
-        <select class="form-select form-select-sm q-service">
-          <option value="">-- Select --</option>
-        </select>
-      </div>
-      <div style="flex:1;">
-        <label class="form-label small mb-1">Qty</label>
-        <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
-      </div>
-      <div style="flex:1;">
-        <label class="form-label small mb-1">Unit</label>
-        <input type="text" class="form-control form-control-sm q-unit" readonly>
-      </div>
-      <div>
-        <button type="button" class="btn btn-sm btn-outline-danger q-remove"><i class="fas fa-trash"></i></button>
-      </div>
-    `;
-    container.appendChild(row);
-    populateServiceSelects();
-    attachRowHandlers(row);
-  }
-
-  // Attach handlers to a row
-  function attachRowHandlers(row) {
-    const sel = row.querySelector('.q-service');
-    const qty = row.querySelector('.q-qty');
-    const unit = row.querySelector('.q-unit');
-    const rm = row.querySelector('.q-remove');
-
-    sel.addEventListener('change', () => {
-      const opt = sel.options[sel.selectedIndex];
-      unit.value = opt.dataset.unit || '';
-      recalculate();
-    });
-
-    qty.addEventListener('input', () => {
-      recalculate();
-    });
-
-    rm.addEventListener('click', () => {
-      row.remove();
-      recalculate();
-    });
-  }
-
-  // Collect state from DOM
-  function getItems() {
-    const rows = document.querySelectorAll('.quote-item-row');
-    const items = [];
-    rows.forEach(row => {
-      const sel = row.querySelector('.q-service');
-      const qty = row.querySelector('.q-qty');
-      if (sel.value && parseFloat(qty.value) > 0) {
-        items.push({
-          service_key: sel.value,
-          quantity: parseFloat(qty.value)
-        });
-      }
-    });
-    return items;
-  }
-
-  function getAddons() {
-    const checked = document.querySelectorAll('.q-addon:checked');
-    return Array.from(checked).map(c => c.value);
-  }
-
-  // Recalculate quote via server
-  async function recalculate() {
-    const items = getItems();
-    const addons = getAddons();
-    const express = document.getElementById('qExpress')?.checked || false;
-    const pickup = document.getElementById('qPickup')?.value || 'none';
-
-    if (items.length === 0) {
-      renderQuote({ subtotal: 0, addons_total: 0, express_cost: 0, pickup_cost: 0, total: 0, breakdown: [] });
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/quote/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, addons, express, pickup })
-      });
-      const data = await res.json();
-      if (data.success) {
-        renderQuote(data);
-      } else {
-        console.error('Quote error:', data.error);
-      }
-    } catch (err) {
-      console.error('Quote fetch error:', err);
-    }
-  }
-
-  // Render quote to UI
-  function renderQuote(data) {
-    const fmt = n => 'KES ' + (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString();
-
-    document.getElementById('qSubtotal').textContent = fmt(data.subtotal);
-    document.getElementById('qAddons').textContent = fmt(data.addons_total);
-    document.getElementById('qExpressCost').textContent = fmt(data.express_cost);
-    document.getElementById('qPickupCost').textContent = fmt(data.pickup_cost);
-    document.getElementById('qTotal').textContent = fmt(data.total);
-
-    // Breakdown
-    const bd = document.getElementById('quoteBreakdown');
-    if (!data.breakdown || data.breakdown.length === 0) {
-      bd.innerHTML = '<p class="text-muted text-center py-3">Add items to see pricing</p>';
-    } else {
-      bd.innerHTML = data.breakdown.map(b => `
-        <div class="price-row">
-          <span>
-            ${b.item}
-            ${b.quantity ? ` <small class="text-muted">(${b.quantity}${b.unit || ''})</small>` : ''}
-            ${b.note ? `<br><small class="text-muted">${b.note}</small>` : ''}
-          </span>
-          <span class="price">${fmt(b.line_total || 0)}</span>
-        </div>
-      `).join('');
-    }
-
-    // Enable buttons
-    const wa = document.getElementById('qWhatsApp');
-    const sv = document.getElementById('qSave');
-    const enabled = data.total > 0;
-    if (wa) wa.disabled = !enabled;
-    if (sv) sv.disabled = !enabled;
-
-    // Store current quote for sending
-    quoteState.current = data;
-  }
-
-  // Initialize
-  const addBtn = document.getElementById('addQuoteItem');
-  if (addBtn) {
-    addBtn.addEventListener('click', addItemRow);
-    // Add first row
-    addItemRow();
-  }
-
-  // Event listeners
-  document.getElementById('qExpress')?.addEventListener('change', recalculate);
-  document.getElementById('qPickup')?.addEventListener('change', recalculate);
-  document.querySelectorAll('.q-addon').forEach(cb => cb.addEventListener('change', recalculate));
-
-  // WhatsApp
-  document.getElementById('qWhatsApp')?.addEventListener('click', function() {
-    const d = quoteState.current;
-    if (!d) return;
-
-    const lines = [
-      'Hi SpinSpring Express,',
-      'I would like a quote:',
-      ''
-    ];
-    d.breakdown.forEach(b => {
-      lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit||''})` : ''} — KES ${b.line_total}`);
-    });
-    lines.push('');
-    lines.push(`TOTAL: KES ${d.total}`);
-    lines.push('');
-    lines.push('Name: ' + (document.getElementById('qName')?.value || ''));
-    lines.push('Phone: ' + (document.getElementById('qPhone')?.value || ''));
-
-    const text = encodeURIComponent(lines.join('\n'));
-    window.open('https://wa.me/254793972143?text=' + text, '_blank');
-  });
-
-  // Save quote
-  document.getElementById('qSave')?.addEventListener('click', async function() {
-    const d = quoteState.current;
-    if (!d) return;
-
-    try {
-      const res = await fetch('/api/quote/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: getItems(),
-          addons: getAddons(),
-          express: document.getElementById('qExpress')?.checked || false,
-          pickup: document.getElementById('qPickup')?.value || 'none',
-          total: d.total,
-          customer_name: document.getElementById('qName')?.value || null,
-          customer_phone: document.getElementById('qPhone')?.value || null,
-          customer_email: document.getElementById('qEmail')?.value || null
-        })
-      });
-      const r = await res.json();
-      if (r.success) {
-        document.getElementById('qRef').textContent = r.quote_ref;
-        document.getElementById('qSaved').style.display = 'block';
-      }
-    } catch (err) {
-      console.error('Save failed:', err);
-    }
-  });
-})();
-</script>
-
+<!-- ===== SCRIPTS ===== -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ============ NAVIGATION ============
+(function() {
+  'use strict';
+
+  // Mobile nav toggle
+  const navToggle = document.getElementById('navToggle');
+  const navMenu = document.getElementById('navMenu');
+
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', function() {
+      navMenu.classList.toggle('show');
+    });
+  }
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        navMenu?.classList.remove('show');
+      }
+    });
+  });
+})();
+
+// ============ QUOTE CALCULATOR ============
+(function() {
+  'use strict';
+
+  const quoteState = {
+    services: [],
+    addons: [],
+    pricing: {},
+    addonPricing: {},
+    current: null
+  };
+
+  const DOM = {
+    quoteItems: document.getElementById('quoteItems'),
+    addQuoteItem: document.getElementById('addQuoteItem'),
+    quoteBreakdown: document.getElementById('quoteBreakdown'),
+    qSubtotal: document.getElementById('qSubtotal'),
+    qAddons: document.getElementById('qAddons'),
+    qExpressCost: document.getElementById('qExpressCost'),
+    qPickupCost: document.getElementById('qPickupCost'),
+    qTotal: document.getElementById('qTotal'),
+    qWhatsApp: document.getElementById('qWhatsApp'),
+    qSave: document.getElementById('qSave'),
+    qSaved: document.getElementById('qSaved'),
+    qRef: document.getElementById('qRef'),
+    qExpress: document.getElementById('qExpress'),
+    qPickup: document.getElementById('qPickup'),
+    qName: document.getElementById('qName'),
+    qPhone: document.getElementById('qPhone'),
+    qEmail: document.getElementById('qEmail')
+  };
+
+  // ============ API CALLS ============
+  async function loadPricing() {
+    try {
+      const res = await fetch('/api/pricing');
+      const data = await res.json();
+      if (data.success) {
+        quoteState.services = data.services;
+        quoteState.addons = data.addons;
+        data.services.forEach(s => { quoteState.pricing[s.service_key] = s; });
+        data.addons.forEach(a => { quoteState.addonPricing[a.addon_key] = a; });
+        populateServiceSelects();
+        recalculate();
+      }
+    } catch (err) {
+      console.error('Pricing load failed:', err);
+    }
+  }
+
+  async function calculateQuote(items, addons, express, pickup) {
+    const res = await fetch('/api/quote/calculate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, addons, express, pickup })
+    });
+    return res.json();
+  }
+
+  async function saveQuote(payload) {
+    const res = await fetch('/api/quote/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+
+  // ============ DOM HELPERS ============
+  function populateServiceSelects() {
+    document.querySelectorAll('.q-service').forEach(sel => {
+      sel.innerHTML = '<option value="">-- Select Service --</option>';
+      quoteState.services.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.service_key;
+        opt.textContent = `${s.service_name} (KES ${s.price}/${s.unit})`;
+        opt.dataset.unit = s.unit;
+        opt.dataset.price = s.price;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  function createItemRow() {
+    const row = document.createElement('div');
+    row.className = 'quote-item-row';
+    row.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;align-items:end;';
+    row.innerHTML = `
+      <div style="flex:2;">
+        <label class="form-label small mb-1">Service</label>
+        <select class="form-select form-select-sm q-service">
+          <option value="">-- Select --</option>
+        </select>
+      </div>
+      <div style="flex:1;">
+        <label class="form-label small mb-1">Qty</label>
+        <input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1">
+      </div>
+      <div style="flex:1;">
+        <label class="form-label small mb-1">Unit</label>
+        <input type="text" class="form-control form-control-sm q-unit" readonly>
+      </div>
+      <div>
+        <button type="button" class="btn btn-sm btn-outline-danger q-remove" title="Remove">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    `;
+    return row;
+  }
+
+  function attachRowHandlers(row) {
+    const sel = row.querySelector('.q-service');
+    const qty = row.querySelector('.q-qty');
+    const unit = row.querySelector('.q-unit');
+    const rm = row.querySelector('.q-remove');
+
+    sel.addEventListener('change', () => {
+      const opt = sel.options[sel.selectedIndex];
+      unit.value = opt.dataset.unit || '';
+      recalculate();
+    });
+
+    qty.addEventListener('input', recalculate);
+
+    rm.addEventListener('click', () => {
+      row.remove();
+      recalculate();
+    });
+  }
+
+  function addItemRow() {
+    const row = createItemRow();
+    DOM.quoteItems.appendChild(row);
+    populateServiceSelects();
+    attachRowHandlers(row);
+  }
+
+  // ============ STATE COLLECTION ============
+  function getItems() {
+    const items = [];
+    document.querySelectorAll('.quote-item-row').forEach(row => {
+      const sel = row.querySelector('.q-service');
+      const qty = row.querySelector('.q-qty');
+      if (sel.value && parseFloat(qty.value) > 0) {
+        items.push({
+          service_key: sel.value,
+          quantity: parseFloat(qty.value)
+        });
+      }
+    });
+    return items;
+  }
+
+  function getAddons() {
+    return Array.from(document.querySelectorAll('.q-addon:checked')).map(c => c.value);
+  }
+
+  // ============ RENDERING ============
+  function formatCurrency(n) {
+    return 'KES ' + (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString();
+  }
+
+  function renderQuote(data) {
+    DOM.qSubtotal.textContent = formatCurrency(data.subtotal);
+    DOM.qAddons.textContent = formatCurrency(data.addons_total);
+    DOM.qExpressCost.textContent = formatCurrency(data.express_cost);
+    DOM.qPickupCost.textContent = formatCurrency(data.pickup_cost);
+    DOM.qTotal.textContent = formatCurrency(data.total);
+
+    // Breakdown
+    if (!data.breakdown || data.breakdown.length === 0) {
+      DOM.quoteBreakdown.innerHTML = '<p class="text-muted text-center py-3">Add items to see pricing</p>';
+    } else {
+      DOM.quoteBreakdown.innerHTML = data.breakdown.map(b => `
+        <div class="price-row">
+          <span>
+            ${b.item}
+            ${b.quantity ? ` <small class="text-muted">(${b.quantity}${b.unit || ''})</small>` : ''}
+            ${b.note ? `<br><small class="text-muted">${b.note}</small>` : ''}
+          </span>
+          <span class="price">${formatCurrency(b.line_total || 0)}</span>
+        </div>
+      `).join('');
+    }
+
+    // Enable/disable buttons
+    const enabled = data.total > 0;
+    DOM.qWhatsApp.disabled = !enabled;
+    DOM.qSave.disabled = !enabled;
+
+    // Store current quote
+    quoteState.current = data;
+  }
+
+  // ============ RECALCULATE ============
+  async function recalculate() {
+    const items = getItems();
+    const addons = getAddons();
+    const express = DOM.qExpress?.checked || false;
+    const pickup = DOM.qPickup?.value || 'none';
+
+    if (items.length === 0) {
+      renderQuote({ subtotal: 0, addons_total: 0, express_cost: 0, pickup_cost: 0, total: 0, breakdown: [] });
+      return;
+    }
+
+    try {
+      const data = await calculateQuote(items, addons, express, pickup);
+      if (data.success) {
+        renderQuote(data);
+      } else {
+        console.error('Quote error:', data.error);
+      }
+    } catch (err) {
+      console.error('Quote fetch error:', err);
+    }
+  }
+
+  // ============ ACTIONS ============
+  function sendViaWhatsApp() {
+    const d = quoteState.current;
+    if (!d) return;
+
+    const lines = [
+      'Hi SpinSpring Express,',
+      'I would like a quote:',
+      ''
+    ];
+
+    d.breakdown.forEach(b => {
+      lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit || ''})` : ''} — KES ${b.line_total}`);
+    });
+
+    lines.push('');
+    lines.push(`TOTAL: KES ${d.total}`);
+    lines.push('');
+    lines.push('Name: ' + (DOM.qName?.value || ''));
+    lines.push('Phone: ' + (DOM.qPhone?.value || ''));
+
+    const text = encodeURIComponent(lines.join('\n'));
+    window.open('https://wa.me/254793972143?text=' + text, '_blank');
+  }
+
+  async function handleSaveQuote() {
+    const d = quoteState.current;
+    if (!d) return;
+
+    try {
+      const r = await saveQuote({
+        items: getItems(),
+        addons: getAddons(),
+        express: DOM.qExpress?.checked || false,
+        pickup: DOM.qPickup?.value || 'none',
+        total: d.total,
+        customer_name: DOM.qName?.value || null,
+        customer_phone: DOM.qPhone?.value || null,
+        customer_email: DOM.qEmail?.value || null
+      });
+
+      if (r.success) {
+        DOM.qRef.textContent = r.quote_ref;
+        DOM.qSaved.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Save failed:', err);
+    }
+  }
+
+  // ============ INITIALIZATION ============
+  function init() {
+    // Add first item row
+    addItemRow();
+
+    // Event listeners
+    DOM.addQuoteItem?.addEventListener('click', addItemRow);
+    DOM.qExpress?.addEventListener('change', recalculate);
+    DOM.qPickup?.addEventListener('change', recalculate);
+    document.querySelectorAll('.q-addon').forEach(cb => cb.addEventListener('change', recalculate));
+    DOM.qWhatsApp?.addEventListener('click', sendViaWhatsApp);
+    DOM.qSave?.addEventListener('click', handleSaveQuote);
+
+    // Load pricing data
+    loadPricing();
+  }
+
+  // Start when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
 </body>
 </html>
