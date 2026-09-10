@@ -266,11 +266,12 @@ router.post('/api/quote/calculate', async (req, res) => {
   }
 });
 
-// Save quote (optional - for follow-up)
+// Save quote (visible to owner in admin panel)
 router.post('/api/quote/save', async (req, res) => {
   try {
     const { items, addons, express, pickup, total, customer_name, customer_phone, customer_email } = req.body;
 
+    // Ensure table exists
     await req.db.query(`
       CREATE TABLE IF NOT EXISTS ss_quotes (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -282,19 +283,153 @@ router.post('/api/quote/save', async (req, res) => {
         addons JSON,
         express TINYINT DEFAULT 0,
         pickup VARCHAR(30),
+        subtotal DECIMAL(10,2) DEFAULT 0,
         total DECIMAL(10,2),
         status ENUM('new','contacted','converted','expired') DEFAULT 'new',
+        notes TEXT,
+        ip_address VARCHAR(45),
+        user_agent VARCHAR(500),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB
     `);
 
     const quoteRef = 'QT-' + Date.now().toString(36).toUpperCase();
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    const ua = req.headers['user-agent'] || '';
+
     await req.db.query(
-      'INSERT INTO ss_quotes (quote_ref, customer_name, customer_phone, customer_email, items, addons, express, pickup, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [quoteRef, customer_name || null, customer_phone || null, customer_email || null, JSON.stringify(items), JSON.stringify(addons), express ? 1 : 0, pickup || 'none', total]
+      `INSERT INTO ss_quotes 
+       (quote_ref, customer_name, customer_phone, customer_email, items, addons, express, pickup, total, ip_address, user_agent) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        quoteRef,
+        customer_name || null,
+        customer_phone || null,
+        customer_email || null,
+        JSON.stringify(items),
+        JSON.stringify(addons),
+        express ? 1 : 0,
+        pickup || 'none',
+        total,
+        ip.substring(0, 45),
+        ua.substring(0, 500)
+      ]
     );
 
     res.json({ success: true, quote_ref: quoteRef });
+  } catch (err) {
+    console.error('Save quote error:', err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// ============ OWNER: VIEW ALL QUOTES ============
+router.get('/owner/quotes', isOwner, async (req, res) => {
+  try {
+    const ownerId = req.session.spinUser.id;
+    const { status } = req.query;
+
+    let query = 'SELECT * FROM ss_quotes';
+    const params = [];
+    if (status) {
+      query += ' WHERE status = ?';
+      params.push(status);
+    }
+    query += ' ORDER BY created_at DESC LIMIT 200';
+
+    // Create table if missing
+    try {
+      await req.db.query(`CREATE TABLE IF NOT EXISTS ss_quotes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        quote_ref VARCHAR(30) UNIQUE,
+        customer_name VARCHAR(100),
+        customer_phone VARCHAR(20),
+        customer_email VARCHAR(100),
+        items JSON,
+        addons JSON,
+        express TINYINT DEFAULT 0,
+        pickup VARCHAR(30),
+        total DECIMAL(10,2),
+        status ENUM('new','contacted','converted','expired') DEFAULT 'new',
+        notes TEXT,
+        ip_address VARCHAR(45),
+        user_agent VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB`);
+    } catch (e) { /* ignore */ }
+
+    const [quotes] = await req.db.query(query, params);
+
+    // Parse items and addons JSON
+    quotes.forEach(q => {
+      try { q.items = JSON.parse(q.items || '[]'); } catch (e) { q.items = []; }
+      try { q.addons = JSON.parse(q.addons || '[]'); } catch (e) { q.addons = []; }
+    });
+
+    // Stats
+    const [stats] = await req.db.query(
+      `SELECT 
+        COUNT(*) as total_quotes,
+        SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_count,
+        SUM(CASE WHEN status = 'converted' THEN 1 ELSE 0 END) as converted_count,
+        COALESCE(SUM(CASE WHEN status = 'converted' THEN total ELSE 0 END), 0) as converted_value
+       FROM ss_quotes`
+    );
+
+    res.render('spinspring/quotes', {
+      title: 'Quotes - SpinSpring Express',
+      user: req.session.spinUser,
+      quotes,
+      stats: stats[0] || {},
+      currentStatus: status || ''
+    });
+  } catch (err) {
+    console.error('Owner quotes error:', err);
+    res.render('spinspring/quotes', {
+      title: 'Quotes',
+      user: req.session.spinUser,
+      quotes: [],
+      stats: {},
+      currentStatus: ''
+    });
+  }
+});
+
+// Update quote status / notes
+router.post('/owner/quotes/:id/update', isOwner, async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    await req.db.query(
+      'UPDATE ss_quotes SET status = ?, notes = ? WHERE id = ?',
+      [status, notes || null, req.params.id]
+    );
+    req.flash('success_msg', 'Quote updated');
+  } catch (e) {
+    req.flash('error_msg', 'Update failed');
+  }
+  res.redirect('/owner/quotes');
+});
+
+// Delete quote
+router.post('/owner/quotes/:id/delete', isOwner, async (req, res) => {
+  try {
+    await req.db.query('DELETE FROM ss_quotes WHERE id = ?', [req.params.id]);
+    req.flash('success_msg', 'Quote deleted');
+  } catch (e) {
+    req.flash('error_msg', 'Delete failed');
+  }
+  res.redirect('/owner/quotes');
+});
+
+// API: get quotes as JSON (for live refresh)
+router.get('/api/owner/quotes', isOwner, async (req, res) => {
+  try {
+    const [quotes] = await req.db.query('SELECT * FROM ss_quotes ORDER BY created_at DESC LIMIT 100');
+    quotes.forEach(q => {
+      try { q.items = JSON.parse(q.items || '[]'); } catch (e) { q.items = []; }
+      try { q.addons = JSON.parse(q.addons || '[]'); } catch (e) { q.addons = []; }
+    });
+    res.json({ success: true, quotes, count: quotes.length });
   } catch (err) {
     res.json({ success: false, error: err.message });
   }

@@ -1,0 +1,212 @@
+<%- include('../layouts/main') %>
+<style>
+.ss-nav { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 15px 0; }
+.ss-nav a { color: white !important; text-decoration: none; }
+.quote-card {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  margin-bottom: 15px;
+  border-left: 4px solid #0284c7;
+  transition: all 0.3s;
+}
+.quote-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+.quote-card.status-new { border-left-color: #f59e0b; }
+.quote-card.status-contacted { border-left-color: #3b82f6; }
+.quote-card.status-converted { border-left-color: #10b981; }
+.quote-card.status-expired { border-left-color: #94a3b8; opacity: 0.7; }
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 15px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.status-new { background: #fef3c7; color: #92400e; }
+.status-contacted { background: #dbeafe; color: #1e40af; }
+.status-converted { background: #d1fae5; color: #065f46; }
+.status-expired { background: #e2e8f0; color: #475569; }
+.stat-mini {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+}
+.stat-mini .value { font-size: 2rem; font-weight: 800; color: #0284c7; }
+.stat-mini .label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
+.quote-items-list { font-size: 0.85rem; color: #64748b; }
+.quote-items-list li { padding: 2px 0; }
+</style>
+</head>
+<body>
+<nav class="ss-nav">
+  <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <a href="/owner" class="text-white text-decoration-none">
+      <i class="fas fa-soap me-2"></i><strong>SpinSpring Express</strong>
+    </a>
+    <div>
+      <a href="/owner" class="btn btn-light btn-sm me-2 rounded-pill">Dashboard</a>
+      <a href="/owner/quotes" class="btn btn-light btn-sm me-2 rounded-pill fw-bold">Quotes</a>
+      <a href="/orders" class="btn btn-light btn-sm me-2 rounded-pill">Orders</a>
+      <a href="/reports" class="btn btn-light btn-sm me-2 rounded-pill">Reports</a>
+      <a href="/logout" class="btn btn-danger btn-sm rounded-pill">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 style="color:#0c4a6e;"><i class="fas fa-file-invoice-dollar me-2"></i>Quote Requests</h2>
+    <button class="btn btn-outline-primary rounded-pill" onclick="location.reload()">
+      <i class="fas fa-sync-alt me-1"></i> Refresh
+    </button>
+  </div>
+
+  <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+    <div class="alert alert-success"><%= success_msg %></div>
+  <% } %>
+  <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+    <div class="alert alert-danger"><%= error_msg %></div>
+  <% } %>
+
+  <!-- Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+      <div class="stat-mini">
+        <div class="value"><%= stats.total_quotes || 0 %></div>
+        <div class="label">Total Quotes</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="stat-mini">
+        <div class="value" style="color:#f59e0b;"><%= stats.new_count || 0 %></div>
+        <div class="label">New (unread)</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="stat-mini">
+        <div class="value" style="color:#10b981;"><%= stats.converted_count || 0 %></div>
+        <div class="label">Converted</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="stat-mini">
+        <div class="value">KES <%= Math.round(stats.converted_value || 0) %></div>
+        <div class="label">Revenue from Quotes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="mb-3">
+    <a href="/owner/quotes" class="btn btn-sm <%= !currentStatus ? 'btn-primary' : 'btn-outline-primary' %> rounded-pill me-1">All</a>
+    <a href="/owner/quotes?status=new" class="btn btn-sm <%= currentStatus === 'new' ? 'btn-warning' : 'btn-outline-warning' %> rounded-pill me-1">New</a>
+    <a href="/owner/quotes?status=contacted" class="btn btn-sm <%= currentStatus === 'contacted' ? 'btn-info' : 'btn-outline-info' %> rounded-pill me-1">Contacted</a>
+    <a href="/owner/quotes?status=converted" class="btn btn-sm <%= currentStatus === 'converted' ? 'btn-success' : 'btn-outline-success' %> rounded-pill me-1">Converted</a>
+    <a href="/owner/quotes?status=expired" class="btn btn-sm <%= currentStatus === 'expired' ? 'btn-secondary' : 'btn-outline-secondary' %> rounded-pill">Expired</a>
+  </div>
+
+  <!-- Quotes List -->
+  <% if (typeof quotes !== 'undefined' && quotes.length > 0) { %>
+    <% quotes.forEach(function(q) { %>
+      <div class="quote-card status-<%= q.status %>">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <h5 class="mb-1">
+                  <%= q.quote_ref %>
+                  <span class="status-badge status-<%= q.status %>"><%= q.status %></span>
+                </h5>
+                <small class="text-muted">
+                  <i class="far fa-clock me-1"></i>
+                  <%= new Date(q.created_at).toLocaleString() %>
+                </small>
+              </div>
+            </div>
+
+            <!-- Customer info -->
+            <div class="mb-2">
+              <% if (q.customer_name) { %>
+                <strong><i class="fas fa-user me-1"></i> <%= q.customer_name %></strong>
+              <% } %>
+              <% if (q.customer_phone) { %>
+                <a href="tel:<%= q.customer_phone %>" class="ms-2 text-decoration-none">
+                  <i class="fas fa-phone me-1"></i> <%= q.customer_phone %>
+                </a>
+              <% } %>
+              <% if (q.customer_email) { %>
+                <a href="mailto:<%= q.customer_email %>" class="ms-2 text-decoration-none">
+                  <i class="fas fa-envelope me-1"></i> <%= q.customer_email %>
+                </a>
+              <% } %>
+            </div>
+
+            <!-- Items -->
+            <div class="quote-items-list">
+              <strong>Items:</strong>
+              <ul class="mb-1">
+                <% q.items.forEach(function(it) { %>
+                  <li><%= it.service_key %> × <%= it.quantity %></li>
+                <% }) %>
+              </ul>
+              <% if (q.addons.length > 0) { %>
+                <strong>Add-ons:</strong> <%= q.addons.join(', ') %><br>
+              <% } %>
+              <% if (q.express) { %><span class="badge bg-warning text-dark">⚡ Express</span><% } %>
+              <% if (q.pickup !== 'none') { %><span class="badge bg-info"><i class="fas fa-truck me-1"></i><%= q.pickup %></span><% } %>
+            </div>
+          </div>
+
+          <div class="col-md-4 text-md-end">
+            <div class="h3 fw-bold" style="color:#10b981;">KES <%= q.total %></div>
+
+            <!-- Action Buttons -->
+            <div class="d-grid gap-1 mt-2">
+              <% if (q.customer_phone) { %>
+                <a href="https://wa.me/<%= q.customer_phone.replace(/[^0-9]/g,'') %>?text=<%= encodeURIComponent('Hi ' + (q.customer_name || 'there') + ', thank you for your quote request ' + q.quote_ref + ' from SpinSpring Express! Total: KES ' + q.total + '. Shall we schedule a pickup?') %>"
+                   target="_blank" class="btn btn-sm btn-success rounded-pill">
+                  <i class="fab fa-whatsapp me-1"></i> Reply on WhatsApp
+                </a>
+              <% } %>
+
+              <!-- Update status -->
+              <form action="/owner/quotes/<%= q.id %>/update" method="POST" class="d-flex gap-1">
+                <select name="status" class="form-select form-select-sm">
+                  <option value="new" <%= q.status === 'new' ? 'selected' : '' %>>New</option>
+                  <option value="contacted" <%= q.status === 'contacted' ? 'selected' : '' %>>Contacted</option>
+                  <option value="converted" <%= q.status === 'converted' ? 'selected' : '' %>>Converted</option>
+                  <option value="expired" <%= q.status === 'expired' ? 'selected' : '' %>>Expired</option>
+                </select>
+                <button class="btn btn-sm btn-primary rounded-pill">Save</button>
+              </form>
+
+              <form action="/owner/quotes/<%= q.id %>/delete" method="POST"
+                    onsubmit="return confirm('Delete this quote?');">
+                <button class="btn btn-sm btn-outline-danger rounded-pill w-100">
+                  <i class="fas fa-trash me-1"></i> Delete
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <div class="text-center py-5">
+      <i class="fas fa-file-invoice fa-5x text-muted mb-3"></i>
+      <h4>No Quotes Yet</h4>
+      <p class="text-muted">Quote requests from customers will appear here.</p>
+    </div>
+  <% } %>
+</div>
+
+<script>
+// Auto-refresh every 30 seconds
+setInterval(() => { location.reload(); }, 30000);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
