@@ -14,25 +14,21 @@
   --ss-bg: #f8fafc;
 }
 
-/* ===== GLOBAL ===== */
 body {
   padding-top: 0 !important;
   margin-top: 0 !important;
   background: var(--ss-bg);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* ===== NAVIGATION ===== */
-nav.ss-nav,
-.ss-nav {
-  background: var(--ss-white) !important;
-  background-image: none !important;
+nav.ss-nav {
+  background: #ffffff !important;
   padding: 15px 0 !important;
   box-shadow: 0 2px 15px rgba(2, 132, 199, 0.15) !important;
-  display: block !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 9999 !important;
-  width: 100% !important;
 }
 
 .ss-nav .container {
@@ -46,8 +42,7 @@ nav.ss-nav,
   padding: 0 20px !important;
 }
 
-.ss-nav a.brand,
-.ss-nav .brand {
+.ss-nav a.brand {
   color: var(--ss-primary) !important;
   font-size: 1.5rem !important;
   font-weight: 800 !important;
@@ -89,7 +84,7 @@ nav.ss-nav,
   color: var(--ss-primary) !important;
 }
 
-/* ===== LOGIN DROPDOWN (NEW) ===== */
+/* ===== LOGIN DROPDOWN ===== */
 .ss-dropdown {
   position: relative;
   display: inline-block;
@@ -108,7 +103,6 @@ nav.ss-nav,
   align-items: center;
   gap: 8px;
   transition: all 0.3s;
-  text-decoration: none;
 }
 
 .ss-dropdown-toggle:hover {
@@ -202,6 +196,17 @@ nav.ss-nav,
   margin: 6px 10px;
 }
 
+.ss-nav .nav-toggle {
+  display: none;
+  background: var(--ss-primary);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
 /* ===== HERO ===== */
 .ss-hero {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%);
@@ -264,8 +269,6 @@ nav.ss-nav,
 /* ===== SECTIONS ===== */
 .ss-section {
   padding: 70px 0;
-  display: block !important;
-  visibility: visible !important;
 }
 
 .ss-section-title {
@@ -328,12 +331,12 @@ nav.ss-nav,
   font-family: monospace;
 }
 
-.location-card .loc-badge-primary {
+.location-card .loc-badge-primary,
+.location-card .loc-badge-open,
+.location-card .loc-badge-closed {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: white;
-  color: #10b981;
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 0.65rem;
@@ -341,29 +344,9 @@ nav.ss-nav,
   letter-spacing: 0.5px;
 }
 
-.location-card .loc-badge-open {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: rgba(255,255,255,0.95);
-  color: #065f46;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  font-weight: 800;
-}
-
-.location-card .loc-badge-closed {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: rgba(254,226,226,0.95);
-  color: #991b1b;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  font-weight: 800;
-}
+.location-card .loc-badge-primary { background: white; color: #10b981; }
+.location-card .loc-badge-open { background: rgba(255,255,255,0.95); color: #065f46; }
+.location-card .loc-badge-closed { background: rgba(254,226,226,0.95); color: #991b1b; }
 
 .location-card .loc-body {
   padding: 20px 24px;
@@ -786,7 +769,7 @@ nav.ss-nav,
       <li><a href="#how" class="nav-link">How it Works</a></li>
       <li><a href="/find-location" class="nav-link" style="color:#10b981;">🧭 Find Nearest</a></li>
 
-      <!-- ⭐ LOGIN DROPDOWN (replaces 3 buttons) -->
+      <!-- LOGIN DROPDOWN -->
       <li class="ss-dropdown" id="loginDropdown">
         <button class="ss-dropdown-toggle" id="loginDropdownBtn" type="button" aria-haspopup="true" aria-expanded="false">
           <i class="fas fa-user-circle"></i>
@@ -1428,18 +1411,16 @@ nav.ss-nav,
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// ============ NAVIGATION + DROPDOWN ============
+// ============ NAV + DROPDOWN ============
 (function() {
   'use strict';
 
-  // Mobile nav toggle
   const navToggle = document.getElementById('navToggle');
   const navMenu = document.getElementById('navMenu');
   if (navToggle && navMenu) {
     navToggle.addEventListener('click', () => navMenu.classList.toggle('show'));
   }
 
-  // Login dropdown
   const dropdown = document.getElementById('loginDropdown');
   const dropdownBtn = document.getElementById('loginDropdownBtn');
 
@@ -1455,27 +1436,14 @@ nav.ss-nav,
     toggleDropdown();
   });
 
-  // Click outside → close
   document.addEventListener('click', (e) => {
-    if (dropdown && !dropdown.contains(e.target)) {
-      toggleDropdown(false);
-    }
+    if (dropdown && !dropdown.contains(e.target)) toggleDropdown(false);
   });
 
-  // Escape key → close
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') toggleDropdown(false);
   });
 
-  // Close on menu item click (nav links in mobile)
-  dropdown?.querySelectorAll('.ss-dropdown-menu a').forEach(a => {
-    a.addEventListener('click', () => {
-      // Don't prevent default — allow navigation
-      toggleDropdown(false);
-    });
-  });
-
-  // Smooth scroll for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(function(link) {
     link.addEventListener('click', function(e) {
       const target = document.querySelector(this.getAttribute('href'));
@@ -1495,11 +1463,10 @@ nav.ss-nav,
   const GRID = document.getElementById('locationsGrid');
   const FIND_BTN = document.getElementById('findNearestBtn');
   const STAT_COUNT = document.getElementById('statLocationCount');
-
-  if (!GRID) return;
-
   const OWNER_ID = 5;
   let allLocations = [];
+
+  if (!GRID) return;
 
   function formatTime(t) {
     if (!t) return '08:00';
