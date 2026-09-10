@@ -395,6 +395,279 @@ router.get('/owner/quotes', isOwner, async (req, res) => {
   }
 });
 
+// ============ MACHINE CONTROL PARAMETERS ============
+
+// Get machine parameters (with auto-create)
+router.get('/api/machine/:deviceId/params', isAuth, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    // Verify ownership
+    const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
+    const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE device_id = ? AND owner_id = ?', [deviceId, ownerId]);
+    if (devices.length === 0) return res.status(403).json({ error: 'Access denied' });
+
+    let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+    if (params.length === 0) {
+      // Auto-create default params
+      await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
+      [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+    }
+
+    res.json({ success: true, params: params[0] || {} });
+  } catch (err) {
+    console.error('Params fetch error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update machine parameters (queued for sync)
+router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const ownerId = req.session.spinUser.id;
+
+    // Verify ownership
+    const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE device_id = ? AND owner_id = ?', [deviceId, ownerId]);
+    if (devices.length === 0) return res.status(403).json({ error: 'Access denied' });
+
+    // Validate payload
+    const allowed = [
+      'pulses_per_credit', 'accumulate_payments', 'max_credit_minutes',
+      'min_credit_to_start', 'pulse_width_ms', 'pulse_gap_ms',
+      'start_pulse_duration_ms', 'run_time_per_credit_min', 'cooldown_period_sec'
+    ];
+
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined && req.body[key] !== '') {
+        let val = req.body[key];
+        if (key === 'accumulate_payments') val = val ? 1 : 0;
+        else val = parseInt(val, 10);
+        if (isNaN(val)) continue;
+
+        // Range validation
+        if (key === 'pulses_per_credit' && (val < 1 || val > 10)) continue;
+        if (key === 'max_credit_minutes' && (val < 1 || val > 1440)) continue;
+        if (key === 'pulse_width_ms' && (val < 20 || val > 500)) continue;
+        if (key === 'pulse_gap_ms' && (val < 20 || val > 500)) continue;
+        if (key === 'start_pulse_duration_ms' && (val < 100 || val > 2000)) continue;
+        if (key === 'run_time_per_credit_min' && (val < 1 || val > 60)) continue;
+        if (key === 'cooldown_period_sec' && (val < 5 || val > 600)) continue;
+        if (key === 'min_credit_to_start' && (val < 1 || val > 100)) continue;
+
+        updates[key] = val;
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'No valid parameters' });
+    }
+
+    // Ensure params row exists
+    let [existing] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+    if (existing.length === 0) {
+      await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
+      [existing] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+    }
+    const oldParams = existing[0];
+
+    // Update params immediately
+    const setClauses = [];
+    const values = [];
+    for (const [k, v] of Object.entries(updates)) {
+      setClauses.push(`${k} = ?`);
+      values.push(v);
+    }
+    values.push(deviceId);
+    await req.db.query(`UPDATE ss_machine_params SET ${setClauses.join(', ')} WHERE device_id = ?`, values);
+
+    // Queue each change for ESP32 to pick up on next sync
+    for (const [k, v] of Object.entries(updates)) {
+      await req.db.query(
+        `INSERT INTO ss_param_queue (device_id, param_name, old_value, new_value, status, created_by) 
+         VALUES (?, ?, ?, ?, 'pending', ?)`,
+        [deviceId, k, String(oldParams[k] || ''), String(v), ownerId]
+      );
+    }
+
+    res.json({ success: true, updated: Object.keys(updates), queued: Object.keys(updates).length });
+  } catch (err) {
+    console.error('Params update error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get pending param changes for device (for dashboard display)
+router.get('/api/machine/:deviceId/pending', isAuth, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const [pending] = await req.db.query(
+      "SELECT param_name, new_value, created_at FROM ss_param_queue WHERE device_id = ? AND status = 'pending' ORDER BY created_at DESC",
+      [deviceId]
+    );
+    res.json({ success: true, pending });
+  } catch (err) {
+    res.json({ success: false, error: err.message, pending: [] });
+  }
+});
+
+// ============ HEARTBEAT CHECK API ============
+
+// Get device heartbeat status (dashboard polling)
+router.get('/api/machine/:deviceId/heartbeat', isAuth, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const [rows] = await req.db.query(
+      `SELECT 
+        d.device_id, d.device_name, d.status, d.last_sync,
+        TIMESTAMPDIFF(SECOND, d.last_sync, NOW()) as seconds_since_sync,
+        hb.battery_voltage, hb.signal_strength, hb.uptime_seconds,
+        hb.current_credit, hb.current_state, hb.firmware_version, hb.error_code,
+        mp.current_credit_minutes, mp.is_locked_out, mp.lockout_until
+       FROM ss_devices d
+       LEFT JOIN (
+         SELECT device_id, battery_voltage, signal_strength, uptime_seconds,
+                current_credit, current_state, firmware_version, error_code
+         FROM ss_heartbeats h1
+         WHERE created_at = (SELECT MAX(created_at) FROM ss_heartbeats h2 WHERE h2.device_id = h1.device_id)
+       ) hb ON d.device_id = hb.device_id
+       LEFT JOIN ss_machine_params mp ON d.device_id = mp.device_id
+       WHERE d.device_id = ?`,
+      [deviceId]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ success: false, error: 'Device not found' });
+
+    const d = rows[0];
+    const secondsSinceSync = d.seconds_since_sync || 999999;
+    const online = secondsSinceSync < 60;
+
+    let health = 'unknown';
+    if (online) {
+      if (d.error_code) health = 'error';
+      else if (d.battery_voltage && d.battery_voltage < 10.5) health = 'low_battery';
+      else if (d.signal_strength && d.signal_strength < 10) health = 'weak_signal';
+      else health = 'healthy';
+    } else if (secondsSinceSync < 300) {
+      health = 'unstable';
+    } else {
+      health = 'offline';
+    }
+
+    res.json({
+      success: true,
+      online,
+      health,
+      seconds_since_sync: secondsSinceSync,
+      last_sync: d.last_sync,
+      battery_voltage: d.battery_voltage,
+      signal_strength: d.signal_strength,
+      uptime_seconds: d.uptime_seconds,
+      current_credit: d.current_credit_minutes || 0,
+      current_state: d.current_state || d.status,
+      firmware_version: d.firmware_version,
+      error_code: d.error_code,
+      is_locked_out: d.is_locked_out === 1,
+      lockout_until: d.lockout_until
+    });
+  } catch (err) {
+    console.error('Heartbeat error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============ PULSE / CREDIT DISPATCH ============
+
+// Send credits to machine (queued for next sync)
+router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const { credits = 1, reason = 'manual', order_number = null } = req.body;
+
+    const creditsInt = parseInt(credits, 10);
+    if (isNaN(creditsInt) || creditsInt < 1 || creditsInt > 99) {
+      return res.status(400).json({ success: false, error: 'Credits must be 1-99' });
+    }
+
+    // Get current params
+    let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+    if (params.length === 0) {
+      await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
+      [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+    }
+    const p = params[0];
+
+    // Check lockout
+    if (p.is_locked_out && p.lockout_until && new Date(p.lockout_until) > new Date()) {
+      return res.status(429).json({ success: false, error: 'Device locked out until ' + p.lockout_until });
+    }
+
+    // Check max credit cap
+    const newTotal = (p.current_credit_minutes || 0) + (creditsInt * p.run_time_per_credit_min);
+    if (newTotal > p.max_credit_minutes) {
+      return res.status(400).json({
+        success: false,
+        error: `Would exceed max credit (${p.max_credit_minutes} min). Current: ${p.current_credit_minutes} min`
+      });
+    }
+
+    // Queue credit-add command for ESP32
+    const commandValue = JSON.stringify({
+      credits: creditsInt,
+      pulses_per_credit: p.pulses_per_credit,
+      pulse_width_ms: p.pulse_width_ms,
+      pulse_gap_ms: p.pulse_gap_ms,
+      start_pulse_duration_ms: p.start_pulse_duration_ms,
+      run_time_per_credit_min: p.run_time_per_credit_min,
+      accumulate: p.accumulate_payments === 1
+    });
+
+    await req.db.query(
+      "INSERT INTO ss_commands (device_id, command_type, command_value, status) VALUES (?, 'dispense_credits', ?, 'pending')",
+      [deviceId, commandValue]
+    );
+
+    // Log for audit
+    await req.db.query(
+      `INSERT INTO ss_pulse_log (device_id, pulses_sent, pulse_width_ms, pulse_gap_ms, credits_granted, reason, order_number) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [deviceId, creditsInt * p.pulses_per_credit, p.pulse_width_ms, p.pulse_gap_ms, creditsInt, reason, order_number]
+    );
+
+    // Update running credit total (will be corrected on next heartbeat)
+    await req.db.query(
+      'UPDATE ss_machine_params SET current_credit_minutes = current_credit_minutes + ?, total_pulses_sent = total_pulses_sent + ?, last_pulse_at = NOW() WHERE device_id = ?',
+      [creditsInt * p.run_time_per_credit_min, creditsInt * p.pulses_per_credit, deviceId]
+    );
+
+    res.json({
+      success: true,
+      queued: {
+        credits: creditsInt,
+        pulses: creditsInt * p.pulses_per_credit,
+        minutes_added: creditsInt * p.run_time_per_credit_min,
+        new_total_minutes: newTotal
+      }
+    });
+  } catch (err) {
+    console.error('Dispense error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get pulse log
+router.get('/api/machine/:deviceId/pulse-log', isAuth, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const [log] = await req.db.query(
+      'SELECT * FROM ss_pulse_log WHERE device_id = ? ORDER BY created_at DESC LIMIT 50',
+      [deviceId]
+    );
+    res.json({ success: true, log });
+  } catch (err) {
+    res.json({ success: false, error: err.message, log: [] });
+  }
+});
 // Update quote status / notes
 router.post('/owner/quotes/:id/update', isOwner, async (req, res) => {
   try {
@@ -836,24 +1109,162 @@ router.get('/api/live-data', isAuth, async (req, res) => {
   }
 });
 
-// ============ API: ESP32 SYNC ============
+// ============ ESP32 SYNC (Enhanced with params & heartbeat) ============
 router.post('/api/sync', ah(async (req, res) => {
   const deviceId = req.headers['x-device-id'];
   const apiKey = req.headers['x-api-key'];
   if (!deviceId || !apiKey) return res.status(401).json({ error: 'Missing credentials' });
+
   const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE device_id = ? AND api_key = ?', [deviceId, apiKey]);
   if (devices.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+
   const data = req.body;
+
+  // ---- 1. Update device status ----
   await req.db.query(
-    `UPDATE ss_devices SET status = ?, current_cycle = ?, cycle_progress = ?, cycles_completed = ?, today_revenue = ?, total_revenue = ?, last_sync = NOW() WHERE device_id = ?`,
-    [data.status || 'idle', data.current_cycle || null, data.cycle_progress || 0, data.cycles_completed || 0, data.today_revenue || 0, data.total_revenue || 0, deviceId]
+    `UPDATE ss_devices SET status = ?, current_cycle = ?, cycle_progress = ?, cycles_completed = ?, 
+      today_revenue = ?, total_revenue = ?, last_sync = NOW() WHERE device_id = ?`,
+    [
+      data.status || 'idle',
+      data.current_cycle || null,
+      data.cycle_progress || 0,
+      data.cycles_completed || 0,
+      data.today_revenue || 0,
+      data.total_revenue || 0,
+      deviceId
+    ]
   );
-  const [commands] = await req.db.query("SELECT * FROM ss_commands WHERE device_id = ? AND status = 'pending' LIMIT 5", [deviceId]);
+
+  // ---- 2. Log heartbeat ----
+  try {
+    await req.db.query(
+      `INSERT INTO ss_heartbeats (device_id, battery_voltage, signal_strength, uptime_seconds, 
+        free_memory, current_credit, current_state, firmware_version, error_code, ip_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        deviceId,
+        data.battery_voltage || 0,
+        data.signal_strength || 0,
+        data.uptime_seconds || 0,
+        data.free_memory || 0,
+        data.current_credit || 0,
+        data.status || 'idle',
+        data.firmware_version || null,
+        data.error_code || null,
+        req.ip || null
+      ]
+    );
+
+    // Prune old heartbeats (keep last 100 per device)
+    await req.db.query(
+      `DELETE FROM ss_heartbeats WHERE device_id = ? AND id NOT IN (
+        SELECT id FROM (SELECT id FROM ss_heartbeats WHERE device_id = ? ORDER BY created_at DESC LIMIT 100) as t
+      )`,
+      [deviceId, deviceId]
+    );
+  } catch (e) { console.error('heartbeat log failed:', e.message); }
+
+  // ---- 3. Update running credit from device report ----
+  if (typeof data.current_credit === 'number') {
+    try {
+      await req.db.query(
+        'UPDATE ss_machine_params SET current_credit_minutes = ?, firmware_version = ? WHERE device_id = ?',
+        [data.current_credit, data.firmware_version || null, deviceId]
+      );
+    } catch (e) { console.error('credit sync failed:', e.message); }
+  }
+
+  // ---- 4. Get pending commands ----
+  const [commands] = await req.db.query(
+    "SELECT id, command_type, command_value FROM ss_commands WHERE device_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 10",
+    [deviceId]
+  );
+
+  // ---- 5. Get pending param changes ----
+  const [paramChanges] = await req.db.query(
+    "SELECT id, param_name, new_value FROM ss_param_queue WHERE device_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 20",
+    [deviceId]
+  );
+
+  // ---- 6. Get current params to send to device ----
+  let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+  if (params.length === 0) {
+    await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
+    [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
+  }
+  const p = params[0];
+
+  // ---- 7. Mark commands as sent ----
   if (commands.length > 0) {
     const placeholders = commands.map(() => '?').join(',');
     await req.db.query(`UPDATE ss_commands SET status = 'sent' WHERE id IN (${placeholders})`, commands.map(c => c.id));
   }
-  res.json({ status: 'success', commands: commands.map(c => ({ type: c.command_type, value: c.command_value })) });
+
+  // ---- 8. Mark param changes as sent ----
+  if (paramChanges.length > 0) {
+    const placeholders = paramChanges.map(() => '?').join(',');
+    await req.db.query(`UPDATE ss_param_queue SET status = 'sent', sent_at = NOW() WHERE id IN (${placeholders})`, paramChanges.map(c => c.id));
+  }
+
+  // ---- 9. Build response for ESP32 ----
+  res.json({
+    status: 'success',
+    server_time: new Date().toISOString(),
+    commands: commands.map(c => {
+      let parsedVal = c.command_value;
+      try { parsedVal = JSON.parse(c.command_value); } catch (e) {}
+      return { id: c.id, type: c.command_type, value: parsedVal };
+    }),
+    param_changes: paramChanges.map(p => ({ id: p.id, name: p.param_name, value: p.new_value })),
+    config: {
+      pulses_per_credit: p.pulses_per_credit,
+      accumulate_payments: p.accumulate_payments === 1,
+      max_credit_minutes: p.max_credit_minutes,
+      min_credit_to_start: p.min_credit_to_start,
+      pulse_width_ms: p.pulse_width_ms,
+      pulse_gap_ms: p.pulse_gap_ms,
+      start_pulse_duration_ms: p.start_pulse_duration_ms,
+      run_time_per_credit_min: p.run_time_per_credit_min,
+      cooldown_period_sec: p.cooldown_period_sec
+    }
+  });
+}));
+
+// ---- Command acknowledgement endpoint ----
+router.post('/api/sync/ack', ah(async (req, res) => {
+  const deviceId = req.headers['x-device-id'];
+  const apiKey = req.headers['x-api-key'];
+  if (!deviceId || !apiKey) return res.status(401).json({ error: 'Missing credentials' });
+
+  const [devices] = await req.db.query('SELECT id FROM ss_devices WHERE device_id = ? AND api_key = ?', [deviceId, apiKey]);
+  if (devices.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const { command_ids = [], param_ids = [], success = true, error: errMsg = null } = req.body;
+
+  if (Array.isArray(command_ids) && command_ids.length > 0) {
+    const ph = command_ids.map(() => '?').join(',');
+    await req.db.query(
+      `UPDATE ss_commands SET status = ? WHERE id IN (${ph})`,
+      [success ? 'executed' : 'failed', ...command_ids]
+    );
+  }
+
+  if (Array.isArray(param_ids) && param_ids.length > 0) {
+    const ph = param_ids.map(() => '?').join(',');
+    if (success) {
+      await req.db.query(
+        `UPDATE ss_param_queue SET status = 'applied', applied_at = NOW() WHERE id IN (${ph})`,
+        param_ids
+      );
+    } else {
+      await req.db.query(
+        `UPDATE ss_param_queue SET status = 'failed', retry_count = retry_count + 1, last_error = ? WHERE id IN (${ph})`,
+        [errMsg, ...param_ids]
+      );
+    }
+  }
+
+  res.json({ success: true });
 }));
 
 router.get('/api/time', (req, res) => {
