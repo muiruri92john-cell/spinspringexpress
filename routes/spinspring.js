@@ -1274,7 +1274,28 @@ router.get('/api/time', (req, res) => {
     date: now.toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi' })
   });
 });
-
+router.get('/receipts', isAttendant, async (req, res) => {
+  try {
+    const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
+    const [receipts] = await req.db.query(
+      'SELECT r.*, d.device_name FROM ss_receipts r ' +
+      'LEFT JOIN ss_devices d ON r.device_id = d.device_id ' +
+      'WHERE d.owner_id = ? ORDER BY r.created_at DESC LIMIT 100',
+      [ownerId]
+    );
+    res.render('spinspring/receipts-list', {
+      title: 'Receipts',
+      user: req.session.spinUser,
+      receipts
+    });
+  } catch (e) {
+    res.render('spinspring/receipts-list', {
+      title: 'Receipts',
+      user: req.session.spinUser,
+      receipts: []
+    });
+  }
+});
 // ============ OWNER EXTRA PAGES ============
 router.get('/dashboard', isOwner, (req, res) => res.redirect('/owner'));
 router.get('/device-list', isOwner, (req, res) => res.redirect('/owner'));
