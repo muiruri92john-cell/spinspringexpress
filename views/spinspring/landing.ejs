@@ -10,10 +10,11 @@
   --ss-white: #ffffff;
   --ss-dark: #0c4a6e;
   --ss-success: #10b981;
+  --ss-warning: #f59e0b;
   --ss-bg: #f8fafc;
 }
 
-/* ===== GLOBAL OVERRIDES ===== */
+/* ===== GLOBAL ===== */
 body {
   padding-top: 0 !important;
   margin-top: 0 !important;
@@ -69,6 +70,7 @@ nav.ss-nav,
 .ss-nav ul.nav-menu li {
   display: inline-block !important;
   list-style: none !important;
+  position: relative;
 }
 
 .ss-nav a.nav-link {
@@ -87,36 +89,120 @@ nav.ss-nav,
   color: var(--ss-primary) !important;
 }
 
-.ss-nav a.nav-btn {
-  padding: 10px 22px !important;
-  border-radius: 50px !important;
-  font-weight: 700 !important;
-  text-decoration: none !important;
-  font-size: 0.9rem !important;
-  color: white !important;
-  display: inline-block !important;
-  transition: all 0.3s !important;
-  border: none !important;
+/* ===== LOGIN DROPDOWN (NEW) ===== */
+.ss-dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.ss-nav a.nav-btn:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15) !important;
+.ss-dropdown-toggle {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
   color: white !important;
-}
-
-.ss-nav .nav-toggle {
-  display: none;
-  background: var(--ss-primary);
-  color: white;
+  padding: 10px 22px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.9rem;
   border: none;
-  padding: 10px 15px;
-  border-radius: 8px;
-  font-size: 1.2rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+  text-decoration: none;
 }
 
-/* ===== HERO SECTION ===== */
+.ss-dropdown-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(2, 132, 199, 0.4);
+  color: white;
+}
+
+.ss-dropdown-toggle .caret {
+  font-size: 0.7rem;
+  transition: transform 0.3s;
+}
+
+.ss-dropdown.open .ss-dropdown-toggle .caret {
+  transform: rotate(180deg);
+}
+
+.ss-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 260px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 15px 45px rgba(2, 132, 199, 0.2);
+  padding: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.25s ease;
+  z-index: 10000;
+  border: 1px solid #e0f2fe;
+}
+
+.ss-dropdown.open .ss-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.ss-dropdown-menu a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--ss-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.ss-dropdown-menu a:hover {
+  background: var(--ss-light);
+  color: var(--ss-primary);
+  transform: translateX(3px);
+}
+
+.ss-dropdown-menu .icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.icon-owner { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
+.icon-attendant { background: linear-gradient(135deg, #10b981, #059669); }
+.icon-customer { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.ss-dropdown-menu .item-text strong {
+  display: block;
+  color: var(--ss-dark);
+  font-weight: 700;
+}
+
+.ss-dropdown-menu .item-text small {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.ss-dropdown-divider {
+  height: 1px;
+  background: #e0f2fe;
+  margin: 6px 10px;
+}
+
+/* ===== HERO ===== */
 .ss-hero {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 50%, #38bdf8 100%);
   padding: 80px 0 100px;
@@ -135,10 +221,7 @@ nav.ss-nav,
   border-radius: 50%;
 }
 
-.ss-hero-content {
-  position: relative;
-  z-index: 2;
-}
+.ss-hero-content { position: relative; z-index: 2; }
 
 .ss-hero h1 {
   color: white;
@@ -202,7 +285,7 @@ nav.ss-nav,
   font-size: 1.05rem;
 }
 
-/* ===== LOCATION CARDS (NEW) ===== */
+/* ===== LOCATION CARDS ===== */
 .location-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -269,6 +352,7 @@ nav.ss-nav,
   font-size: 0.65rem;
   font-weight: 800;
 }
+
 .location-card .loc-badge-closed {
   position: absolute;
   top: 16px;
@@ -310,8 +394,7 @@ nav.ss-nav,
   padding: 0 24px 20px;
 }
 
-.location-card .loc-actions a,
-.location-card .loc-actions button {
+.location-card .loc-actions a {
   flex: 1;
   padding: 9px 12px;
   border-radius: 50px;
@@ -320,23 +403,13 @@ nav.ss-nav,
   text-align: center;
   text-decoration: none;
   transition: all 0.2s;
-  border: none;
-  cursor: pointer;
 }
 
-.location-card .btn-map {
-  background: var(--ss-primary);
-  color: white;
-}
+.location-card .btn-map { background: var(--ss-primary); color: white; }
 .location-card .btn-map:hover { background: #026aa1; color: white; }
-
-.location-card .btn-wa {
-  background: #25D366;
-  color: white;
-}
+.location-card .btn-wa { background: #25D366; color: white; }
 .location-card .btn-wa:hover { background: #1eab52; color: white; }
 
-/* Distance badge (appears after GPS) */
 .location-card .distance-badge {
   display: none;
   margin-top: 4px;
@@ -344,9 +417,10 @@ nav.ss-nav,
   color: #10b981;
   font-weight: 800;
 }
+
 .location-card .distance-badge.show { display: block; }
 
-/* ===== NEAREST BANNER (NEW) ===== */
+/* ===== NEAREST BANNER ===== */
 .nearest-banner {
   background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
   border: 2px solid #bae6fd;
@@ -359,16 +433,19 @@ nav.ss-nav,
   flex-wrap: wrap;
   gap: 20px;
 }
+
 .nearest-banner h4 {
   color: #0c4a6e;
   margin: 0 0 4px;
   font-weight: 800;
 }
+
 .nearest-banner p {
   color: #64748b;
   margin: 0;
   font-size: 0.95rem;
 }
+
 .nearest-banner button {
   background: var(--ss-primary);
   color: white;
@@ -380,11 +457,13 @@ nav.ss-nav,
   transition: all 0.2s;
   font-size: 0.95rem;
 }
+
 .nearest-banner button:hover {
   background: #026aa1;
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(2, 132, 199, 0.3);
 }
+
 .nearest-banner button:disabled {
   opacity: 0.6;
   cursor: wait;
@@ -424,9 +503,7 @@ nav.ss-nav,
   font-size: 0.95rem;
 }
 
-.price-row:last-child {
-  border-bottom: none;
-}
+.price-row:last-child { border-bottom: none; }
 
 .price-row .price {
   font-weight: 700;
@@ -541,9 +618,7 @@ nav.ss-nav,
   transition: transform 0.5s;
 }
 
-.gallery-item:hover img {
-  transform: scale(1.05);
-}
+.gallery-item:hover img { transform: scale(1.05); }
 
 .gallery-item .placeholder-icon {
   font-size: 4rem;
@@ -562,9 +637,7 @@ nav.ss-nav,
   transition: transform 0.3s;
 }
 
-.gallery-item:hover .gallery-overlay {
-  transform: translateY(0);
-}
+.gallery-item:hover .gallery-overlay { transform: translateY(0); }
 
 /* ===== TESTIMONIALS ===== */
 .testimonial-card {
@@ -587,9 +660,7 @@ nav.ss-nav,
   margin-bottom: 15px;
 }
 
-.testimonial-card strong {
-  color: var(--ss-dark);
-}
+.testimonial-card strong { color: var(--ss-dark); }
 
 /* ===== STATS ===== */
 .stat-box {
@@ -609,7 +680,7 @@ nav.ss-nav,
   margin-top: 5px;
 }
 
-/* ===== CTA SECTION ===== */
+/* ===== CTA ===== */
 .cta-section {
   background: linear-gradient(135deg, #0284c7, #0ea5e9);
   padding: 70px 0;
@@ -637,10 +708,7 @@ nav.ss-nav,
   animation: waBounce 2s infinite;
 }
 
-.wa-float:hover {
-  color: white;
-  transform: scale(1.1);
-}
+.wa-float:hover { color: white; transform: scale(1.1); }
 
 @keyframes waBounce {
   0%, 100% { transform: translateY(0); }
@@ -649,9 +717,7 @@ nav.ss-nav,
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 991px) {
-  .ss-nav .nav-toggle {
-    display: block !important;
-  }
+  .ss-nav .nav-toggle { display: block !important; }
 
   .ss-nav ul.nav-menu {
     display: none !important;
@@ -660,26 +726,34 @@ nav.ss-nav,
     align-items: stretch;
   }
 
-  .ss-nav ul.nav-menu.show {
-    display: flex !important;
-  }
+  .ss-nav ul.nav-menu.show { display: flex !important; }
 
   .ss-nav a.nav-link,
-  .ss-nav a.nav-btn {
+  .ss-nav .ss-dropdown,
+  .ss-nav .ss-dropdown-toggle {
     width: 100%;
     text-align: center;
+    justify-content: center;
   }
+
+  .ss-dropdown-menu {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    margin-top: 8px;
+    display: none;
+  }
+
+  .ss-dropdown.open .ss-dropdown-menu { display: block; }
 }
 
 @media (max-width: 768px) {
-  .ss-hero {
-    padding: 50px 0 70px;
-  }
-
-  .ss-section {
-    padding: 50px 0;
-  }
-
+  .ss-hero { padding: 50px 0 70px; }
+  .ss-section { padding: 50px 0; }
   .wa-float {
     width: 50px;
     height: 50px;
@@ -687,7 +761,6 @@ nav.ss-nav,
     bottom: 20px;
     right: 20px;
   }
-
   .nearest-banner {
     flex-direction: column;
     text-align: center;
@@ -712,9 +785,46 @@ nav.ss-nav,
       <li><a href="#gallery" class="nav-link">Gallery</a></li>
       <li><a href="#how" class="nav-link">How it Works</a></li>
       <li><a href="/find-location" class="nav-link" style="color:#10b981;">🧭 Find Nearest</a></li>
-      <li><a href="/login" class="nav-btn" style="background:#0284c7;">Owner</a></li>
-      <li><a href="/attendant-login" class="nav-btn" style="background:#10b981;">Attendant</a></li>
-      <li><a href="/customer-login" class="nav-btn" style="background:#f59e0b;">Customer</a></li>
+
+      <!-- ⭐ LOGIN DROPDOWN (replaces 3 buttons) -->
+      <li class="ss-dropdown" id="loginDropdown">
+        <button class="ss-dropdown-toggle" id="loginDropdownBtn" type="button" aria-haspopup="true" aria-expanded="false">
+          <i class="fas fa-user-circle"></i>
+          <span>Login</span>
+          <i class="fas fa-chevron-down caret"></i>
+        </button>
+        <div class="ss-dropdown-menu" role="menu">
+          <a href="/login" role="menuitem">
+            <span class="icon-box icon-owner"><i class="fas fa-store"></i></span>
+            <span class="item-text">
+              <strong>Owner</strong>
+              <small>Manage your business</small>
+            </span>
+          </a>
+          <a href="/attendant-login" role="menuitem">
+            <span class="icon-box icon-attendant"><i class="fas fa-user-tie"></i></span>
+            <span class="item-text">
+              <strong>Attendant</strong>
+              <small>Process orders & cycles</small>
+            </span>
+          </a>
+          <a href="/customer-login" role="menuitem">
+            <span class="icon-box icon-customer"><i class="fas fa-id-card"></i></span>
+            <span class="item-text">
+              <strong>Customer</strong>
+              <small>View orders & history</small>
+            </span>
+          </a>
+          <div class="ss-dropdown-divider"></div>
+          <a href="/register" role="menuitem">
+            <span class="icon-box" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-user-plus"></i></span>
+            <span class="item-text">
+              <strong>Register</strong>
+              <small>Create a new account</small>
+            </span>
+          </a>
+        </div>
+      </li>
     </ul>
   </div>
 </nav>
@@ -768,7 +878,7 @@ nav.ss-nav,
   </div>
 </section>
 
-<!-- ===== LOCATIONS (NEW) ===== -->
+<!-- ===== LOCATIONS ===== -->
 <section id="locations" class="ss-section" style="background:white;">
   <div class="container">
     <div class="ss-section-title">
@@ -776,7 +886,6 @@ nav.ss-nav,
       <p>Visit us at any of our branches across Nairobi</p>
     </div>
 
-    <!-- Nearest banner -->
     <div class="nearest-banner">
       <div>
         <h4><i class="fas fa-location-arrow me-2"></i>Find the branch closest to you</h4>
@@ -787,7 +896,6 @@ nav.ss-nav,
       </button>
     </div>
 
-    <!-- Locations grid -->
     <div id="locationsGrid" class="location-grid">
       <div class="text-center py-5" style="grid-column:1/-1;">
         <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;"></i>
@@ -860,10 +968,8 @@ nav.ss-nav,
     </div>
 
     <div class="row g-4">
-      <!-- LEFT: Item Builder -->
       <div class="col-lg-7">
         <div class="pricing-card" style="border:2px solid #0284c7;">
-          <!-- Service Items -->
           <h4><i class="fas fa-list me-2"></i>Select Services</h4>
           <div id="quoteItems"></div>
 
@@ -871,7 +977,6 @@ nav.ss-nav,
             <i class="fas fa-plus me-1"></i> Add Item
           </button>
 
-          <!-- Addons -->
           <h4 class="mt-3"><i class="fas fa-plus-circle me-2"></i>Add-ons</h4>
           <div id="quoteAddons" class="mb-3">
             <div class="form-check">
@@ -892,7 +997,6 @@ nav.ss-nav,
             </div>
           </div>
 
-          <!-- Branch / Location (NEW) -->
           <h4 class="mt-3"><i class="fas fa-map-marker-alt me-2"></i>Your Branch</h4>
           <div class="row g-2 mb-3">
             <div class="col-md-8">
@@ -915,7 +1019,6 @@ nav.ss-nav,
             <span id="detectedText"></span>
           </div>
 
-          <!-- Express + Pickup -->
           <h4 class="mt-3"><i class="fas fa-truck me-2"></i>Delivery Options</h4>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="qExpress">
@@ -930,7 +1033,6 @@ nav.ss-nav,
             </select>
           </div>
 
-          <!-- Customer Info -->
           <h4 class="mt-3"><i class="fas fa-user me-2"></i>Your Info (optional)</h4>
           <div class="row g-2 mb-3">
             <div class="col-md-4">
@@ -946,7 +1048,6 @@ nav.ss-nav,
         </div>
       </div>
 
-      <!-- RIGHT: Live Quote Summary -->
       <div class="col-lg-5">
         <div class="pricing-card" style="border:2px solid #10b981; position:sticky; top:100px;">
           <h4 style="color:#10b981;"><i class="fas fa-calculator me-2"></i>Live Quote</h4>
@@ -1253,8 +1354,8 @@ nav.ss-nav,
       <a href="#locations" class="btn btn-warning btn-lg rounded-pill fw-bold px-4">
         <i class="fas fa-map-marker-alt me-2"></i> Find a Branch
       </a>
-      <a href="/login" class="btn btn-outline-light btn-lg rounded-pill px-4">
-        <i class="fas fa-store me-2"></i> Owner Login
+      <a href="/register" class="btn btn-outline-light btn-lg rounded-pill px-4">
+        <i class="fas fa-user-plus me-2"></i> Register as Owner
       </a>
     </div>
   </div>
@@ -1270,10 +1371,10 @@ nav.ss-nav,
       </div>
       <div class="col-md-3 mb-4">
         <h6>Services</h6>
-        <a href="/" class="text-white-50 d-block mb-1" style="text-decoration:none;">Self-Service</a>
-        <a href="/" class="text-white-50 d-block mb-1" style="text-decoration:none;">Drop-Off</a>
-        <a href="/" class="text-white-50 d-block mb-1" style="text-decoration:none;">Subscriptions</a>
-        <a href="/" class="text-white-50 d-block mb-1" style="text-decoration:none;">Dry Cleaning</a>
+        <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Self-Service</a>
+        <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Drop-Off</a>
+        <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Subscriptions</a>
+        <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Dry Cleaning</a>
       </div>
       <div class="col-md-3 mb-4">
         <h6>Locations</h6>
@@ -1281,25 +1382,39 @@ nav.ss-nav,
         <a href="/find-location" class="text-white-50 d-block mb-1" style="text-decoration:none;">
           <i class="fas fa-location-arrow me-1"></i>Find Nearest
         </a>
-        <a href="/" class="text-white-50 d-block mb-1" style="text-decoration:none;">Reviews (4.9★)</a>
-        <a href="/" class="text-white-50 d-block mb-1" style="text-decoration:none;">Contact</a>
+        <a href="#pricing" class="text-white-50 d-block mb-1" style="text-decoration:none;">Pricing</a>
+        <a href="#quote" class="text-white-50 d-block mb-1" style="text-decoration:none;">Get a Quote</a>
       </div>
       <div class="col-md-3 mb-4">
-        <h6>Contact</h6>
-        <a href="https://wa.me/254793972143" class="text-white-50 d-block mb-1" style="text-decoration:none;" target="_blank" rel="noopener">
-          <i class="fab fa-whatsapp me-2"></i>+254 793 972 143
+        <h6>Account</h6>
+        <a href="/login" class="text-white-50 d-block mb-1" style="text-decoration:none;">
+          <i class="fas fa-store me-2"></i>Owner Login
         </a>
-        <a href="mailto:hello@spinspringexpress.co.ke" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-envelope me-2"></i>hello@spinspringexpress.co.ke
+        <a href="/attendant-login" class="text-white-50 d-block mb-1" style="text-decoration:none;">
+          <i class="fas fa-user-tie me-2"></i>Attendant Login
         </a>
-        <a href="https://instagram.com/spinspring_kenya" class="text-white-50 d-block mb-1" style="text-decoration:none;" target="_blank" rel="noopener">
-          <i class="fab fa-instagram me-2"></i>@spinspring_kenya
+        <a href="/customer-login" class="text-white-50 d-block mb-1" style="text-decoration:none;">
+          <i class="fas fa-id-card me-2"></i>Customer Login
+        </a>
+        <a href="/register" class="text-white-50 d-block mb-1" style="text-decoration:none;">
+          <i class="fas fa-user-plus me-2"></i>Register
         </a>
       </div>
     </div>
     <hr class="bg-white-50">
-    <div class="text-center text-white-50">
-      <p class="mb-0">&copy; 2026 SpinSpring Express. All rights reserved.</p>
+    <div class="row">
+      <div class="col-md-6 text-white-50">
+        <p class="mb-0">
+          <i class="fab fa-whatsapp me-1"></i>
+          <a href="https://wa.me/254793972143" class="text-white-50" style="text-decoration:none;" target="_blank" rel="noopener">+254 793 972 143</a>
+          &nbsp;·&nbsp;
+          <i class="fas fa-envelope me-1"></i>
+          <a href="mailto:hello@spinspringexpress.co.ke" class="text-white-50" style="text-decoration:none;">hello@spinspringexpress.co.ke</a>
+        </p>
+      </div>
+      <div class="col-md-6 text-md-end text-white-50">
+        <p class="mb-0">&copy; 2026 SpinSpring Express. All rights reserved.</p>
+      </div>
     </div>
   </div>
 </footer>
@@ -1313,14 +1428,54 @@ nav.ss-nav,
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// ============ NAVIGATION ============
+// ============ NAVIGATION + DROPDOWN ============
 (function() {
   'use strict';
+
+  // Mobile nav toggle
   const navToggle = document.getElementById('navToggle');
   const navMenu = document.getElementById('navMenu');
   if (navToggle && navMenu) {
     navToggle.addEventListener('click', () => navMenu.classList.toggle('show'));
   }
+
+  // Login dropdown
+  const dropdown = document.getElementById('loginDropdown');
+  const dropdownBtn = document.getElementById('loginDropdownBtn');
+
+  function toggleDropdown(open) {
+    if (!dropdown) return;
+    const isOpen = typeof open === 'boolean' ? open : !dropdown.classList.contains('open');
+    dropdown.classList.toggle('open', isOpen);
+    if (dropdownBtn) dropdownBtn.setAttribute('aria-expanded', String(isOpen));
+  }
+
+  dropdownBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleDropdown();
+  });
+
+  // Click outside → close
+  document.addEventListener('click', (e) => {
+    if (dropdown && !dropdown.contains(e.target)) {
+      toggleDropdown(false);
+    }
+  });
+
+  // Escape key → close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') toggleDropdown(false);
+  });
+
+  // Close on menu item click (nav links in mobile)
+  dropdown?.querySelectorAll('.ss-dropdown-menu a').forEach(a => {
+    a.addEventListener('click', () => {
+      // Don't prevent default — allow navigation
+      toggleDropdown(false);
+    });
+  });
+
+  // Smooth scroll for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(function(link) {
     link.addEventListener('click', function(e) {
       const target = document.querySelector(this.getAttribute('href'));
@@ -1333,7 +1488,7 @@ nav.ss-nav,
   });
 })();
 
-// ============ LOCATIONS (NEW) ============
+// ============ LOCATIONS ============
 (function() {
   'use strict';
 
@@ -1343,9 +1498,7 @@ nav.ss-nav,
 
   if (!GRID) return;
 
-  // Fallback owner id (change if you support multiple owners)
   const OWNER_ID = 5;
-
   let allLocations = [];
 
   function formatTime(t) {
@@ -1407,9 +1560,7 @@ nav.ss-nav,
             </div>
           </div>
           <div class="loc-actions">
-            <a class="btn-map" 
-               href="https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}"
-               target="_blank" rel="noopener">
+            <a class="btn-map" href="https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}" target="_blank" rel="noopener">
               <i class="fas fa-directions me-1"></i>Directions
             </a>
             ${waLink ? `<a class="btn-wa" href="${waLink}" target="_blank" rel="noopener">
@@ -1454,10 +1605,7 @@ nav.ss-nav,
   }
 
   function findNearest() {
-    if (!navigator.geolocation) {
-      alert('Geolocation not supported by your browser');
-      return;
-    }
+    if (!navigator.geolocation) return alert('Geolocation not supported by your browser');
 
     FIND_BTN.disabled = true;
     FIND_BTN.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Locating...';
@@ -1470,7 +1618,6 @@ nav.ss-nav,
           .then(data => {
             if (data.success) {
               renderLocations(data.locations || [], true);
-              FIND_BTN.disabled = false;
               FIND_BTN.innerHTML = '<i class="fas fa-check me-2"></i>Sorted by Distance';
               setTimeout(() => {
                 FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Find Nearest to Me';
@@ -1481,7 +1628,6 @@ nav.ss-nav,
             }
           })
           .catch(err => {
-            console.error(err);
             alert('Could not sort by distance: ' + err.message);
             FIND_BTN.disabled = false;
             FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Find Nearest to Me';
@@ -1497,15 +1643,7 @@ nav.ss-nav,
   }
 
   FIND_BTN?.addEventListener('click', findNearest);
-
-  // Initialize
   loadLocations();
-
-  // Expose for auto-detect in quote
-  window.__spinLocations = {
-    all: () => allLocations,
-    reload: loadLocations
-  };
 })();
 
 // ============ QUOTE CALCULATOR ============
@@ -1544,7 +1682,6 @@ nav.ss-nav,
     qEmail: document.getElementById('qEmail')
   };
 
-  // ─── API ───
   async function loadPricing() {
     try {
       const res = await fetch('/api/pricing');
@@ -1580,7 +1717,6 @@ nav.ss-nav,
     return res.json();
   }
 
-  // ─── Helpers ───
   function populateServiceSelects() {
     document.querySelectorAll('.q-service').forEach(sel => {
       sel.innerHTML = '<option value="">-- Select Service --</option>';
@@ -1728,20 +1864,14 @@ nav.ss-nav,
     if (!d) return;
 
     const loc = getSelectedLocationName();
-    const lines = [
-      'Hi SpinSpring Express,',
-      'I would like a quote:',
-      ''
-    ];
+    const lines = ['Hi SpinSpring Express,', 'I would like a quote:', ''];
     if (loc) lines.push(`📍 Branch: ${loc}`, '');
 
     d.breakdown.forEach(b => {
       lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit || ''})` : ''} — KES ${b.line_total}`);
     });
 
-    lines.push('');
-    lines.push(`TOTAL: KES ${d.total}`);
-    lines.push('');
+    lines.push('', `TOTAL: KES ${d.total}`, '');
     lines.push('Name: ' + (DOM.qName?.value || ''));
     lines.push('Phone: ' + (DOM.qPhone?.value || ''));
 
@@ -1775,12 +1905,8 @@ nav.ss-nav,
     }
   }
 
-  // ─── Auto-detect location for quote ───
   function detectLocation() {
-    if (!navigator.geolocation) {
-      alert('Geolocation not supported');
-      return;
-    }
+    if (!navigator.geolocation) return alert('Geolocation not supported');
     if (!DOM.detectLocationBtn) return;
 
     DOM.detectLocationBtn.disabled = true;
@@ -1821,10 +1947,8 @@ nav.ss-nav,
     );
   }
 
-  // ─── Init ───
   function init() {
     addItemRow();
-
     DOM.addQuoteItem?.addEventListener('click', addItemRow);
     DOM.qExpress?.addEventListener('change', recalculate);
     DOM.qPickup?.addEventListener('change', recalculate);
@@ -1832,7 +1956,6 @@ nav.ss-nav,
     DOM.qWhatsApp?.addEventListener('click', sendViaWhatsApp);
     DOM.qSave?.addEventListener('click', handleSaveQuote);
     DOM.detectLocationBtn?.addEventListener('click', detectLocation);
-
     loadPricing();
   }
 
