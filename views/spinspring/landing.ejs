@@ -9,7 +9,6 @@
   --ss-dark: #0c4a6e;
   --ss-bg: #f8fafc;
 }
-
 body { background: var(--ss-bg); }
 
 /* Navigation */
@@ -22,33 +21,10 @@ body { background: var(--ss-bg); }
   top: 0;
   z-index: 1000;
 }
-.ss-nav .brand {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--ss-primary);
-  text-decoration: none;
-}
-.ss-nav .brand i { margin-right: 8px; }
-.ss-nav .nav-link {
-  color: var(--ss-dark);
-  font-weight: 600;
-  padding: 8px 16px;
-  border-radius: 50px;
-  transition: all 0.3s;
-  text-decoration: none;
-}
-.ss-nav .nav-link:hover {
-  background: var(--ss-light);
-  color: var(--ss-primary);
-}
-.ss-nav .nav-btn {
-  padding: 8px 20px;
-  border-radius: 50px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.3s;
-  font-size: 0.9rem;
-}
+.ss-nav .brand { font-size: 1.5rem; font-weight: 800; color: var(--ss-primary); text-decoration: none; }
+.ss-nav .nav-link { color: var(--ss-dark); font-weight: 600; padding: 8px 16px; border-radius: 50px; transition: all 0.3s; text-decoration: none; }
+.ss-nav .nav-link:hover { background: var(--ss-light); color: var(--ss-primary); }
+.ss-nav .nav-btn { padding: 8px 20px; border-radius: 50px; font-weight: 700; text-decoration: none; transition: all 0.3s; font-size: 0.9rem; }
 
 /* Hero */
 .ss-hero {
@@ -57,279 +33,342 @@ body { background: var(--ss-bg); }
   position: relative;
   overflow: hidden;
 }
-.ss-hero::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 500px;
-  height: 500px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 50%;
-}
-.ss-hero h1 {
-  color: white;
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 800;
-  margin-bottom: 15px;
-}
-.ss-hero .tagline {
-  color: rgba(255,255,255,0.9);
-  font-size: clamp(1rem, 2vw, 1.3rem);
-  margin-bottom: 25px;
-}
-.ss-hero .hero-image {
-  border-radius: 20px;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.3);
-  overflow: hidden;
-  min-height: 250px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-}
-.ss-hero .hero-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.ss-hero .hero-image .placeholder-icon {
-  font-size: clamp(3rem, 8vw, 8rem);
-  color: var(--ss-primary);
-  opacity: 0.3;
-}
+.ss-hero::before { content: ''; position: absolute; top: -50%; right: -20%; width: 500px; height: 500px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+.ss-hero h1 { color: white; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; margin-bottom: 15px; }
+.ss-hero .tagline { color: rgba(255,255,255,0.9); font-size: clamp(1rem, 2vw, 1.3rem); margin-bottom: 25px; }
 
-/* Role Cards */
-.role-section { margin-top: -50px; position: relative; z-index: 10; }
-.role-card {
+/* Pricing */
+.pricing-card {
   background: white;
-  border-radius: 25px;
-  padding: 30px 20px;
-  text-align: center;
-  box-shadow: 0 15px 40px rgba(2,132,199,0.15);
-  transition: all 0.3s;
-  border: 2px solid transparent;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 5px 25px rgba(2,132,199,0.1);
+  border: 1px solid #e0f2fe;
   height: 100%;
 }
-.role-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 25px 60px rgba(2,132,199,0.25);
+.pricing-card h4 { color: var(--ss-primary); font-weight: 800; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px; }
+.price-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+.price-row:last-child { border-bottom: none; }
+.price-row .price { font-weight: 700; color: var(--ss-primary); }
+
+/* Special Items */
+.special-item {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  transition: all 0.3s;
 }
-.role-card.owner { border-color: #0284c7; }
-.role-card.attendant { border-color: #10b981; }
-.role-card.customer { border-color: #f59e0b; }
-.role-card .role-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 15px;
-  font-size: 2rem;
-  color: white;
+.special-item:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+.special-item i { font-size: 2.5rem; color: var(--ss-primary); margin-bottom: 10px; }
+
+/* Process Steps */
+.process-step {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+  position: relative;
+  height: 100%;
 }
-.role-card.owner .role-icon { background: linear-gradient(135deg, #0284c7, #0ea5e9); }
-.role-card.attendant .role-icon { background: linear-gradient(135deg, #10b981, #059669); }
-.role-card.customer .role-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.role-card h4 { color: var(--ss-dark); font-weight: 700; font-size: 1.1rem; }
-.role-card p { color: #64748b; font-size: 0.85rem; }
+.step-number {
+  width: 50px; height: 50px; background: var(--ss-primary); color: white;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.3rem; margin: 0 auto 15px;
+}
 
 /* Features */
 .feature-card {
-  background: white;
-  border-radius: 20px;
-  padding: 25px 15px;
-  text-align: center;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-  transition: all 0.3s;
-  height: 100%;
+  background: white; border-radius: 20px; padding: 25px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05); height: 100%;
 }
-.feature-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
-.feature-card i { font-size: 2.5rem; color: var(--ss-primary); margin-bottom: 12px; }
-.feature-card h5 { color: var(--ss-dark); font-weight: 700; font-size: 1rem; }
-.feature-card p { font-size: 0.8rem; }
+.feature-card i { font-size: 2.5rem; color: var(--ss-primary); margin-bottom: 15px; }
 
-/* Gallery */
-.gallery-section { background: white; }
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 15px;
+/* Testimonials */
+.testimonial-card {
+  background: white; border-radius: 20px; padding: 25px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.05);
 }
-.gallery-item {
-  position: relative;
-  border-radius: 15px;
-  overflow: hidden;
-  cursor: pointer;
-  min-height: 200px;
-  background: var(--ss-light);
-  border: 2px dashed #bae6fd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.gallery-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  min-height: 200px;
-}
-.gallery-item .placeholder-icon { font-size: 3rem; color: #bae6fd; }
-.gallery-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(transparent, rgba(12,74,110,0.9));
-  color: white;
-  padding: 15px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.gallery-item:hover .gallery-overlay { opacity: 1; }
+.testimonial-card .stars { color: #f59e0b; margin-bottom: 10px; }
 
 /* Stats */
 .stat-number { font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: 800; color: var(--ss-primary); }
-.stat-label { color: #64748b; font-size: 0.8rem; }
+.stat-label { color: #64748b; font-size: 0.85rem; }
 
 /* CTA */
-.cta-section {
-  background: linear-gradient(135deg, #0284c7, #0ea5e9);
-  padding: 50px 0;
-  text-align: center;
-  color: white;
-}
-.cta-section h2 { font-size: clamp(1.3rem, 3vw, 2rem); }
+.cta-section { background: linear-gradient(135deg, #0284c7, #0ea5e9); padding: 60px 0; text-align: center; color: white; }
 
-/* Section Titles */
-.section-title { font-size: clamp(1.3rem, 3vw, 2rem); }
-.section-subtitle { font-size: clamp(0.9rem, 1.5vw, 1.1rem); }
-
-/* Responsive Breakpoints */
-@media (max-width: 991px) {
-  .ss-hero { padding: 50px 0 80px; }
-  .role-section { margin-top: -35px; }
-}
-
-@media (max-width: 768px) {
-  .ss-hero { padding: 40px 0 70px; }
-  .ss-hero h1 { font-size: 2rem; }
-  .role-card { padding: 20px 15px; }
-  .role-card .role-icon { width: 55px; height: 55px; font-size: 1.5rem; }
-  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
-  .gallery-item { min-height: 150px; }
-  .gallery-item img { min-height: 150px; }
-  .cta-section .btn { display: block; width: 100%; margin-bottom: 8px; }
-}
-
-@media (max-width: 480px) {
-  .ss-hero { padding: 30px 0 60px; }
-  .gallery-grid { grid-template-columns: 1fr; }
-  .feature-card { padding: 20px 10px; }
-}
+/* Responsive */
+@media (max-width: 768px) { .ss-hero { padding: 40px 0 70px; } }
 </style>
 </head>
 <body>
 
-<!-- Navigation Bar -->
+<!-- Navigation -->
 <nav class="ss-nav">
   <div class="container d-flex justify-content-between align-items-center">
-    <a href="/spinspg" class="brand">
-      <i class="fas fa-soap"></i>SpinSpring
-    </a>
-    <button class="navbar-toggler d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#ssNav" style="border:none;font-size:1.5rem;color:var(--ss-primary);">
-      ☰
-    </button>
+    <a href="/" class="brand"><i class="fas fa-soap me-2"></i>SpinSpring</a>
     <div class="d-none d-md-flex align-items-center gap-2">
-      <a href="/spinspg" class="nav-link">Home</a>
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#gallery" class="nav-link">Gallery</a>
-      <a href="#roles" class="nav-link">Portals</a>
-      <a href="/spinspg/login" class="nav-btn" style="background:#0284c7;color:white;">Owner Login</a>
-      <a href="/spinspg/attendant-login" class="nav-btn" style="background:#10b981;color:white;">Attendant</a>
-      <a href="/spinspg/customer-login" class="nav-btn" style="background:#f59e0b;color:white;">Customer</a>
-    </div>
-  </div>
-  <!-- Mobile Nav -->
-  <div class="collapse d-md-none" id="ssNav">
-    <div class="container py-2 d-flex flex-column gap-2">
-      <a href="/spinspg" class="nav-link">Home</a>
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#gallery" class="nav-link">Gallery</a>
-      <a href="#roles" class="nav-link">Portals</a>
-      <a href="/spinspg/login" class="nav-btn text-center" style="background:#0284c7;color:white;">Owner Login</a>
-      <a href="/spinspg/attendant-login" class="nav-btn text-center" style="background:#10b981;color:white;">Attendant Login</a>
-      <a href="/spinspg/customer-login" class="nav-btn text-center" style="background:#f59e0b;color:white;">Customer Login</a>
+      <a href="#pricing" class="nav-link">Pricing</a>
+      <a href="#services" class="nav-link">Services</a>
+      <a href="#how" class="nav-link">How it works</a>
+      <a href="/login" class="nav-btn" style="background:#0284c7;color:white;">Owner Login</a>
+      <a href="/attendant-login" class="nav-btn" style="background:#10b981;color:white;">Attendant</a>
+      <a href="/customer-login" class="nav-btn" style="background:#f59e0b;color:white;">Customer</a>
     </div>
   </div>
 </nav>
 
 <!-- Hero Section -->
 <section class="ss-hero">
-  <div class="container position-relative">
+  <div class="container">
     <div class="row align-items-center">
-      <div class="col-lg-6 mb-4 mb-lg-0 text-center text-lg-start">
-        <span class="badge bg-white px-3 py-2 rounded-pill mb-3" style="color:#0284c7;">
-          <i class="fas fa-star me-1"></i> Smart Laundry Automation
+      <div class="col-lg-7 text-white">
+        <span class="badge bg-white mb-3 px-3 py-2 rounded-pill" style="color:#0284c7;">
+          <i class="fas fa-star me-1"></i> Premium Laundry Service
         </span>
-        <h1>SpinSpring</h1>
-        <p class="tagline">Revolutionize your laundry business with IoT-powered washing machines, real-time monitoring, and smart order management.</p>
-        <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-lg-start">
-          <a href="#roles" class="btn btn-light btn-lg rounded-pill fw-bold">
-            <i class="fas fa-sign-in-alt me-2"></i> Access Portals
+        <h1>✨ Premium care, 24hr turnaround</h1>
+        <p class="tagline">Premium care, zero effort.<br>Full-service laundry and dry cleaning with pickup and delivery across Nairobi. Your clothes, treated like our own.</p>
+        <div class="d-flex flex-wrap gap-3 mt-4">
+          <a href="https://wa.me/254793972143" class="btn btn-light btn-lg rounded-pill fw-bold" target="_blank">
+            <i class="fab fa-whatsapp me-2"></i> Schedule a Pick-up
           </a>
-          <a href="#features" class="btn btn-outline-light btn-lg rounded-pill">
-            <i class="fas fa-info-circle me-2"></i> Learn More
+          <a href="#pricing" class="btn btn-outline-light btn-lg rounded-pill">
+            View Pricing <i class="fas fa-arrow-right ms-2"></i>
           </a>
         </div>
+        <div class="row mt-5">
+          <div class="col-4">
+            <div class="h4 fw-bold mb-0">Better priced</div>
+            <small>Faster turnaround</small>
+          </div>
+          <div class="col-4">
+            <div class="h4 fw-bold mb-0">World-class</div>
+            <small>Quality inspected</small>
+          </div>
+          <div class="col-4">
+            <div class="h4 fw-bold mb-0">24 Hours</div>
+            <small>Standard turnaround</small>
+          </div>
+        </div>
       </div>
-      <div class="col-lg-6">
-        <div class="hero-image">
-          <img src="/images/spinspring/dashboard.jpg" alt="SpinSpring Dashboard" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-          <i class="fas fa-washing-machine placeholder-icon" style="display:none;"></i>
+      <div class="col-lg-5 text-center">
+        <div class="bg-white rounded-4 p-4" style="box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+          <i class="fas fa-washing-machine fa-5x mb-3" style="color:#0284c7;"></i>
+          <h4>Supawash Quality</h4>
+          <p class="text-muted">Modern industrial washers & dryers</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Role Selection -->
-<section id="roles" class="role-section">
+<!-- Pricing Section -->
+<section id="pricing" class="py-5 bg-white">
   <div class="container">
-    <div class="text-center mb-4">
-      <h2 class="section-title" style="color:var(--ss-dark);font-weight:800;">Choose Your Portal</h2>
-      <p class="section-subtitle text-muted">Select the login that applies to you</p>
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" style="color:#0c4a6e;">Pricing</h2>
+      <p class="text-muted">All prices in KES. Minimum order KES 1,000.</p>
+    </div>
+    <div class="row g-4">
+      <!-- Drop-Off -->
+      <div class="col-md-4">
+        <div class="pricing-card">
+          <h4><i class="fas fa-tag me-2"></i>Drop-off</h4>
+          <div class="price-row"><span>Wash + Fold / kg</span><span class="price">KES 200</span></div>
+          <div class="price-row"><span>Wash + Fold + Iron / kg</span><span class="price">KES 350</span></div>
+          <div class="price-row"><span>Minimum order</span><span class="price">KES 1,000</span></div>
+        </div>
+      </div>
+      <!-- Dry Cleaning -->
+      <div class="col-md-4">
+        <div class="pricing-card">
+          <h4><i class="fas fa-tshirt me-2"></i>Dry Cleaning</h4>
+          <div class="price-row"><span>Jacket</span><span class="price">KES 750</span></div>
+          <div class="price-row"><span>Suit (2-piece)</span><span class="price">KES 1,500</span></div>
+          <div class="price-row"><span>Dress</span><span class="price">KES 1,750</span></div>
+          <div class="price-row"><span>Leather Jacket</span><span class="price">KES 2,500</span></div>
+        </div>
+      </div>
+      <!-- Special Items -->
+      <div class="col-md-4">
+        <div class="pricing-card">
+          <h4><i class="fas fa-star me-2"></i>Special Items</h4>
+          <div class="price-row"><span>Duvet</span><span class="price">KES 950</span></div>
+          <div class="price-row"><span>Pillow</span><span class="price">KES 350</span></div>
+          <div class="price-row"><span>Curtains / kg</span><span class="price">KES 400</span></div>
+          <div class="price-row"><span>Carpets / sqft</span><span class="price">KES 50</span></div>
+          <div class="price-row"><span>Sneakers</span><span class="price">KES 500</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="row g-4 mt-3">
+      <div class="col-md-6">
+        <div class="pricing-card">
+          <h4><i class="fas fa-truck me-2"></i>Pick-up & Delivery</h4>
+          <div class="price-row"><span>Westlands</span><span class="price" style="color:#10b981;">FREE</span></div>
+          <div class="price-row"><span>Rest of Nairobi</span><span class="price">KES 500</span></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="pricing-card">
+          <h4><i class="fas fa-bolt me-2"></i>Express & Add-ons</h4>
+          <div class="price-row"><span>⚡ Express Service (3 hours)</span><span class="price">+KES 1,000</span></div>
+          <div class="price-row"><span>🪟 Curtain Service (take down + hang)</span><span class="price">+KES 50/kg</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <a href="https://wa.me/254793972143" class="btn btn-success rounded-pill px-4" target="_blank">
+        <i class="fab fa-whatsapp me-2"></i> WhatsApp us for a quote
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Special Items Section -->
+<section id="services" class="py-5" style="background: var(--ss-bg);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" style="color:#0c4a6e;">We handle the special items too</h2>
+      <p class="text-muted">Not just everyday laundry — bring us anything.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-3 col-6">
+        <div class="special-item">
+          <i class="fas fa-window-maximize"></i>
+          <h5>Curtains</h5>
+          <p class="text-muted mb-0">Deep cleaned & pressed</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="special-item">
+          <i class="fas fa-bed"></i>
+          <h5>Duvets</h5>
+          <p class="text-muted mb-0">Fluffy like day one</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="special-item">
+          <i class="fas fa-shoe-prints"></i>
+          <h5>Sneakers</h5>
+          <p class="text-muted mb-0">Hand-cleaned & fresh</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="special-item">
+          <i class="fas fa-tshirt"></i>
+          <h5>Dry Cleaning</h5>
+          <p class="text-muted mb-0">Suits, dresses & more</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quality Section -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" style="color:#0c4a6e;">Your clothes deserve better care.</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-3 col-6">
+        <div class="feature-card text-center">
+          <i class="fas fa-layer-group"></i>
+          <h5>Sorted by Fabric & Colour</h5>
+          <p class="text-muted small">Every garment is inspected and sorted before it goes in</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="feature-card text-center">
+          <i class="fas fa-flask"></i>
+          <h5>Premium Detergents</h5>
+          <p class="text-muted small">Eco-friendly, fabric-safe products that protect colours</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="feature-card text-center">
+          <i class="fas fa-wind"></i>
+          <h5>Professional Pressing</h5>
+          <p class="text-muted small">Shirts, suits, and delicates are steam-pressed crisp</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-6">
+        <div class="feature-card text-center">
+          <i class="fas fa-box"></i>
+          <h5>Individual Packaging</h5>
+          <p class="text-muted small">Items returned wrapped and hung, ready for wardrobe</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how" class="py-5" style="background: var(--ss-bg);">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" style="color:#0c4a6e;">How it works</h2>
     </div>
     <div class="row g-4">
       <div class="col-md-4">
-        <div class="role-card owner">
-          <div class="role-icon"><i class="fas fa-store"></i></div>
-          <h4>Owner Portal</h4>
-          <p>Manage machines, attendants, customers, and analytics.</p>
-          <a href="/spinspg/login" class="btn btn-primary rounded-pill w-100" style="background:#0284c7;border:none;">
-            Owner Login
-          </a>
+        <div class="process-step">
+          <div class="step-number">1</div>
+          <i class="fas fa-box-open fa-3x mb-3" style="color:#0284c7;"></i>
+          <h5>Drop off or book a pickup</h5>
+          <p class="text-muted">Bring your laundry to any location — or book a free pickup via WhatsApp or online.</p>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="role-card attendant">
-          <div class="role-icon"><i class="fas fa-user-tie"></i></div>
-          <h4>Attendant Portal</h4>
-          <p>Start orders, control machines, serve customers.</p>
-          <a href="/spinspg/attendant-login" class="btn btn-success rounded-pill w-100" style="background:#10b981;border:none;">
-            Attendant Login
-          </a>
+        <div class="process-step">
+          <div class="step-number">2</div>
+          <i class="fas fa-washing-machine fa-3x mb-3" style="color:#0284c7;"></i>
+          <h5>We clean it</h5>
+          <p class="text-muted">Washed, dried, and folded by our team. Dry cleaning and special items handled with care.</p>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="role-card customer">
-          <div class="role-icon"><i class="fas fa-id-card"></i></div>
-          <h4>Customer Portal</h4>
-          <p>Track orders, view history, check loyalty points.</p>
-          <a href="/spinspg/customer-login" class="btn btn-warning rounded-pill w-100" style="background:#f59e0b;border:none;color:white;">
-            Customer Login
-          </a>
+        <div class="process-step">
+          <div class="step-number">3</div>
+          <i class="fas fa-truck fa-3x mb-3" style="color:#0284c7;"></i>
+          <h5>Collect or we deliver</h5>
+          <p class="text-muted">Pick it up at the shop, or we'll bring it right to your door.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold" style="color:#0c4a6e;">👍🏾 What our clients say</h2>
+      <p class="text-muted"><span style="color:#f59e0b;">4.9★</span> from 95 Google Reviews</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="testimonial-card">
+          <div class="stars">★★★★★</div>
+          <p>"I dropped off 3 bags on Monday morning. Everything came back Tuesday afternoon, perfectly folded. Can't beat that."</p>
+          <strong>Sarah</strong>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="testimonial-card">
+          <div class="stars">★★★★★</div>
+          <p>"The dry cleaning quality is top notch. My suits look better than when I bought them."</p>
+          <strong>Brian</strong>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="testimonial-card">
+          <div class="stars">★★★★★</div>
+          <p>"Free pickup was the clincher for me. I just WhatsApp them and they come get it. So easy."</p>
+          <strong>Grace</strong>
         </div>
       </div>
     </div>
@@ -337,97 +376,38 @@ body { background: var(--ss-bg); }
 </section>
 
 <!-- Stats -->
-<section class="py-4 mt-4" style="background:white;">
+<section class="py-5" style="background: var(--ss-bg);">
   <div class="container">
     <div class="row text-center">
       <div class="col-md-3 col-6 mb-3">
-        <div class="stat-number" data-target="1000">0</div>
-        <div class="stat-label">Machines</div>
+        <div class="stat-number">80%+</div>
+        <div class="stat-label">Returning Customers</div>
       </div>
       <div class="col-md-3 col-6 mb-3">
-        <div class="stat-number" data-target="50000">0</div>
-        <div class="stat-label">Cycles</div>
+        <div class="stat-number">4.9★</div>
+        <div class="stat-label">Google Rating (95 Reviews)</div>
       </div>
       <div class="col-md-3 col-6 mb-3">
-        <div class="stat-number" data-target="500">0</div>
-        <div class="stat-label">Businesses</div>
+        <div class="stat-number">4</div>
+        <div class="stat-label">Locations</div>
       </div>
       <div class="col-md-3 col-6 mb-3">
-        <div class="stat-number" data-target="99.9">0</div>
-        <div class="stat-label">Uptime %</div>
+        <div class="stat-number">Same-day</div>
+        <div class="stat-label">Turnaround</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features -->
-<section id="features" class="py-5" style="background:var(--ss-bg);">
+<!-- Subscription -->
+<section class="py-5 bg-white">
   <div class="container">
     <div class="text-center mb-4">
-      <h2 class="section-title" style="color:var(--ss-dark);font-weight:800;">Key Features</h2>
-      <p class="section-subtitle text-muted">Everything you need to run a smart laundry business</p>
-    </div>
-    <div class="row g-3">
-      <div class="col-md-3 col-6">
-        <div class="feature-card">
-          <i class="fas fa-wifi"></i>
-          <h5>IoT Connected</h5>
-          <p>ESP32 with WiFi & GSM</p>
-        </div>
-      </div>
-      <div class="col-md-3 col-6">
-        <div class="feature-card">
-          <i class="fas fa-chart-line"></i>
-          <h5>Real-time Monitoring</h5>
-          <p>Live cycle progress</p>
-        </div>
-      </div>
-      <div class="col-md-3 col-6">
-        <div class="feature-card">
-          <i class="fas fa-receipt"></i>
-          <h5>Order Tracking</h5>
-          <p>Complete management</p>
-        </div>
-      </div>
-      <div class="col-md-3 col-6">
-        <div class="feature-card">
-          <i class="fas fa-mobile-alt"></i>
-          <h5>Multi-Role Access</h5>
-          <p>Owner, attendant, customer</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Gallery -->
-<section id="gallery" class="gallery-section py-5">
-  <div class="container">
-    <div class="text-center mb-4">
-      <h2 class="section-title" style="color:var(--ss-dark);font-weight:800;">System Gallery</h2>
-      <p class="section-subtitle text-muted">See SpinSpring in action</p>
-    </div>
-    <div class="gallery-grid">
-      <div class="gallery-item">
-        <img src="/images/spinspring/machine.jpg" alt="Washing Machine" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-washing-machine placeholder-icon" style="display:none;"></i>
-        <div class="gallery-overlay"><h6>Machine Unit</h6></div>
-      </div>
-      <div class="gallery-item">
-        <img src="/images/spinspring/dashboard.jpg" alt="Dashboard" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-desktop placeholder-icon" style="display:none;"></i>
-        <div class="gallery-overlay"><h6>Dashboard</h6></div>
-      </div>
-      <div class="gallery-item">
-        <img src="/images/spinspring/mobile.jpg" alt="Mobile" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-mobile-alt placeholder-icon" style="display:none;"></i>
-        <div class="gallery-overlay"><h6>Mobile Access</h6></div>
-      </div>
-      <div class="gallery-item">
-        <img src="/images/spinspring/lcd.jpg" alt="LCD" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-tv placeholder-icon" style="display:none;"></i>
-        <div class="gallery-overlay"><h6>LCD Display</h6></div>
-      </div>
+      <h2 class="fw-bold" style="color:#0c4a6e;">Put your laundry on auto pilot.</h2>
+      <p class="text-muted">Monthly subscription plans from KES 4,500. Pickup included.</p>
+      <a href="https://wa.me/254793972143" class="btn btn-primary rounded-pill px-4" style="background:#0284c7;" target="_blank">
+        See subscription plans <i class="fas fa-arrow-right ms-2"></i>
+      </a>
     </div>
   </div>
 </section>
@@ -435,48 +415,82 @@ body { background: var(--ss-bg); }
 <!-- CTA -->
 <section class="cta-section">
   <div class="container">
-    <h2 class="fw-bold mb-3">Ready to Access Your Portal?</h2>
-    <p class="mb-4">Login below based on your role</p>
-    <div class="d-flex flex-wrap justify-content-center gap-2">
-      <a href="/spinspg/login" class="btn btn-light btn-lg rounded-pill fw-bold">
-        <i class="fas fa-store me-2"></i> Owner
+    <h2 class="fw-bold mb-3">Ready to get started?</h2>
+    <p class="mb-4">Schedule a free pickup or drop off at any of our Nairobi locations.</p>
+    <div class="d-flex flex-wrap justify-content-center gap-3">
+      <a href="https://wa.me/254793972143" class="btn btn-light btn-lg rounded-pill fw-bold" target="_blank">
+        <i class="fab fa-whatsapp me-2"></i> Schedule a Pick-up
       </a>
-      <a href="/spinspg/attendant-login" class="btn btn-outline-light btn-lg rounded-pill">
-        <i class="fas fa-user-tie me-2"></i> Attendant
+      <a href="/login" class="btn btn-outline-light btn-lg rounded-pill">
+        <i class="fas fa-store me-2"></i> Owner Login
       </a>
-      <a href="/spinspg/customer-login" class="btn btn-warning btn-lg rounded-pill fw-bold">
-        <i class="fas fa-id-card me-2"></i> Customer
+      <a href="/attendant-login" class="btn btn-warning btn-lg rounded-pill fw-bold">
+        <i class="fas fa-user-tie me-2"></i> Attendant Login
+      </a>
+      <a href="/customer-login" class="btn btn-outline-light btn-lg rounded-pill">
+        <i class="fas fa-id-card me-2"></i> Customer Login
       </a>
     </div>
   </div>
 </section>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-function animateCounters() {
-  document.querySelectorAll('.stat-number').forEach(counter => {
-    const target = parseFloat(counter.getAttribute('data-target'));
-    const duration = 2000;
-    const step = target / (duration / 16);
-    let current = 0;
-    const update = () => {
-      current += step;
-      if (current < target) {
-        counter.textContent = target === Math.floor(target) ? Math.floor(current) : current.toFixed(1);
-        requestAnimationFrame(update);
-      } else {
-        counter.textContent = target;
-      }
-    };
-    update();
-  });
+<!-- Footer -->
+<footer style="background:#0c4a6e;color:white;padding:50px 0 20px;">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-3 mb-4">
+        <h5><i class="fas fa-soap me-2"></i>SpinSpring</h5>
+        <p class="text-white-50">Faster. Cheaper. Cleaner. Fun.</p>
+      </div>
+      <div class="col-md-3 mb-4">
+        <h6>Services</h6>
+        <a href="/" class="text-white-50 d-block mb-1">Self-Service</a>
+        <a href="/" class="text-white-50 d-block mb-1">Drop-Off</a>
+        <a href="/" class="text-white-50 d-block mb-1">Subscriptions</a>
+        <a href="/" class="text-white-50 d-block mb-1">Dry Cleaning</a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <h6>More</h6>
+        <a href="/" class="text-white-50 d-block mb-1">Reviews (4.9★)</a>
+        <a href="/" class="text-white-50 d-block mb-1">About</a>
+        <a href="/" class="text-white-50 d-block mb-1">Blog</a>
+        <a href="/" class="text-white-50 d-block mb-1">Contact</a>
+      </div>
+      <div class="col-md-3 mb-4">
+        <h6>Contact</h6>
+        <a href="https://wa.me/254793972143" class="text-white-50 d-block mb-1" target="_blank">
+          <i class="fab fa-whatsapp me-2"></i>+254 793 972 143
+        </a>
+        <a href="mailto:hello@spinspringexpress.co.ke" class="text-white-50 d-block mb-1">
+          <i class="fas fa-envelope me-2"></i>hello@spinspringexpress.co.ke
+        </a>
+        <a href="https://instagram.com/spinspring_kenya" class="text-white-50 d-block mb-1" target="_blank">
+          <i class="fab fa-instagram me-2"></i>@spinspring_kenya
+        </a>
+      </div>
+    </div>
+    <hr class="bg-white-50">
+    <div class="text-center text-white-50">
+      <p>&copy; 2026 SpinSpring Express. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating WhatsApp -->
+<a href="https://wa.me/254793972143" class="whatsapp-float" target="_blank" title="Chat on WhatsApp">
+  <i class="fab fa-whatsapp"></i>
+</a>
+<style>
+.whatsapp-float {
+  position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px;
+  background: #25D366; color: white; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; box-shadow: 0 5px 25px rgba(37,211,102,0.5);
+  z-index: 999; text-decoration: none; animation: bounce 2s infinite;
 }
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) { animateCounters(); observer.disconnect(); }
-  });
-});
-document.querySelectorAll('.stat-number').forEach(el => observer.observe(el));
-</script>
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
