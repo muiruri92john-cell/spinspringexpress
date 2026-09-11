@@ -1,404 +1,291 @@
 // =====================================================
-// routes/reviews.js — Reviews & Ratings
+// models/review.js — Reviews data layer
 // =====================================================
 
-const express = require('express');
-const router = express.Router();
-const ReviewModel = require('../models/review');
-const helper = require('../utils/reviewHelper');
 const crypto = require('crypto');
 
-const ah = (fn) => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
-
-// ─── Auth guards ──────────────────────────────────
-function isAuth(req, res, next) {
-  if (req.session.spinUser) return next();
-  req.flash('error_msg', 'Please login first');
-  res.redirect('/login');
-}
-
-function isOwner(req, res, next) {
-  if (req.session.spinUser?.role === 'owner') return next();
-  req.flash('error_msg', 'Owner access required');
-  res.redirect('/login');
-}
-
-// ═══════════════════════════════════════════════════
-// CUSTOMER — WRITE REVIEW (public, via code)
-// ═══════════════════════════════════════════════════
-
-router.get('/review/:code', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const { code } = req.params;
-
-  const request = await model.findRequestByCode(code);
-
-  // If it's a request code → show review form
-  if (request) {
-    if (request.status === 'completed') {
-      return res.render('spinspring/review-thanks', {
-        title: 'Already Reviewed',
-        message: 'You already submitted a review for this order. Thank you!',
-        alreadyDone: true
-      });
-    }
-
-    if (request.expires_at && new Date(request.expires_at) < new Date()) {
-      return res.render('spinspring/review-thanks', {
-        title: 'Link Expired',
-        message: 'This review link has expired. Please contact us directly.',
-        alreadyDone: true
-      });
-    }
-
-    // Look up order for context
-    let order = null;
-    if (request.order_id) {
-      const [orders] = await req.db.query(
-        `SELECT o.*, d.device_name, d.owner_id, d.location_id
-         FROM ss_orders o
-         LEFT JOIN ss_devices d ON o.device_id = d.device_id
-         WHERE o.id = ? LIMIT 1`,
-        [request.order_id]
-      );
-      if (orders.length) order = orders[0];
-    }
-
-    await model.markRequestClicked(code);
-
-    return res.render('spinspring/review-form', {
-      title: 'Leave a Review - SpinSpring Express',
-      request,
-      order,
-      code
-    });
+class ReviewModel {
+  constructor(db) {
+    this.db = db;
   }
 
-  // Otherwise try as a review code → show public review
-  const review = await model.findByCode(code);
-  if (review) {
-    return res.redirect('/reviews');
+  // ─── GENERATE CODE ──────────────────────────────
+  generateCode(prefix = 'RV') {
+    return prefix + '-' + crypto.randomBytes(4).toString('hex').toUpperCase();
   }
 
-  return res.status(404).render('spinspring/error', {
-    title: 'Not Found',
-    message: 'Review link not found or expired'
-  });
-}));
+  // ─── CREATE REQUEST ─────────────────────────────
+  async createRequest(data) {
+    const code = this.generateCode('RVR');
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 30);
 
-// ─── Submit review ────────────────────────────────
-router.post('/review/:code', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const { code } = req.params;
-
-  const request = await model.findRequestByCode(code);
-  if (!request) {
-    return res.status(404).json({ success: false, error: 'Invalid review code' });
-  }
-  if (request.status === 'completed') {
-    return res.status(400).json({ success: false, error: 'Already reviewed' });
-  }
-
-  const { rating, title, comment, customer_name } = req.body;
-
-  const ratingInt = parseInt(rating, 10);
-  if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
-    return res.status(400).json({ success: false, error: 'Rating must be 1-5' });
-  }
-
-  // Look up order + owner
-  let order = null;
-  let owner_id = null;
-  let location_id = null;
-  let device_id = null;
-
-  if (request.order_id) {
-    const [orders] = await req.db.query(
-      `SELECT o.*, d.owner_id, d.location_id, d.device_id
-       FROM ss_orders o
-       LEFT JOIN ss_devices d ON o.device_id = d.device_id
-       WHERE o.id = ? LIMIT 1`,
-      [request.order_id]
+    const [result] = await this.db.query(
+      `INSERT INTO ss_review_requests
+       (review_code, order_id, customer_name, customer_phone, customer_email, channel, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        code,
+        data.order_id,
+        data.customer_name || null,
+        data.customer_phone || null,
+        data.customer_email || null,
+        data.channel || 'whatsapp',
+        expires
+      ]
     );
-    if (orders.length) {
-      order = orders[0];
-      owner_id = order.owner_id;
-      location_id = order.location_id;
-      device_id = order.device_id;
+    return { id: result.insertId, code };
+  }
+
+  async findRequestByCode(code) {
+    const [rows] = await this.db.query(
+      'SELECT * FROM ss_review_requests WHERE review_code = ? LIMIT 1',
+      [code]
+    );
+    return rows[0] || null;
+  }
+
+  async markRequestSent(code) {
+    await this.db.query(
+      "UPDATE ss_review_requests SET status='sent', sent_at=NOW() WHERE review_code = ? AND status='pending'",
+      [code]
+    );
+  }
+
+  async markRequestClicked(code) {
+    await this.db.query(
+      "UPDATE ss_review_requests SET status='clicked', clicked_at=NOW() WHERE review_code = ? AND status IN ('pending','sent')",
+      [code]
+    );
+  }
+
+  async markRequestCompleted(code) {
+    await this.db.query(
+      "UPDATE ss_review_requests SET status='completed', completed_at=NOW() WHERE review_code = ?",
+      [code]
+    );
+  }
+
+  // ─── CREATE REVIEW ──────────────────────────────
+  async create(data) {
+    const code = this.generateCode('RV');
+
+    const [result] = await this.db.query(
+      `INSERT INTO ss_reviews
+       (review_code, owner_id, location_id, device_id, order_id, customer_id,
+        customer_name, customer_email, customer_phone,
+        rating, title, comment, service_type, photo_url,
+        is_verified, status, ip_address, user_agent, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        code,
+        data.owner_id,
+        data.location_id || null,
+        data.device_id || null,
+        data.order_id || null,
+        data.customer_id || null,
+        data.customer_name,
+        data.customer_email || null,
+        data.customer_phone || null,
+        data.rating,
+        data.title || null,
+        data.comment || null,
+        data.service_type || null,
+        data.photo_url || null,
+        data.is_verified ? 1 : 0,
+        data.status || 'pending',
+        data.ip_address || null,
+        data.user_agent || null,
+        data.source || 'web'
+      ]
+    );
+
+    return { id: result.insertId, code };
+  }
+
+  // ─── READ ────────────────────────────────────────
+  async findById(id) {
+    const [rows] = await this.db.query(
+      'SELECT * FROM ss_reviews WHERE id = ? LIMIT 1',
+      [id]
+    );
+    return rows[0] || null;
+  }
+
+  async findByCode(code) {
+    const [rows] = await this.db.query(
+      'SELECT * FROM ss_reviews WHERE review_code = ? LIMIT 1',
+      [code]
+    );
+    return rows[0] || null;
+  }
+
+  // ─── LIST FOR OWNER ──────────────────────────────
+  async listByOwner(ownerId, filters = {}) {
+    let sql = `
+      SELECT r.*, l.location_name, d.device_name
+      FROM ss_reviews r
+      LEFT JOIN ss_locations l ON r.location_id = l.id
+      LEFT JOIN ss_devices d ON r.device_id = d.device_id
+      WHERE r.owner_id = ?
+    `;
+    const params = [ownerId];
+
+    if (filters.status && filters.status !== 'all') {
+      sql += ' AND r.status = ?';
+      params.push(filters.status);
     }
-  }
-
-  if (!owner_id) {
-    return res.status(400).json({ success: false, error: 'Order not found' });
-  }
-
-  // Sanitize
-  const cleanTitle = (title || '').trim().slice(0, 200);
-  const cleanComment = (comment || '').trim().slice(0, 2000);
-  const cleanName = (customer_name || request.customer_name || 'Anonymous').trim().slice(0, 100);
-
-  // Create review
-  const { id, code: reviewCode } = await model.create({
-    owner_id,
-    location_id,
-    device_id,
-    order_id: request.order_id,
-    customer_name: cleanName,
-    customer_email: request.customer_email,
-    customer_phone: request.customer_phone,
-    rating: ratingInt,
-    title: cleanTitle || null,
-    comment: cleanComment || null,
-    service_type: order?.service_type || null,
-    is_verified: 1,
-    status: 'pending',
-    ip_address: req.ip,
-    user_agent: (req.headers['user-agent'] || '').slice(0, 500),
-    source: request.channel === 'sms' ? 'sms' : (request.channel === 'whatsapp' ? 'whatsapp' : 'web')
-  });
-
-  await model.markRequestCompleted(code);
-
-  res.json({
-    success: true,
-    review_code: reviewCode,
-    message: 'Thank you for your review!'
-  });
-}));
-
-// ─── Direct review (no request code) ──────────────
-router.get('/reviews/new', (req, res) => {
-  res.render('spinspring/review-form', {
-    title: 'Leave a Review - SpinSpring Express',
-    request: null,
-    order: null,
-    code: null
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// PUBLIC REVIEWS PAGE
-// ═══════════════════════════════════════════════════
-
-router.get('/reviews', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = parseInt(req.query.owner_id, 10) || 5;
-  const locationId = req.query.location_id ? parseInt(req.query.location_id, 10) : null;
-
-  const reviews = await model.listPublic(ownerId, {
-    locationId,
-    limit: 50,
-    featuredOnly: false,
-    minRating: null
-  });
-
-  const stats = await model.statsByOwner(ownerId);
-
-  res.render('spinspring/reviews-public', {
-    title: 'Customer Reviews - SpinSpring Express',
-    user: req.session.spinUser || null,
-    reviews,
-    stats,
-    helper,
-    ownerId,
-    locationId
-  });
-}));
-
-// ═══════════════════════════════════════════════════
-// OWNER DASHBOARD
-// ═══════════════════════════════════════════════════
-
-router.get('/owner/reviews', isOwner, ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = req.session.spinUser.id;
-
-  const filters = {
-    status: req.query.status || 'all',
-    rating: req.query.rating || 'all',
-    location_id: req.query.location_id || null,
-    search: req.query.search || null
-  };
-
-  const reviews = await model.listByOwner(ownerId, filters);
-  const stats = await model.statsByOwner(ownerId);
-  const byLocation = await model.statsByLocation(ownerId);
-
-  // Locations for filter dropdown
-  const [locations] = await req.db.query(
-    'SELECT id, location_name FROM ss_locations WHERE owner_id = ? AND is_active = 1 ORDER BY is_primary DESC, location_name',
-    [ownerId]
-  );
-
-  res.render('spinspring/reviews-owner', {
-    title: 'Reviews - SpinSpring Express',
-    user: req.session.spinUser,
-    reviews,
-    stats,
-    byLocation,
-    locations,
-    filters,
-    helper
-  });
-}));
-
-// ─── Approve / reject / hide ──────────────────────
-router.post('/owner/reviews/:id/status', isOwner, ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const { status, notes } = req.body;
-  const ownerId = req.session.spinUser.id;
-
-  await model.updateStatus(
-    parseInt(req.params.id, 10),
-    ownerId,
-    status,
-    notes || null,
-    ownerId
-  );
-
-  // If AJAX, return JSON
-  if (req.xhr || req.headers.accept?.includes('json')) {
-    return res.json({ success: true, status });
-  }
-
-  req.flash('success_msg', `Review ${status}`);
-  res.redirect('/owner/reviews');
-}));
-
-// ─── Toggle featured ──────────────────────────────
-router.post('/owner/reviews/:id/feature', isOwner, ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = req.session.spinUser.id;
-
-  await model.toggleFeatured(parseInt(req.params.id, 10), ownerId);
-
-  if (req.xhr || req.headers.accept?.includes('json')) {
-    return res.json({ success: true });
-  }
-
-  req.flash('success_msg', 'Featured status updated');
-  res.redirect('/owner/reviews');
-}));
-
-// ─── Reply to review ──────────────────────────────
-router.post('/owner/reviews/:id/reply', isOwner, ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = req.session.spinUser.id;
-  const { reply } = req.body;
-
-  if (!reply || !reply.trim()) {
-    return res.status(400).json({ success: false, error: 'Reply cannot be empty' });
-  }
-
-  await model.reply(
-    parseInt(req.params.id, 10),
-    ownerId,
-    reply.trim().slice(0, 2000),
-    ownerId
-  );
-
-  if (req.xhr || req.headers.accept?.includes('json')) {
-    return res.json({ success: true });
-  }
-
-  req.flash('success_msg', 'Reply posted');
-  res.redirect('/owner/reviews');
-}));
-
-// ─── Delete reply ─────────────────────────────────
-router.post('/owner/reviews/:id/reply/delete', isOwner, ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = req.session.spinUser.id;
-
-  await model.deleteReply(parseInt(req.params.id, 10), ownerId);
-
-  req.flash('success_msg', 'Reply removed');
-  res.redirect('/owner/reviews');
-}));
-
-// ═══════════════════════════════════════════════════
-// PUBLIC API
-// ═══════════════════════════════════════════════════
-
-// Get public reviews for landing page
-router.get('/api/reviews', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = parseInt(req.query.owner_id, 10) || 5;
-  const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
-
-  const reviews = await model.listPublic(ownerId, {
-    limit,
-    featuredOnly: req.query.featured === '1'
-  });
-
-  const stats = await model.statsByOwner(ownerId);
-
-  res.json({
-    success: true,
-    reviews,
-    stats: {
-      avg_rating: parseFloat(stats.avg_rating) || 0,
-      total: stats.total || 0,
-      five_star: stats.five_star || 0,
-      four_star: stats.four_star || 0,
-      three_star: stats.three_star || 0,
-      two_star: stats.two_star || 0,
-      one_star: stats.one_star || 0
+    if (filters.rating && filters.rating !== 'all') {
+      sql += ' AND r.rating = ?';
+      params.push(parseInt(filters.rating, 10));
     }
-  });
-}));
+    if (filters.location_id) {
+      sql += ' AND r.location_id = ?';
+      params.push(parseInt(filters.location_id, 10));
+    }
+    if (filters.search) {
+      sql += ' AND (r.customer_name LIKE ? OR r.comment LIKE ? OR r.title LIKE ?)';
+      const term = `%${filters.search}%`;
+      params.push(term, term, term);
+    }
 
-// Mark helpful
-router.post('/api/reviews/:id/helpful', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  await model.markHelpful(parseInt(req.params.id, 10));
-  res.json({ success: true });
-}));
+    sql += ' ORDER BY r.created_at DESC LIMIT 500';
 
-// ═══════════════════════════════════════════════════
-// HOOK: Called when order completes → queue review request
-// (import this from your order-complete handler)
-// ═══════════════════════════════════════════════════
-
-router.post('/api/orders/:id/request-review', isAuth, ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const orderId = parseInt(req.params.id, 10);
-
-  const [orders] = await req.db.query(
-    'SELECT * FROM ss_orders WHERE id = ? LIMIT 1',
-    [orderId]
-  );
-  if (!orders.length) {
-    return res.status(404).json({ success: false, error: 'Order not found' });
+    const [rows] = await this.db.query(sql, params);
+    return rows;
   }
-  const order = orders[0];
 
-  const { code } = await model.createRequest({
-    order_id: orderId,
-    customer_name: order.customer_name,
-    customer_phone: order.customer_phone || null,
-    customer_email: order.customer_email || null,
-    channel: 'whatsapp'
-  });
+  // ─── LIST PUBLIC ─────────────────────────────────
+  async listPublic(ownerId, options = {}) {
+    const { locationId, limit = 20, featuredOnly = false, minRating = null } = options;
 
-  const reviewUrl = helper.buildReviewUrl(code);
-  const waMessage = helper.buildWhatsAppMessage({
-    customerName: order.customer_name,
-    businessName: 'SpinSpring Express',
-    reviewUrl,
-    orderNumber: order.order_number
-  });
+    let sql = `
+      SELECT r.id, r.review_code, r.customer_name, r.rating, r.title, r.comment,
+             r.photo_url, r.service_type, r.owner_reply, r.owner_replied_at,
+             r.is_verified, r.is_featured, r.helpful_count, r.created_at,
+             l.location_name
+      FROM ss_reviews r
+      LEFT JOIN ss_locations l ON r.location_id = l.id
+      WHERE r.owner_id = ? AND r.status = 'approved'
+    `;
+    const params = [ownerId];
 
-  // Queue for sending (or send immediately if you have SMS/WA set up)
-  await model.markRequestSent(code);
+    if (locationId) {
+      sql += ' AND (r.location_id = ? OR r.location_id IS NULL)';
+      params.push(locationId);
+    }
+    if (featuredOnly) {
+      sql += ' AND r.is_featured = 1';
+    }
+    if (minRating) {
+      sql += ' AND r.rating >= ?';
+      params.push(minRating);
+    }
 
-  res.json({
-    success: true,
-    review_code: code,
-    review_url: reviewUrl,
-    whatsapp_url: `https://wa.me/${(order.customer_phone || '').replace(/\D/g, '')}?text=${waMessage}`
-  });
-}));
+    sql += ' ORDER BY r.is_featured DESC, r.created_at DESC LIMIT ?';
+    params.push(parseInt(limit, 10));
 
-module.exports = router;
+    const [rows] = await this.db.query(sql, params);
+    return rows;
+  }
+
+  // ─── UPDATE ──────────────────────────────────────
+  async updateStatus(id, ownerId, status, notes = null, moderatedBy = null) {
+    const allowed = ['approved', 'rejected', 'hidden', 'pending'];
+    if (!allowed.includes(status)) return { changed: 0 };
+
+    const [result] = await this.db.query(
+      `UPDATE ss_reviews
+       SET status = ?, moderation_notes = ?, moderated_by = ?, moderated_at = NOW()
+       WHERE id = ? AND owner_id = ?`,
+      [status, notes, moderatedBy, id, ownerId]
+    );
+    return { changed: result.changedRows };
+  }
+
+  async toggleFeatured(id, ownerId) {
+    const [result] = await this.db.query(
+      'UPDATE ss_reviews SET is_featured = 1 - is_featured WHERE id = ? AND owner_id = ?',
+      [id, ownerId]
+    );
+    return { changed: result.changedRows };
+  }
+
+  async reply(id, ownerId, replyText, repliedBy) {
+    const [result] = await this.db.query(
+      `UPDATE ss_reviews
+       SET owner_reply = ?, owner_replied_at = NOW(), owner_replied_by = ?
+       WHERE id = ? AND owner_id = ?`,
+      [replyText, repliedBy, id, ownerId]
+    );
+    return { changed: result.changedRows };
+  }
+
+  async deleteReply(id, ownerId) {
+    const [result] = await this.db.query(
+      `UPDATE ss_reviews
+       SET owner_reply = NULL, owner_replied_at = NULL, owner_replied_by = NULL
+       WHERE id = ? AND owner_id = ?`,
+      [id, ownerId]
+    );
+    return { changed: result.changedRows };
+  }
+
+  async markHelpful(id) {
+    await this.db.query(
+      'UPDATE ss_reviews SET helpful_count = helpful_count + 1 WHERE id = ?',
+      [id]
+    );
+  }
+
+  async report(id) {
+    await this.db.query(
+      'UPDATE ss_reviews SET reported_count = reported_count + 1 WHERE id = ?',
+      [id]
+    );
+  }
+
+  // ─── STATS ───────────────────────────────────────
+  async statsByOwner(ownerId) {
+    const [rows] = await this.db.query(
+      `SELECT
+        COUNT(*) AS total,
+        SUM(status = 'pending') AS pending,
+        SUM(status = 'approved') AS approved,
+        SUM(status = 'rejected') AS rejected,
+        ROUND(AVG(CASE WHEN status = 'approved' THEN rating END), 2) AS avg_rating,
+        SUM(rating = 5) AS five_star,
+        SUM(rating = 4) AS four_star,
+        SUM(rating = 3) AS three_star,
+        SUM(rating = 2) AS two_star,
+        SUM(rating = 1) AS one_star,
+        SUM(is_featured = 1) AS featured,
+        SUM(owner_reply IS NOT NULL) AS replied
+       FROM ss_reviews
+       WHERE owner_id = ?`,
+      [ownerId]
+    );
+    return rows[0] || {};
+  }
+
+  async statsByLocation(ownerId) {
+    const [rows] = await this.db.query(
+      `SELECT
+        l.id AS location_id,
+        l.location_name,
+        COUNT(r.id) AS total,
+        ROUND(AVG(r.rating), 2) AS avg_rating,
+        SUM(r.rating = 5) AS five_star,
+        SUM(r.rating = 4) AS four_star
+       FROM ss_locations l
+       LEFT JOIN ss_reviews r ON r.location_id = l.id AND r.status = 'approved'
+       WHERE l.owner_id = ?
+       GROUP BY l.id
+       ORDER BY avg_rating DESC`,
+      [ownerId]
+    );
+    return rows;
+  }
+}
+
+module.exports = ReviewModel;
