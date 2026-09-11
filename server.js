@@ -7,14 +7,25 @@ const app = express();
 
 // Behind cPanel/Apache proxy — needed for secure cookies + correct protocol.
 app.set('trust proxy', 1);
-app.use('/', require('./routes/spinspring'));
-app.use('/', require('./routes/locations'));
-app.use('/', require('./routes/public-locations'));
-app.use('/', require('./routes/reviews'));   // ← NEW
 
-// ---- LIGHTWEIGHT PROBES FIRST (no session/DB/flash deps) ----
-// If THESE 404, traffic never reached Node (Passenger mapping / app stopped).
-// If these answer but '/' 403s, Apache served public_html instead of Node.
+// ─────────────────────────────────────────────────────────────
+// MIDDLEWARE (must run BEFORE route handlers)
+// ─────────────────────────────────────────────────────────────
+
+// View engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Body parsers — MUST come before any route that uses req.body
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ─────────────────────────────────────────────────────────────
+// LIGHTWEIGHT PROBES (no session/DB/flash needed)
+// ─────────────────────────────────────────────────────────────
 app.get(['/health', '/healthz', '/ping'], (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -24,7 +35,6 @@ app.get(['/health', '/healthz', '/ping'], (req, res) => {
   });
 });
 
-// Root debug: proves Node owns '/' and shows mount state (remove later).
 app.get('/debug-root', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -35,21 +45,25 @@ app.get('/debug-root', (req, res) => {
   });
 });
 
-// Database pool (shared) — loaded AFTER probes so probes stay dependency-free.
+app.get('/ping-selftest', (req, res) => {
+  res.status(200).json({ status: 'ok', selftest: 'server.js alive without routes' });
+});
+
+// ─────────────────────────────────────────────────────────────
+// DATABASE + SESSION STORE
+// ─────────────────────────────────────────────────────────────
 const db = require('./config/database');
 const { sessionStore, closeSessionStore } = require('./config/sessionStore');
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
+// ─────────────────────────────────────────────────────────────
+// SESSION
+// ─────────────────────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.SESSION_SECRET) {
   console.error('FATAL: SESSION_SECRET is not set. Set it in the cPanel Node app env.');
   process.exit(1);
 }
+
 app.use(session({
   name: 'spinspring.sid',
   secret: process.env.SESSION_SECRET || 'spinspring_2026_dev_only',
@@ -58,18 +72,22 @@ app.use(session({
   saveUninitialized: false,
   rolling: true,
   cookie: {
-    maxAge: 24 * 60 * 60 * 1000, // 24h
+    maxAge: 24 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: 'lax',
-    secure: isProduction // requires trust proxy + HTTPS in production
+    secure: isProduction
   }
 }));
+
 app.use(flash());
 
+// ─────────────────────────────────────────────────────────────
+// ATTACH req.db + locals (must run BEFORE routes)
+// ─────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   req.db = db;
-  // Short request id for correlating logs with what the user sees
-  req.requestId = Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).slice(-4).toUpperCase();
+  req.requestId = Math.random().toString(36).slice(2, 8).toUpperCase()
+                + Date.now().toString(36).slice(-4).toUpperCase();
   res.locals.success_msg = req.flash('success_msg') || [];
   res.locals.error_msg = req.flash('error_msg') || [];
   res.locals.user = req.session.spinUser || null;
@@ -77,9 +95,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// ─── Location routes ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// ROUTES (NOW they can safely use req.db)
+// ─────────────────────────────────────────────────────────────
+
+// Main routes (dual mounts = both URL styles work)
+const spinRoutes = require('./routes/spinspring');
+app.use('/', spinRoutes);
+app.use('/spinspg', spinRoutes);
+
+// Location routes
 const locationRoutes = require('./routes/locations');
 app.use('/', locationRoutes);
+
+// Public location routes
+const publicLocationRoutes = require('./routes/public-locations');
+app.use('/', publicLocationRoutes);
+
+// Reviews routes
+const reviewRoutes = require('./routes/reviews');
+app.use('/', reviewRoutes);
 
 // Public find-nearest page
 app.get('/find-location', (req, res) => {
@@ -89,7 +124,20 @@ app.get('/find-location', (req, res) => {
   });
 });
 
-// Deep health (DB + session store) — use when /health is ok but pages fail.
+// ─────────────────────────────────────────────────────────────
+// ALIASES (redirect /spinspg/* → /*)
+// ─────────────────────────────────────────────────────────────
+['/login', '/register', '/owner', '/attendant', '/customer',
+ '/attendant-login', '/customer-login', '/orders', '/reports',
+ '/settings', '/register-device', '/logout', '/mpesa-settings',
+ '/reviews', '/find-location', '/receipts'
+].forEach((p) => {
+  app.get('/spinspg' + p, (req, res) => res.redirect(p));
+});
+
+// ─────────────────────────────────────────────────────────────
+// DEEP HEALTH CHECK
+// ─────────────────────────────────────────────────────────────
 app.get('/health/db', (req, res, next) => Promise.resolve((async () => {
   const checks = { time: new Date().toISOString(), sessionStore: 'unknown', db: 'unknown' };
   try {
@@ -99,13 +147,12 @@ app.get('/health/db', (req, res, next) => Promise.resolve((async () => {
     checks.db = 'disconnected: ' + e.message;
   }
   try {
-    // express-mysql-session exposes the pool via .pool (v3); fall back gracefully.
     const pool = sessionStore && sessionStore.pool;
     if (pool && typeof pool.query === 'function') {
       await pool.query('SELECT 1');
       checks.sessionStore = 'connected';
     } else {
-      checks.sessionStore = 'configured (MemoryStore warning gone)';
+      checks.sessionStore = 'configured';
     }
   } catch (e) {
     checks.sessionStore = 'error: ' + e.message;
@@ -114,29 +161,9 @@ app.get('/health/db', (req, res, next) => Promise.resolve((async () => {
   res.status(ok ? 200 : 500).json({ status: ok ? 'ok' : 'error', ...checks });
 })()).catch(next));
 
-// SpinSpring routes (dual mounts = both URL styles work).
-// Domain-root deploy (spinspringexpress.co.ke/): '/' mount serves everything,
-// '/spinspg' mount keeps every absolute /spinspg/... link in views working.
-const spinRoutes = require('./routes/spinspring');
-app.use('/', spinRoutes);
-app.use('/spinspg', spinRoutes);
-
-// Direct aliases at app level (belt-and-suspenders): if a proxy strips or
-// keeps a prefix unexpectedly, these still answer on the domain root.
-// NOTE: /health* and /debug-root are defined at the TOP of this file on purpose.
-// The plain /ping self-test MUST be reachable even if an old cached
-// routes/spinspring.js throws during require().
-app.get('/ping-selftest', (req, res) => {
-  res.status(200).json({ status: 'ok', selftest: 'server.js alive without routes' });
-});
-['/login', '/register', '/owner', '/attendant', '/customer',
- '/attendant-login', '/customer-login', '/orders', '/reports',
- '/settings', '/register-device', '/logout', '/mpesa-settings'
-].forEach((p) => {
-  app.get('/spinspg' + p, (req, res) => res.redirect(p));
-});
-
-// 404 — always visible, never a blank page
+// ─────────────────────────────────────────────────────────────
+// 404 HANDLER
+// ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
   const msg = 'Page not found: ' + req.originalUrl;
   if (req.path.startsWith('/api/')) {
@@ -153,15 +180,17 @@ app.use((req, res) => {
   });
 });
 
-// Visible error handler — every failure renders something, never hangs/blank
+// ─────────────────────────────────────────────────────────────
+// ERROR HANDLER
+// ─────────────────────────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
   const ref = req.requestId || 'NOREF';
-  // Always log full error server-side with request context
+
   console.error(`[${ref}] ${req.method} ${req.originalUrl} -> ${status}:`, err.stack || err);
 
-  // Persist for admin review (best effort, never throws)
+  // Persist error (best effort)
   try {
     db.query(
       'CREATE TABLE IF NOT EXISTS ss_error_logs (id INT AUTO_INCREMENT PRIMARY KEY, ref VARCHAR(20), method VARCHAR(10), url VARCHAR(500), status INT, message TEXT, stack MEDIUMTEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB'
@@ -176,13 +205,11 @@ app.use((err, req, res, next) => {
     : status === 401 ? 'Please login first'
     : 'Something went wrong on our side';
 
-  // DB/session outages get an explicit banner, not a generic 500
   const rootMsg = String((err && err.message) || '');
   const outageHint = /ECONNREFUSED|ENOTFOUND|ER_ACCESS_DENIED|Can't connect|Connection lost|pool is closed|session store/i.test(rootMsg)
-    ? ' (Database/session unavailable — check DB_HOST/DB_USER/DB_PASSWORD/DB_NAME and that MySQL is running)'
+    ? ' (Database/session unavailable — check DB_* env vars and MySQL)'
     : '';
 
-  // API / ESP32 callers get JSON (they cannot render HTML)
   if (req.path.startsWith('/api/') || req.xhr) {
     return res.status(status).json({
       error: friendly + outageHint,
@@ -192,23 +219,20 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Flash so the message survives a redirect, but ALSO render it now
-  // so the user sees it even if the next page swallows flash.
   if (typeof req.flash === 'function') {
-    try { req.flash('error_msg', `${friendly}${outageHint} (Ref: ${ref})${isProduction ? '' : ': ' + ((err && err.message) || '')}`); } catch (e) { /* session may be broken */ }
+    try { req.flash('error_msg', `${friendly}${outageHint} (Ref: ${ref})`); } catch (e) {}
   }
+
   try {
     return res.status(status).render('spinspring/error', {
       title: friendly,
       status,
       message: `${friendly}${outageHint} (Ref: ${ref})`,
-      // In dev show the real message + stack; in production hide internals
       detail: isProduction ? null : ((err && err.message ? err.message + '\n\n' : '') + (err && err.stack ? err.stack : '')),
       requestId: ref,
       user: req.session ? req.session.spinUser || null : null
     });
   } catch (renderErr) {
-    // Last resort: error page itself failed — never leave user with blank screen
     console.error(`[${ref}] error-page render failed:`, renderErr.message);
     if (!res.headersSent) {
       res.status(status).send(
@@ -220,11 +244,10 @@ app.use((err, req, res, next) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────
+// LISTEN (only for direct node server.js — Passenger uses app.js)
+// ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-// Local / plain-VPS boot: `node server.js` listens here.
-// Under cPanel Passenger, server.js is require()d (require.main !== module),
-// so this block is SKIPPED and app.js (the startup file) boots the listener.
-// That split is intentional: exactly ONE listen call per process.
 let server = null;
 if (require.main === module) {
   server = app.listen(PORT, '0.0.0.0', () => {
@@ -246,9 +269,9 @@ function shutdown(signal) {
       process.exit(0);
     }
   });
-  // Force exit if pools hang (shared-hosting safety net)
   setTimeout(() => process.exit(0), 8000).unref();
 }
+
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
