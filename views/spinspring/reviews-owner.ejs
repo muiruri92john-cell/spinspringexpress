@@ -1,0 +1,437 @@
+<%- include('../layouts/main') %>
+
+<style>
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+.stat-box {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  border: 1px solid #e0f2fe;
+}
+.stat-box .value { font-size: 2rem; font-weight: 800; color: #0284c7; line-height: 1.1; }
+.stat-box .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-top: 6px; }
+.stat-box.rating .value { color: #f59e0b; }
+.stat-box.pending .value { color: #f59e0b; }
+.stat-box.approved .value { color: #10b981; }
+
+.filter-bar {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.review-card {
+  background: white;
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 3px 15px rgba(0,0,0,0.05);
+  border: 1px solid #e0f2fe;
+  border-left: 4px solid #e0f2fe;
+  transition: all 0.2s;
+}
+.review-card.pending { border-left-color: #f59e0b; }
+.review-card.approved { border-left-color: #10b981; }
+.review-card.rejected { border-left-color: #ef4444; opacity: 0.6; }
+.review-card.hidden { border-left-color: #94a3b8; opacity: 0.5; }
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.review-stars { color: #f59e0b; font-size: 1.1rem; }
+.review-author {
+  font-weight: 800;
+  color: #0c4a6e;
+  font-size: 1rem;
+}
+.review-meta {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+.review-title {
+  font-weight: 700;
+  color: #0c4a6e;
+  margin: 10px 0 6px;
+}
+.review-comment {
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.review-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.review-actions button {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-approve { background: #10b981; color: white; }
+.btn-approve:hover { background: #059669; }
+.btn-reject { background: #ef4444; color: white; }
+.btn-reject:hover { background: #dc2626; }
+.btn-feature { background: #f59e0b; color: white; }
+.btn-feature:hover { background: #d97706; }
+.btn-reply { background: #0284c7; color: white; }
+.btn-reply:hover { background: #026aa1; }
+.btn-outline { background: white; color: #64748b; border: 1px solid #e0f2fe !important; }
+.btn-outline:hover { background: #f0f9ff; }
+
+.owner-reply-box {
+  background: #f0f9ff;
+  border-left: 3px solid #0284c7;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  font-size: 0.88rem;
+}
+
+.status-pill {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.status-pill.pending { background: #fef3c7; color: #92400e; }
+.status-pill.approved { background: #d1fae5; color: #065f46; }
+.status-pill.rejected { background: #fee2e2; color: #991b1b; }
+.status-pill.hidden { background: #e2e8f0; color: #475569; }
+
+.featured-star {
+  color: #f59e0b;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.featured-star.active { color: #f59e0b; }
+.featured-star.inactive { color: #cbd5e1; }
+</style>
+
+<!-- NAV -->
+<nav style="background:linear-gradient(135deg,#0284c7,#0ea5e9);padding:15px 0;">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a href="/owner" style="color:white;text-decoration:none;">
+      <i class="fas fa-arrow-left me-2"></i>Owner Dashboard
+    </a>
+    <a href="/reviews" class="btn btn-light btn-sm rounded-pill" target="_blank">
+      <i class="fas fa-external-link-alt me-1"></i>View Public Page
+    </a>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <%- include('../partials/flash') %>
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 style="color:#0c4a6e;"><i class="fas fa-star me-2"></i>Reviews</h2>
+      <p class="text-muted mb-0">Manage customer feedback</p>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-box rating">
+      <div class="value"><%= (parseFloat(stats.avg_rating) || 0).toFixed(1) %>★</div>
+      <div class="label">Avg Rating</div>
+    </div>
+    <div class="stat-box">
+      <div class="value"><%= stats.total || 0 %></div>
+      <div class="label">Total Reviews</div>
+    </div>
+    <div class="stat-box pending">
+      <div class="value"><%= stats.pending || 0 %></div>
+      <div class="label">Pending</div>
+    </div>
+    <div class="stat-box approved">
+      <div class="value"><%= stats.approved || 0 %></div>
+      <div class="label">Approved</div>
+    </div>
+    <div class="stat-box">
+      <div class="value"><%= stats.replied || 0 %></div>
+      <div class="label">Replied</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <form method="GET" action="/owner/reviews" class="filter-bar">
+    <div>
+      <label class="form-label small fw-bold mb-1">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
+        <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+        <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+        <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+        <option value="hidden" <%= filters.status === 'hidden' ? 'selected' : '' %>>Hidden</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label small fw-bold mb-1">Rating</label>
+      <select name="rating" class="form-select form-select-sm">
+        <option value="all">All</option>
+        <% for (let i = 5; i >= 1; i--) { %>
+          <option value="<%= i %>" <%= filters.rating == i ? 'selected' : '' %>>
+            <%= i %>★
+          </option>
+        <% } %>
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label small fw-bold mb-1">Location</label>
+      <select name="location_id" class="form-select form-select-sm">
+        <option value="">All branches</option>
+        <% locations.forEach(l => { %>
+          <option value="<%= l.id %>" <%= filters.location_id == l.id ? 'selected' : '' %>>
+            <%= l.location_name %>
+          </option>
+        <% }); %>
+      </select>
+    </div>
+
+    <div style="flex:1;min-width:180px;">
+      <label class="form-label small fw-bold mb-1">Search</label>
+      <input type="text" name="search" class="form-control form-control-sm"
+             placeholder="Name or comment" value="<%= filters.search || '' %>">
+    </div>
+
+    <div>
+      <button type="submit" class="ss-btn ss-btn-sm">
+        <i class="fas fa-filter me-1"></i>Filter
+      </button>
+    </div>
+  </form>
+
+  <!-- REVIEWS LIST -->
+  <% if (reviews.length === 0) { %>
+    <div class="text-center py-5">
+      <i class="fas fa-star fa-4x mb-3" style="color:#bae6fd;"></i>
+      <h5 style="color:#0c4a6e;">No reviews found</h5>
+      <p class="text-muted">Try adjusting the filters above.</p>
+    </div>
+  <% } else { %>
+    <% reviews.forEach(r => { %>
+      <div class="review-card <%= r.status %>" data-review-id="<%= r.id %>">
+        <div class="review-header">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="review-stars">
+                <% for (let i = 1; i <= 5; i++) { %>
+                  <i class="<%= i <= r.rating ? 'fas' : 'far' %> fa-star"></i>
+                <% } %>
+              </span>
+              <span class="status-pill <%= r.status %>"><%= r.status %></span>
+              <% if (r.is_verified) { %>
+                <span class="badge bg-success" style="font-size:0.65rem;">
+                  <i class="fas fa-check-circle me-1"></i>Verified
+                </span>
+              <% } %>
+              <% if (r.is_featured) { %>
+                <span class="badge bg-warning text-dark" style="font-size:0.65rem;">
+                  ⭐ Featured
+                </span>
+              <% } %>
+            </div>
+            <div class="review-author"><%= r.customer_name %></div>
+            <div class="review-meta">
+              <%= helper.timeAgo(r.created_at) %>
+              <% if (r.location_name) { %> · <%= r.location_name %><% } %>
+              <% if (r.device_name) { %> · <%= r.device_name %><% } %>
+              <% if (r.service_type) { %> · <%= r.service_type %><% } %>
+            </div>
+          </div>
+
+          <div class="d-flex gap-1 align-items-center">
+            <i class="<%= r.is_featured ? 'fas' : 'far' %> fa-star featured-star <%= r.is_featured ? 'active' : 'inactive' %>"
+               onclick="toggleFeature(<%= r.id %>)"
+               title="<%= r.is_featured ? 'Unfeature' : 'Feature on homepage' %>"></i>
+          </div>
+        </div>
+
+        <% if (r.title) { %>
+          <div class="review-title"><%= r.title %></div>
+        <% } %>
+
+        <% if (r.comment) { %>
+          <div class="review-comment"><%= r.comment %></div>
+        <% } %>
+
+        <% if (r.owner_reply) { %>
+          <div class="owner-reply-box">
+            <strong style="color:#0284c7;"><i class="fas fa-store me-1"></i>Your reply</strong>
+            <div style="margin-top:6px;"><%= r.owner_reply %></div>
+            <div class="text-muted" style="font-size:0.75rem;margin-top:4px;">
+              <%= helper.timeAgo(r.owner_replied_at) %>
+            </div>
+          </div>
+        <% } %>
+
+        <!-- ACTIONS -->
+        <div class="review-actions">
+          <% if (r.status !== 'approved') { %>
+            <button class="btn-approve" onclick="setStatus(<%= r.id %>, 'approved')">
+              <i class="fas fa-check me-1"></i>Approve
+            </button>
+          <% } %>
+          <% if (r.status !== 'rejected') { %>
+            <button class="btn-reject" onclick="setStatus(<%= r.id %>, 'rejected')">
+              <i class="fas fa-times me-1"></i>Reject
+            </button>
+          <% } %>
+          <% if (r.status !== 'hidden') { %>
+            <button class="btn-outline" onclick="setStatus(<%= r.id %>, 'hidden')">
+              <i class="fas fa-eye-slash me-1"></i>Hide
+            </button>
+          <% } %>
+          <% if (r.status !== 'pending') { %>
+            <button class="btn-outline" onclick="setStatus(<%= r.id %>, 'pending')">
+              <i class="fas fa-clock me-1"></i>Pending
+            </button>
+          <% } %>
+
+          <% if (r.status === 'approved') { %>
+            <button class="btn-reply" onclick="showReplyBox(<%= r.id %>)">
+              <i class="fas fa-reply me-1"></i><%= r.owner_reply ? 'Edit Reply' : 'Reply' %>
+            </button>
+            <% if (r.owner_reply) { %>
+              <button class="btn-outline" onclick="deleteReply(<%= r.id %>)">
+                <i class="fas fa-trash me-1"></i>Remove Reply
+              </button>
+            <% } %>
+          <% } %>
+        </div>
+
+        <!-- REPLY BOX (hidden by default) -->
+        <div id="reply-box-<%= r.id %>" style="display:none;margin-top:12px;">
+          <textarea class="form-control" id="reply-text-<%= r.id %>" rows="3"
+                    placeholder="Write a public response..."><%= r.owner_reply || '' %></textarea>
+          <div class="d-flex gap-2 mt-2">
+            <button class="ss-btn ss-btn-sm" onclick="saveReply(<%= r.id %>)">
+              <i class="fas fa-paper-plane me-1"></i>Post Reply
+            </button>
+            <button class="btn-outline" style="padding:8px 16px;border-radius:50px;font-size:0.8rem;font-weight:700;cursor:pointer;"
+                    onclick="hideReplyBox(<%= r.id %>)">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+</div>
+
+<script>
+// ─── Set status ───
+async function setStatus(id, status) {
+  if (!confirm(`Set review to "${status}"?`)) return;
+  try {
+    const res = await fetch(`/owner/reviews/${id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.error || 'Update failed');
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+// ─── Toggle featured ───
+async function toggleFeature(id) {
+  try {
+    const res = await fetch(`/owner/reviews/${id}/feature`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.error || 'Update failed');
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+// ─── Reply box ───
+function showReplyBox(id) {
+  document.getElementById('reply-box-' + id).style.display = 'block';
+}
+function hideReplyBox(id) {
+  document.getElementById('reply-box-' + id).style.display = 'none';
+}
+
+async function saveReply(id) {
+  const text = document.getElementById('reply-text-' + id).value.trim();
+  if (!text) return alert('Reply cannot be empty');
+
+  try {
+    const res = await fetch(`/owner/reviews/${id}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ reply: text })
+    });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.error || 'Failed');
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+
+async function deleteReply(id) {
+  if (!confirm('Remove your reply?')) return;
+  try {
+    const res = await fetch(`/owner/reviews/${id}/reply/delete`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.success) location.reload();
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

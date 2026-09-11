@@ -1,3 +1,6 @@
+// =====================================================
+// routes/spinspring.js — Main Router
+// =====================================================
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
@@ -15,7 +18,7 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
   );
 });
 
-// Auth Middleware
+// ============ AUTH MIDDLEWARE ============
 function isAuth(req, res, next) {
   if (req.session.spinUser) return next();
   req.flash('error_msg', 'Please login first');
@@ -147,7 +150,6 @@ router.post('/api/quote/calculate', async (req, res) => {
       return res.status(400).json({ success: false, error: 'No items provided' });
     }
 
-    // Load pricing from DB
     const [services] = await req.db.query('SELECT * FROM ss_pricing WHERE is_active = 1');
     const [addonRows] = await req.db.query('SELECT * FROM ss_addons WHERE is_active = 1');
 
@@ -161,7 +163,6 @@ router.post('/api/quote/calculate', async (req, res) => {
     let totalWeight = 0;
     const breakdown = [];
 
-    // Calculate each item
     items.forEach((item, idx) => {
       const service = priceMap[item.service_key];
       if (!service) {
@@ -175,7 +176,6 @@ router.post('/api/quote/calculate', async (req, res) => {
         return;
       }
 
-      // Sanity check
       if (service.unit === 'kg' && qty > 100) qty = 100;
       if (service.unit === 'piece' && qty > 500) qty = 500;
       if (service.unit === 'sqft' && qty > 10000) qty = 10000;
@@ -193,7 +193,6 @@ router.post('/api/quote/calculate', async (req, res) => {
       });
     });
 
-    // Apply minimum order per kg-based service
     const minCharge = 1000;
     const kgItems = breakdown.filter(b => b.unit === 'kg');
     if (kgItems.length > 0 && subtotal < minCharge) {
@@ -205,7 +204,6 @@ router.post('/api/quote/calculate', async (req, res) => {
       subtotal = minCharge;
     }
 
-    // Apply addons
     let addonTotal = 0;
     addons.forEach(key => {
       const addon = addonMap[key];
@@ -225,7 +223,6 @@ router.post('/api/quote/calculate', async (req, res) => {
       });
     });
 
-    // Express service
     let expressCost = 0;
     if (express) {
       expressCost = 1000;
@@ -235,7 +232,6 @@ router.post('/api/quote/calculate', async (req, res) => {
       });
     }
 
-    // Pickup fee
     let pickupCost = 0;
     if (pickup === 'nairobi') {
       pickupCost = 500;
@@ -269,9 +265,8 @@ router.post('/api/quote/calculate', async (req, res) => {
 // Save quote (visible to owner in admin panel)
 router.post('/api/quote/save', async (req, res) => {
   try {
-    const { items, addons, express, pickup, total, customer_name, customer_phone, customer_email } = req.body;
+    const { items, addons, express, pickup, total, customer_name, customer_phone, customer_email, location_id } = req.body;
 
-    // Ensure table exists
     await req.db.query(`
       CREATE TABLE IF NOT EXISTS ss_quotes (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -297,10 +292,15 @@ router.post('/api/quote/save', async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     const ua = req.headers['user-agent'] || '';
 
+    // Add location_id column if missing
+    try {
+      await req.db.query('ALTER TABLE ss_quotes ADD COLUMN location_id INT NULL');
+    } catch (e) { /* already exists */ }
+
     await req.db.query(
       `INSERT INTO ss_quotes 
-       (quote_ref, customer_name, customer_phone, customer_email, items, addons, express, pickup, total, ip_address, user_agent) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (quote_ref, customer_name, customer_phone, customer_email, items, addons, express, pickup, total, location_id, ip_address, user_agent) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         quoteRef,
         customer_name || null,
@@ -311,6 +311,7 @@ router.post('/api/quote/save', async (req, res) => {
         express ? 1 : 0,
         pickup || 'none',
         total,
+        location_id || null,
         ip.substring(0, 45),
         ua.substring(0, 500)
       ]
@@ -337,36 +338,13 @@ router.get('/owner/quotes', isOwner, async (req, res) => {
     }
     query += ' ORDER BY created_at DESC LIMIT 200';
 
-    // Create table if missing
-    try {
-      await req.db.query(`CREATE TABLE IF NOT EXISTS ss_quotes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        quote_ref VARCHAR(30) UNIQUE,
-        customer_name VARCHAR(100),
-        customer_phone VARCHAR(20),
-        customer_email VARCHAR(100),
-        items JSON,
-        addons JSON,
-        express TINYINT DEFAULT 0,
-        pickup VARCHAR(30),
-        total DECIMAL(10,2),
-        status ENUM('new','contacted','converted','expired') DEFAULT 'new',
-        notes TEXT,
-        ip_address VARCHAR(45),
-        user_agent VARCHAR(500),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB`);
-    } catch (e) { /* ignore */ }
-
     const [quotes] = await req.db.query(query, params);
 
-    // Parse items and addons JSON
     quotes.forEach(q => {
       try { q.items = JSON.parse(q.items || '[]'); } catch (e) { q.items = []; }
       try { q.addons = JSON.parse(q.addons || '[]'); } catch (e) { q.addons = []; }
     });
 
-    // Stats
     const [stats] = await req.db.query(
       `SELECT 
         COUNT(*) as total_quotes,
@@ -395,20 +373,57 @@ router.get('/owner/quotes', isOwner, async (req, res) => {
   }
 });
 
+// Update quote status / notes
+router.post('/owner/quotes/:id/update', isOwner, async (req, res) => {
+  try {
+    const { status, notes } = req.body;
+    await req.db.query(
+      'UPDATE ss_quotes SET status = ?, notes = ? WHERE id = ?',
+      [status, notes || null, req.params.id]
+    );
+    req.flash('success_msg', 'Quote updated');
+  } catch (e) {
+    req.flash('error_msg', 'Update failed');
+  }
+  res.redirect('/owner/quotes');
+});
+
+// Delete quote
+router.post('/owner/quotes/:id/delete', isOwner, async (req, res) => {
+  try {
+    await req.db.query('DELETE FROM ss_quotes WHERE id = ?', [req.params.id]);
+    req.flash('success_msg', 'Quote deleted');
+  } catch (e) {
+    req.flash('error_msg', 'Delete failed');
+  }
+  res.redirect('/owner/quotes');
+});
+
+// API: get quotes as JSON
+router.get('/api/owner/quotes', isOwner, async (req, res) => {
+  try {
+    const [quotes] = await req.db.query('SELECT * FROM ss_quotes ORDER BY created_at DESC LIMIT 100');
+    quotes.forEach(q => {
+      try { q.items = JSON.parse(q.items || '[]'); } catch (e) { q.items = []; }
+      try { q.addons = JSON.parse(q.addons || '[]'); } catch (e) { q.addons = []; }
+    });
+    res.json({ success: true, quotes, count: quotes.length });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // ============ MACHINE CONTROL PARAMETERS ============
 
-// Get machine parameters (with auto-create)
 router.get('/api/machine/:deviceId/params', isAuth, async (req, res) => {
   try {
     const { deviceId } = req.params;
-    // Verify ownership
     const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
     const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE device_id = ? AND owner_id = ?', [deviceId, ownerId]);
     if (devices.length === 0) return res.status(403).json({ error: 'Access denied' });
 
     let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
     if (params.length === 0) {
-      // Auto-create default params
       await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
       [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
     }
@@ -420,32 +435,31 @@ router.get('/api/machine/:deviceId/params', isAuth, async (req, res) => {
   }
 });
 
-// Update machine parameters (queued for sync)
 router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) => {
   try {
     const { deviceId } = req.params;
     const ownerId = req.session.spinUser.id;
 
-    // Verify ownership
     const [devices] = await req.db.query('SELECT * FROM ss_devices WHERE device_id = ? AND owner_id = ?', [deviceId, ownerId]);
     if (devices.length === 0) return res.status(403).json({ error: 'Access denied' });
 
-    // Validate payload
     const allowed = [
       'pulses_per_credit', 'accumulate_payments', 'max_credit_minutes',
       'min_credit_to_start', 'pulse_width_ms', 'pulse_gap_ms',
       'start_pulse_duration_ms', 'run_time_per_credit_min', 'cooldown_period_sec'
     ];
 
+    // Accept both { params: {...} } and flat { ... }
+    const payload = req.body.params || req.body;
+
     const updates = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined && req.body[key] !== '') {
-        let val = req.body[key];
+      if (payload[key] !== undefined && payload[key] !== '') {
+        let val = payload[key];
         if (key === 'accumulate_payments') val = val ? 1 : 0;
         else val = parseInt(val, 10);
         if (isNaN(val)) continue;
 
-        // Range validation
         if (key === 'pulses_per_credit' && (val < 1 || val > 10)) continue;
         if (key === 'max_credit_minutes' && (val < 1 || val > 1440)) continue;
         if (key === 'pulse_width_ms' && (val < 20 || val > 500)) continue;
@@ -463,7 +477,6 @@ router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) =
       return res.status(400).json({ success: false, error: 'No valid parameters' });
     }
 
-    // Ensure params row exists
     let [existing] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
     if (existing.length === 0) {
       await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
@@ -471,7 +484,6 @@ router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) =
     }
     const oldParams = existing[0];
 
-    // Update params immediately
     const setClauses = [];
     const values = [];
     for (const [k, v] of Object.entries(updates)) {
@@ -481,7 +493,6 @@ router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) =
     values.push(deviceId);
     await req.db.query(`UPDATE ss_machine_params SET ${setClauses.join(', ')} WHERE device_id = ?`, values);
 
-    // Queue each change for ESP32 to pick up on next sync
     for (const [k, v] of Object.entries(updates)) {
       await req.db.query(
         `INSERT INTO ss_param_queue (device_id, param_name, old_value, new_value, status, created_by) 
@@ -497,7 +508,6 @@ router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) =
   }
 });
 
-// Get pending param changes for device (for dashboard display)
 router.get('/api/machine/:deviceId/pending', isAuth, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -512,8 +522,6 @@ router.get('/api/machine/:deviceId/pending', isAuth, async (req, res) => {
 });
 
 // ============ HEARTBEAT CHECK API ============
-
-// Get device heartbeat status (dashboard polling)
 router.get('/api/machine/:deviceId/heartbeat', isAuth, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -577,8 +585,6 @@ router.get('/api/machine/:deviceId/heartbeat', isAuth, async (req, res) => {
 });
 
 // ============ PULSE / CREDIT DISPATCH ============
-
-// Send credits to machine (queued for next sync)
 router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -589,7 +595,6 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       return res.status(400).json({ success: false, error: 'Credits must be 1-99' });
     }
 
-    // Get current params
     let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
     if (params.length === 0) {
       await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
@@ -597,12 +602,10 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
     }
     const p = params[0];
 
-    // Check lockout
     if (p.is_locked_out && p.lockout_until && new Date(p.lockout_until) > new Date()) {
       return res.status(429).json({ success: false, error: 'Device locked out until ' + p.lockout_until });
     }
 
-    // Check max credit cap
     const newTotal = (p.current_credit_minutes || 0) + (creditsInt * p.run_time_per_credit_min);
     if (newTotal > p.max_credit_minutes) {
       return res.status(400).json({
@@ -611,7 +614,6 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       });
     }
 
-    // Queue credit-add command for ESP32
     const commandValue = JSON.stringify({
       credits: creditsInt,
       pulses_per_credit: p.pulses_per_credit,
@@ -627,14 +629,12 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       [deviceId, commandValue]
     );
 
-    // Log for audit
     await req.db.query(
       `INSERT INTO ss_pulse_log (device_id, pulses_sent, pulse_width_ms, pulse_gap_ms, credits_granted, reason, order_number) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [deviceId, creditsInt * p.pulses_per_credit, p.pulse_width_ms, p.pulse_gap_ms, creditsInt, reason, order_number]
     );
 
-    // Update running credit total (will be corrected on next heartbeat)
     await req.db.query(
       'UPDATE ss_machine_params SET current_credit_minutes = current_credit_minutes + ?, total_pulses_sent = total_pulses_sent + ?, last_pulse_at = NOW() WHERE device_id = ?',
       [creditsInt * p.run_time_per_credit_min, creditsInt * p.pulses_per_credit, deviceId]
@@ -655,7 +655,6 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
   }
 });
 
-// Get pulse log
 router.get('/api/machine/:deviceId/pulse-log', isAuth, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -666,45 +665,6 @@ router.get('/api/machine/:deviceId/pulse-log', isAuth, async (req, res) => {
     res.json({ success: true, log });
   } catch (err) {
     res.json({ success: false, error: err.message, log: [] });
-  }
-});
-// Update quote status / notes
-router.post('/owner/quotes/:id/update', isOwner, async (req, res) => {
-  try {
-    const { status, notes } = req.body;
-    await req.db.query(
-      'UPDATE ss_quotes SET status = ?, notes = ? WHERE id = ?',
-      [status, notes || null, req.params.id]
-    );
-    req.flash('success_msg', 'Quote updated');
-  } catch (e) {
-    req.flash('error_msg', 'Update failed');
-  }
-  res.redirect('/owner/quotes');
-});
-
-// Delete quote
-router.post('/owner/quotes/:id/delete', isOwner, async (req, res) => {
-  try {
-    await req.db.query('DELETE FROM ss_quotes WHERE id = ?', [req.params.id]);
-    req.flash('success_msg', 'Quote deleted');
-  } catch (e) {
-    req.flash('error_msg', 'Delete failed');
-  }
-  res.redirect('/owner/quotes');
-});
-
-// API: get quotes as JSON (for live refresh)
-router.get('/api/owner/quotes', isOwner, async (req, res) => {
-  try {
-    const [quotes] = await req.db.query('SELECT * FROM ss_quotes ORDER BY created_at DESC LIMIT 100');
-    quotes.forEach(q => {
-      try { q.items = JSON.parse(q.items || '[]'); } catch (e) { q.items = []; }
-      try { q.addons = JSON.parse(q.addons || '[]'); } catch (e) { q.addons = []; }
-    });
-    res.json({ success: true, quotes, count: quotes.length });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
   }
 });
 
@@ -754,7 +714,6 @@ router.post('/register-device', isOwner, async (req, res) => {
       [deviceId, device_name, device_type, apiKey, req.session.spinUser.id, location, price_per_cycle || 300, price_per_kg || 50, max_capacity_kg || 20]
     );
 
-    // AUTO-REDIRECT to dashboard (not device-credentials page)
     req.flash('success_msg', '✅ Machine "' + device_name + '" registered! ID: ' + deviceId);
     res.redirect('/owner');
   } catch (err) {
@@ -852,7 +811,6 @@ router.post('/attendant/orders', isAttendant, async (req, res) => {
     const dev = devs[0];
     const pricePerKg = parseFloat(dev.price_per_kg || dev.price_per_cycle || 50);
     const maxKg = parseFloat(dev.max_capacity_kg || 20);
-    const minKg = parseFloat(dev.min_capacity_kg || 0.1);
     const weight = parseFloat(weight_kg || 0);
 
     let finalPrice = parseFloat(price || 0);
@@ -913,6 +871,22 @@ router.post('/order/:id/status', isAttendant, async (req, res) => {
         if (o.customer_name && o.customer_name !== 'walk-in') {
           await req.db.query('UPDATE ss_customers SET total_cycles = COALESCE(total_cycles,0)+1, total_spent = COALESCE(total_spent,0)+?, loyalty_points = COALESCE(loyalty_points,0)+1 WHERE customer_unique_id = ?', [o.price, o.customer_name]);
         }
+
+        // Send review request
+        try {
+          const ReviewModel = require('../models/review');
+          const reviewHelper = require('../utils/reviewHelper');
+          const rm = new ReviewModel(req.db);
+          const { code } = await rm.createRequest({
+            order_id: o.id,
+            customer_name: o.customer_name,
+            customer_phone: o.customer_phone,
+            customer_email: o.customer_email,
+            channel: 'whatsapp'
+          });
+          const url = reviewHelper.buildReviewUrl(code);
+          console.log('📝 Review link:', url);
+        } catch (e) { console.error('Review request failed:', e.message); }
       } catch (e) { console.error('complete hook:', e.message); }
     }
     req.flash('success_msg', 'Order updated to ' + status);
@@ -1000,20 +974,17 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
       }
     }
 
-    // Save receipt
     await req.db.query(
       `INSERT INTO ss_receipts (receipt_number, order_number, device_id, customer_id, customer_name, customer_phone, billing_type, weight_kg, rate_per_kg, cycle_price, quantity, subtotal, discount, total_amount, payment_method, payment_status, attendant_name)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', ?)`,
       [receiptNumber, orderNumber, device_id, customer_id, customerName, customerPhone, billing_type, weight_kg, rate_per_kg, cycle_price, quantity, subtotal, discountAmount, totalAmount, payment_method, req.session.spinUser.name]
     );
 
-    // Create order (without customer_phone - not in schema)
     await req.db.query(
       "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, 'wash', 'normal', ?, 'paid', 'queued')",
       [orderNumber, device_id, req.session.spinUser.ownerId || req.session.spinUser.id, customer_id, totalAmount]
     );
 
-    // Update customer stats
     if (customer_id && customer_id !== 'walk-in') {
       await req.db.query(
         'UPDATE ss_customers SET total_cycles = total_cycles + 1, total_spent = total_spent + ?, loyalty_points = loyalty_points + FLOOR(?/100) WHERE customer_unique_id = ?',
@@ -1021,7 +992,6 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
       );
     }
 
-    // Update device revenue
     await req.db.query(
       'UPDATE ss_devices SET today_revenue = today_revenue + ?, total_revenue = total_revenue + ? WHERE device_id = ?',
       [totalAmount, totalAmount, device_id]
@@ -1032,14 +1002,8 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
       order_number: orderNumber,
       customer_name: customerName,
       customer_phone: customerPhone,
-      billing_type,
-      weight_kg,
-      rate_per_kg,
-      cycle_price,
-      quantity,
-      subtotal,
-      discount: discountAmount,
-      total: totalAmount,
+      billing_type, weight_kg, rate_per_kg, cycle_price, quantity,
+      subtotal, discount: discountAmount, total: totalAmount,
       payment_method,
       attendant: req.session.spinUser.name,
       date: new Date()
@@ -1053,7 +1017,6 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
   }
 });
 
-// Display receipt
 router.get('/receipt', isAuth, (req, res) => {
   const receipt = req.session.lastReceipt;
   if (!receipt) return res.redirect('/attendant');
@@ -1064,7 +1027,6 @@ router.get('/receipt', isAuth, (req, res) => {
   });
 });
 
-// Owner: All receipts
 router.get('/owner/receipts', isOwner, async (req, res) => {
   try {
     const ownerId = req.session.spinUser.id;
@@ -1081,7 +1043,7 @@ router.get('/owner/receipts', isOwner, async (req, res) => {
   }
 });
 
-// ============ LIVE DATA API (AJAX) ============
+// ============ LIVE DATA API ============
 router.get('/api/live-data', isAuth, async (req, res) => {
   try {
     const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
@@ -1109,7 +1071,7 @@ router.get('/api/live-data', isAuth, async (req, res) => {
   }
 });
 
-// ============ ESP32 SYNC (Enhanced with params & heartbeat) ============
+// ============ ESP32 SYNC ============
 router.post('/api/sync', ah(async (req, res) => {
   const deviceId = req.headers['x-device-id'];
   const apiKey = req.headers['x-api-key'];
@@ -1120,7 +1082,6 @@ router.post('/api/sync', ah(async (req, res) => {
 
   const data = req.body;
 
-  // ---- 1. Update device status ----
   await req.db.query(
     `UPDATE ss_devices SET status = ?, current_cycle = ?, cycle_progress = ?, cycles_completed = ?, 
       today_revenue = ?, total_revenue = ?, last_sync = NOW() WHERE device_id = ?`,
@@ -1135,7 +1096,6 @@ router.post('/api/sync', ah(async (req, res) => {
     ]
   );
 
-  // ---- 2. Log heartbeat ----
   try {
     await req.db.query(
       `INSERT INTO ss_heartbeats (device_id, battery_voltage, signal_strength, uptime_seconds, 
@@ -1155,7 +1115,6 @@ router.post('/api/sync', ah(async (req, res) => {
       ]
     );
 
-    // Prune old heartbeats (keep last 100 per device)
     await req.db.query(
       `DELETE FROM ss_heartbeats WHERE device_id = ? AND id NOT IN (
         SELECT id FROM (SELECT id FROM ss_heartbeats WHERE device_id = ? ORDER BY created_at DESC LIMIT 100) as t
@@ -1164,7 +1123,6 @@ router.post('/api/sync', ah(async (req, res) => {
     );
   } catch (e) { console.error('heartbeat log failed:', e.message); }
 
-  // ---- 3. Update running credit from device report ----
   if (typeof data.current_credit === 'number') {
     try {
       await req.db.query(
@@ -1174,19 +1132,16 @@ router.post('/api/sync', ah(async (req, res) => {
     } catch (e) { console.error('credit sync failed:', e.message); }
   }
 
-  // ---- 4. Get pending commands ----
   const [commands] = await req.db.query(
     "SELECT id, command_type, command_value FROM ss_commands WHERE device_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 10",
     [deviceId]
   );
 
-  // ---- 5. Get pending param changes ----
   const [paramChanges] = await req.db.query(
     "SELECT id, param_name, new_value FROM ss_param_queue WHERE device_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 20",
     [deviceId]
   );
 
-  // ---- 6. Get current params to send to device ----
   let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
   if (params.length === 0) {
     await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
@@ -1194,19 +1149,16 @@ router.post('/api/sync', ah(async (req, res) => {
   }
   const p = params[0];
 
-  // ---- 7. Mark commands as sent ----
   if (commands.length > 0) {
     const placeholders = commands.map(() => '?').join(',');
     await req.db.query(`UPDATE ss_commands SET status = 'sent' WHERE id IN (${placeholders})`, commands.map(c => c.id));
   }
 
-  // ---- 8. Mark param changes as sent ----
   if (paramChanges.length > 0) {
     const placeholders = paramChanges.map(() => '?').join(',');
     await req.db.query(`UPDATE ss_param_queue SET status = 'sent', sent_at = NOW() WHERE id IN (${placeholders})`, paramChanges.map(c => c.id));
   }
 
-  // ---- 9. Build response for ESP32 ----
   res.json({
     status: 'success',
     server_time: new Date().toISOString(),
@@ -1230,7 +1182,6 @@ router.post('/api/sync', ah(async (req, res) => {
   });
 }));
 
-// ---- Command acknowledgement endpoint ----
 router.post('/api/sync/ack', ah(async (req, res) => {
   const deviceId = req.headers['x-device-id'];
   const apiKey = req.headers['x-api-key'];
@@ -1274,6 +1225,8 @@ router.get('/api/time', (req, res) => {
     date: now.toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi' })
   });
 });
+
+// Receipts (attendant view)
 router.get('/receipts', isAttendant, async (req, res) => {
   try {
     const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
@@ -1296,6 +1249,7 @@ router.get('/receipts', isAttendant, async (req, res) => {
     });
   }
 });
+
 // ============ OWNER EXTRA PAGES ============
 router.get('/dashboard', isOwner, (req, res) => res.redirect('/owner'));
 router.get('/device-list', isOwner, (req, res) => res.redirect('/owner'));
@@ -1448,12 +1402,5 @@ router.post('/api/mpesa/callback', async (req, res) => {
   console.log('M-PESA callback:', JSON.stringify(req.body).slice(0, 500));
   res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
 });
-
-if (require.main === module) {
-  console.log('spinspring router stack size:', router.stack.length);
-  router.stack.forEach((l) => {
-    if (l.route) console.log(' ', Object.keys(l.route.methods).join(',').toUpperCase(), l.route.path);
-  });
-}
 
 module.exports = router;

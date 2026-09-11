@@ -629,6 +629,8 @@ nav.ss-nav {
   padding: 30px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .testimonial-card .stars {
@@ -641,9 +643,37 @@ nav.ss-nav {
   color: #64748b;
   font-style: italic;
   margin-bottom: 15px;
+  flex: 1;
 }
 
 .testimonial-card strong { color: var(--ss-dark); }
+
+.testimonial-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-right: 10px;
+}
+
+.testimonial-footer {
+  display: flex;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.verified-mini {
+  color: #10b981;
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
 
 /* ===== STATS ===== */
 .stat-box {
@@ -767,6 +797,7 @@ nav.ss-nav {
       <li><a href="#services" class="nav-link">Services</a></li>
       <li><a href="#gallery" class="nav-link">Gallery</a></li>
       <li><a href="#how" class="nav-link">How it Works</a></li>
+      <li><a href="#reviews" class="nav-link">⭐ Reviews</a></li>
       <li><a href="/find-location" class="nav-link" style="color:#10b981;">🧭 Find Nearest</a></li>
 
       <!-- LOGIN DROPDOWN -->
@@ -1260,35 +1291,24 @@ nav.ss-nav {
   </div>
 </section>
 
-<!-- ===== TESTIMONIALS ===== -->
-<section class="ss-section" style="background:#f8fafc;">
+<!-- ===== CUSTOMER REVIEWS ===== -->
+<section id="reviews" class="ss-section" style="background:#f8fafc;">
   <div class="container">
     <div class="ss-section-title">
-      <h2>What Our Clients Say</h2>
-      <p><span style="color:#f59e0b;">4.9★</span> from 95 Google Reviews</p>
+      <h2>⭐ What Our Customers Say</h2>
+      <p id="reviewsSummary">Loading...</p>
     </div>
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="testimonial-card">
-          <div class="stars">★★★★★</div>
-          <p>"I dropped off 3 bags on Monday morning. Everything came back Tuesday afternoon, perfectly folded. Can't beat that."</p>
-          <strong>Sarah</strong>
-        </div>
+
+    <div id="reviewsGrid" class="row g-4">
+      <div class="text-center py-4" style="grid-column:1/-1;">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;"></i>
       </div>
-      <div class="col-md-4">
-        <div class="testimonial-card">
-          <div class="stars">★★★★★</div>
-          <p>"The dry cleaning quality is top notch. My suits look better than when I bought them."</p>
-          <strong>Brian</strong>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="testimonial-card">
-          <div class="stars">★★★★★</div>
-          <p>"Free pickup was the clincher for me. I just WhatsApp them and they come get it. So easy."</p>
-          <strong>Grace</strong>
-        </div>
-      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/reviews" class="btn btn-outline-primary rounded-pill px-4">
+        <i class="fas fa-star me-2"></i>See All Reviews
+      </a>
     </div>
   </div>
 </section>
@@ -1305,8 +1325,8 @@ nav.ss-nav {
       </div>
       <div class="col-md-3 col-6">
         <div class="stat-box">
-          <div class="num">4.9★</div>
-          <div class="lbl">Google Rating</div>
+          <div class="num" id="statReviewAvg">4.9★</div>
+          <div class="lbl">Customer Rating</div>
         </div>
       </div>
       <div class="col-md-3 col-6">
@@ -1366,7 +1386,9 @@ nav.ss-nav {
           <i class="fas fa-location-arrow me-1"></i>Find Nearest
         </a>
         <a href="#pricing" class="text-white-50 d-block mb-1" style="text-decoration:none;">Pricing</a>
-        <a href="#quote" class="text-white-50 d-block mb-1" style="text-decoration:none;">Get a Quote</a>
+        <a href="/reviews" class="text-white-50 d-block mb-1" style="text-decoration:none;">
+          <i class="fas fa-star me-1"></i>Reviews
+        </a>
       </div>
       <div class="col-md-3 mb-4">
         <h6>Account</h6>
@@ -1620,8 +1642,6 @@ nav.ss-nav {
   const quoteState = {
     services: [],
     addons: [],
-    pricing: {},
-    addonPricing: {},
     current: null
   };
 
@@ -1656,8 +1676,6 @@ nav.ss-nav {
       if (data.success) {
         quoteState.services = data.services;
         quoteState.addons = data.addons;
-        data.services.forEach(s => { quoteState.pricing[s.service_key] = s; });
-        data.addons.forEach(a => { quoteState.addonPricing[a.addon_key] = a; });
         populateServiceSelects();
         recalculate();
       }
@@ -1692,7 +1710,6 @@ nav.ss-nav {
         opt.value = s.service_key;
         opt.textContent = `${s.service_name} (KES ${s.price}/${s.unit})`;
         opt.dataset.unit = s.unit;
-        opt.dataset.price = s.price;
         sel.appendChild(opt);
       });
     });
@@ -1813,9 +1830,8 @@ nav.ss-nav {
     try {
       const data = await calculateQuote(items, addons, express, pickup);
       if (data.success) renderQuote(data);
-      else console.error('Quote error:', data.error);
     } catch (err) {
-      console.error('Quote fetch error:', err);
+      console.error('Quote error:', err);
     }
   }
 
@@ -1892,21 +1908,16 @@ nav.ss-nav {
                 DOM.detectedText.textContent = `Nearest: ${nearest.location_name} — ${nearest.distance_km} km away`;
               }
               if (DOM.detectedInfo) DOM.detectedInfo.style.display = 'block';
-            } else {
-              alert('No locations found nearby');
             }
             DOM.detectLocationBtn.disabled = false;
             DOM.detectLocationBtn.innerHTML = '<i class="fas fa-crosshairs me-1"></i> Auto-detect';
           })
-          .catch(err => {
-            console.error(err);
-            alert('Could not detect location');
+          .catch(() => {
             DOM.detectLocationBtn.disabled = false;
             DOM.detectLocationBtn.innerHTML = '<i class="fas fa-crosshairs me-1"></i> Auto-detect';
           });
       },
-      (err) => {
-        alert('Location access denied: ' + err.message);
+      () => {
         DOM.detectLocationBtn.disabled = false;
         DOM.detectLocationBtn.innerHTML = '<i class="fas fa-crosshairs me-1"></i> Auto-detect';
       },
@@ -1931,6 +1942,103 @@ nav.ss-nav {
   } else {
     init();
   }
+})();
+
+// ============ REVIEWS ============
+(function() {
+  'use strict';
+
+  const grid = document.getElementById('reviewsGrid');
+  const summary = document.getElementById('reviewsSummary');
+  const statAvg = document.getElementById('statReviewAvg');
+
+  if (!grid) return;
+
+  function stars(r) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+      html += `<i class="${i <= r ? 'fas' : 'far'} fa-star"></i>`;
+    }
+    return html;
+  }
+
+  function initials(name) {
+    if (!name) return '?';
+    return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  }
+
+  function displayName(name) {
+    if (!name) return 'Anonymous';
+    const p = name.trim().split(/\s+/);
+    return p.length === 1 ? p[0] : p[0] + ' ' + p[p.length - 1].charAt(0) + '.';
+  }
+
+  function timeAgo(date) {
+    const sec = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+    if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+    if (sec < 604800) return Math.floor(sec / 86400) + 'd ago';
+    return Math.floor(sec / 604800) + 'w ago';
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+  }
+
+  fetch('/api/reviews?owner_id=5&limit=6&featured=1')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) throw new Error('Failed');
+      const { reviews, stats } = data;
+
+      if (summary) {
+        summary.innerHTML = `
+          <span style="color:#f59e0b;font-weight:800;font-size:1.3rem;">${(stats.avg_rating || 0).toFixed(1)}★</span>
+          from ${stats.total || 0} reviews
+        `;
+      }
+      if (statAvg) {
+        statAvg.textContent = (stats.avg_rating || 0).toFixed(1) + '★';
+      }
+
+      if (!reviews || reviews.length === 0) {
+        grid.innerHTML = `
+          <div class="text-center py-5" style="grid-column:1/-1;">
+            <i class="fas fa-star fa-3x mb-3" style="color:#bae6fd;"></i>
+            <p class="text-muted">No reviews yet. Be the first!</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = reviews.map(r => `
+        <div class="col-md-4">
+          <div class="testimonial-card">
+            <div class="stars">${stars(r.rating)}</div>
+            ${r.title ? `<div style="font-weight:800;color:#0c4a6e;margin-bottom:8px;">${escapeHtml(r.title)}</div>` : ''}
+            ${r.comment ? `<p>"${escapeHtml(r.comment)}"</p>` : ''}
+            <div class="testimonial-footer">
+              <div class="testimonial-avatar">${initials(r.customer_name)}</div>
+              <div>
+                <strong>${displayName(r.customer_name)}</strong>
+                ${r.is_verified ? '<span class="verified-mini"><i class="fas fa-check-circle"></i></span>' : ''}
+                <div style="font-size:0.75rem;color:#64748b;">${timeAgo(r.created_at)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    })
+    .catch(err => {
+      console.error('Reviews fetch failed:', err);
+      grid.innerHTML = `
+        <div class="text-center py-4" style="grid-column:1/-1;">
+          <p class="text-muted">Reviews unavailable right now.</p>
+        </div>
+      `;
+    });
 })();
 </script>
 

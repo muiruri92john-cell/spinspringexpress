@@ -7,6 +7,10 @@ const app = express();
 
 // Behind cPanel/Apache proxy — needed for secure cookies + correct protocol.
 app.set('trust proxy', 1);
+app.use('/', require('./routes/spinspring'));
+app.use('/', require('./routes/locations'));
+app.use('/', require('./routes/public-locations'));
+app.use('/', require('./routes/reviews'));   // ← NEW
 
 // ---- LIGHTWEIGHT PROBES FIRST (no session/DB/flash deps) ----
 // If THESE 404, traffic never reached Node (Passenger mapping / app stopped).

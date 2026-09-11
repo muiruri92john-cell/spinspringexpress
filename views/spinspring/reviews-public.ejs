@@ -1,0 +1,285 @@
+<%- include('../layouts/main') %>
+
+<style>
+.reviews-hero {
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  padding: 60px 0 80px;
+  color: white;
+}
+.reviews-hero h1 {
+  color: white;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.rating-summary {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 30px;
+}
+.rating-big {
+  text-align: center;
+}
+.rating-big .num {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.rating-big .stars {
+  font-size: 1.4rem;
+  color: #f59e0b;
+  margin: 8px 0;
+}
+.rating-big .count {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.rating-bars {
+  flex: 1;
+  max-width: 400px;
+  min-width: 280px;
+}
+.rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+.rating-bar .label { width: 30px; opacity: 0.9; }
+.rating-bar .bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.rating-bar .fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 4px;
+  transition: width 0.6s;
+}
+.rating-bar .pct { width: 40px; text-align: right; opacity: 0.9; }
+
+/* Review cards */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+  margin-top: 40px;
+}
+.review-item {
+  background: white;
+  border-radius: 20px;
+  padding: 26px;
+  box-shadow: 0 5px 25px rgba(2,132,199,0.08);
+  border: 1px solid #e0f2fe;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+.review-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(2,132,199,0.15);
+}
+.review-item .stars {
+  color: #f59e0b;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+.review-item .review-title {
+  font-weight: 800;
+  color: #0c4a6e;
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+}
+.review-item .review-text {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex: 1;
+  margin-bottom: 16px;
+}
+.review-item .review-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.review-item .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.review-item .meta-text { flex: 1; }
+.review-item .meta-text strong { color: #0c4a6e; }
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.owner-reply {
+  background: #f0f9ff;
+  border-left: 3px solid #0284c7;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-top: 14px;
+  font-size: 0.85rem;
+}
+.owner-reply strong { color: #0284c7; display: block; margin-bottom: 4px; }
+.owner-reply .when { color: #64748b; font-size: 0.75rem; }
+
+.featured-ribbon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #f59e0b;
+  color: white;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.review-item-wrap { position: relative; }
+</style>
+
+<!-- HERO -->
+<section class="reviews-hero">
+  <div class="container text-center">
+    <h1><i class="fas fa-star me-2" style="color:#f59e0b;"></i>What Our Customers Say</h1>
+    <p class="lead">Real reviews from real customers</p>
+
+    <div class="rating-summary">
+      <div class="rating-big">
+        <div class="num"><%= (parseFloat(stats.avg_rating) || 0).toFixed(1) %></div>
+        <div class="stars">
+          <% const avg = Math.round(parseFloat(stats.avg_rating) || 0); %>
+          <% for (let i = 1; i <= 5; i++) { %>
+            <i class="<%= i <= avg ? 'fas' : 'far' %> fa-star"></i>
+          <% } %>
+        </div>
+        <div class="count"><%= stats.total || 0 %> reviews</div>
+      </div>
+
+      <div class="rating-bars">
+        <%
+          const total = stats.total || 1;
+          const bars = [
+            { label: '5★', count: stats.five_star || 0 },
+            { label: '4★', count: stats.four_star || 0 },
+            { label: '3★', count: stats.three_star || 0 },
+            { label: '2★', count: stats.two_star || 0 },
+            { label: '1★', count: stats.one_star || 0 }
+          ];
+          bars.forEach(b => {
+            const pct = Math.round((b.count / total) * 100);
+        %>
+          <div class="rating-bar">
+            <div class="label"><%= b.label %></div>
+            <div class="bar"><div class="fill" style="width:<%= pct %>%"></div></div>
+            <div class="pct"><%= pct %>%</div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<div class="container py-5">
+  <% if (reviews.length === 0) { %>
+    <div class="text-center py-5">
+      <i class="fas fa-star fa-4x mb-3" style="color:#bae6fd;"></i>
+      <h4 style="color:#0c4a6e;">No reviews yet</h4>
+      <p class="text-muted">Be the first to share your experience!</p>
+      <a href="/reviews/new" class="ss-btn mt-2">
+        <i class="fas fa-pen me-2"></i>Write a Review
+      </a>
+    </div>
+  <% } else { %>
+    <div class="text-center mb-4">
+      <a href="/reviews/new" class="ss-btn">
+        <i class="fas fa-pen me-2"></i>Write a Review
+      </a>
+    </div>
+
+    <div class="reviews-grid">
+      <% reviews.forEach(r => { %>
+        <div class="review-item-wrap">
+          <div class="review-item">
+            <% if (r.is_featured) { %>
+              <div class="featured-ribbon">FEATURED</div>
+            <% } %>
+
+            <div class="stars">
+              <% for (let i = 1; i <= 5; i++) { %>
+                <i class="<%= i <= r.rating ? 'fas' : 'far' %> fa-star"></i>
+              <% } %>
+            </div>
+
+            <% if (r.title) { %>
+              <div class="review-title"><%= r.title %></div>
+            <% } %>
+
+            <% if (r.comment) { %>
+              <div class="review-text"><%= r.comment %></div>
+            <% } %>
+
+            <% if (r.owner_reply) { %>
+              <div class="owner-reply">
+                <strong><i class="fas fa-store me-1"></i>Owner replied</strong>
+                <%= r.owner_reply %>
+                <div class="when"><%= helper.timeAgo(r.owner_replied_at) %></div>
+              </div>
+            <% } %>
+
+            <div class="review-meta">
+              <div class="avatar"><%= helper.displayName(r.customer_name).charAt(0) %></div>
+              <div class="meta-text">
+                <strong><%= helper.displayName(r.customer_name) %></strong>
+                <% if (r.is_verified) { %>
+                  <span class="verified-badge">
+                    <i class="fas fa-check-circle"></i> Verified
+                  </span>
+                <% } %>
+                <div style="font-size:0.75rem;">
+                  <%= helper.timeAgo(r.created_at) %>
+                  <% if (r.location_name) { %> · <%= r.location_name %><% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
