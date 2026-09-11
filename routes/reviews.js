@@ -25,12 +25,70 @@ function isOwner(req, res, next) {
 }
 
 // ═══════════════════════════════════════════════════
-// CUSTOMER — WRITE REVIEW (public, via code)
+// STATIC ROUTES (must come FIRST — before :code catch-all)
 // ═══════════════════════════════════════════════════
 
+// ─── Thank you page ─────────────────────────────
+router.get('/review/thanks', (req, res) => {
+  res.render('spinspring/review-thanks', {
+    title: 'Thank You - SpinSpring Express',
+    user: req.session.spinUser || null,
+    alreadyDone: false
+  });
+});
+
+// ─── New review form (public) ─────────────────────
+router.get('/reviews/new', (req, res) => {
+  res.render('spinspring/review-form', {
+    title: 'Leave a Review - SpinSpring Express',
+    request: null,
+    order: null,
+    code: null
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// PUBLIC REVIEWS LIST
+// ═══════════════════════════════════════════════════
+
+router.get('/reviews', ah(async (req, res) => {
+  const model = new ReviewModel(req.db);
+  const ownerId = parseInt(req.query.owner_id, 10) || 5;
+  const locationId = req.query.location_id ? parseInt(req.query.location_id, 10) : null;
+
+  const reviews = await model.listPublic(ownerId, {
+    locationId,
+    limit: 50,
+    featuredOnly: false,
+    minRating: null
+  });
+
+  const stats = await model.statsByOwner(ownerId);
+
+  res.render('spinspring/reviews-public', {
+    title: 'Customer Reviews - SpinSpring Express',
+    user: req.session.spinUser || null,
+    reviews,
+    stats,
+    helper,
+    ownerId,
+    locationId
+  });
+}));
+
+// ═══════════════════════════════════════════════════
+// REVIEW VIA CODE (public, from SMS/WA link)
+// ═══════════════════════════════════════════════════
+
+// ─── Show form (with code) ────────────────────────
 router.get('/review/:code', ah(async (req, res) => {
   const model = new ReviewModel(req.db);
   const { code } = req.params;
+
+  // Skip if this is a static route (already handled above)
+  if (code === 'thanks' || code === 'new') {
+    return res.redirect('/review/thanks');
+  }
 
   const request = await model.findRequestByCode(code);
 
@@ -158,102 +216,6 @@ router.post('/review/:code', ah(async (req, res) => {
     success: true,
     review_code: reviewCode,
     message: 'Thank you for your review!'
-  });
-}));
-
-// ─── Direct submission (no request code) ─────────
-router.post('/api/reviews/submit', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const { rating, title, comment, customer_name } = req.body;
-
-  const ratingInt = parseInt(rating, 10);
-  if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
-    return res.status(400).json({ success: false, error: 'Rating must be 1-5' });
-  }
-
-  const ownerId = 5;
-
-  let location_id = null;
-  let device_id = null;
-  try {
-    const [devices] = await req.db.query(
-      'SELECT device_id, location_id FROM ss_devices WHERE owner_id = ? LIMIT 1',
-      [ownerId]
-    );
-    if (devices.length) {
-      device_id = devices[0].device_id;
-      location_id = devices[0].location_id;
-    }
-  } catch (e) { /* ignore */ }
-
-  try {
-    const { code } = await model.create({
-      owner_id: ownerId,
-      location_id,
-      device_id,
-      customer_name: (customer_name || 'Anonymous').trim().slice(0, 100),
-      rating: ratingInt,
-      title: (title || '').trim().slice(0, 200) || null,
-      comment: (comment || '').trim().slice(0, 2000) || null,
-      is_verified: 0,
-      status: 'pending',
-      ip_address: req.ip,
-      user_agent: (req.headers['user-agent'] || '').slice(0, 500),
-      source: 'web'
-    });
-
-    res.json({ success: true, review_code: code });
-  } catch (e) {
-    console.error('Review submit error:', e);
-    res.status(500).json({ success: false, error: 'Submission failed: ' + e.message });
-  }
-}));
-
-// ─── New review form (public) ─────────────────────
-router.get('/reviews/new', (req, res) => {
-  res.render('spinspring/review-form', {
-    title: 'Leave a Review - SpinSpring Express',
-    request: null,
-    order: null,
-    code: null
-  });
-});
-
-// ─── Thank you page ─────────────────────────────
-router.get('/review/thanks', (req, res) => {
-  res.render('spinspring/review-thanks', {
-    title: 'Thank You - SpinSpring Express',
-    user: req.session.spinUser || null,
-    alreadyDone: false
-  });
-});
-
-// ═══════════════════════════════════════════════════
-// PUBLIC REVIEWS PAGE
-// ═══════════════════════════════════════════════════
-
-router.get('/reviews', ah(async (req, res) => {
-  const model = new ReviewModel(req.db);
-  const ownerId = parseInt(req.query.owner_id, 10) || 5;
-  const locationId = req.query.location_id ? parseInt(req.query.location_id, 10) : null;
-
-  const reviews = await model.listPublic(ownerId, {
-    locationId,
-    limit: 50,
-    featuredOnly: false,
-    minRating: null
-  });
-
-  const stats = await model.statsByOwner(ownerId);
-
-  res.render('spinspring/reviews-public', {
-    title: 'Customer Reviews - SpinSpring Express',
-    user: req.session.spinUser || null,
-    reviews,
-    stats,
-    helper,
-    ownerId,
-    locationId
   });
 }));
 
@@ -398,6 +360,54 @@ router.get('/api/reviews', ah(async (req, res) => {
   });
 }));
 
+// Submit review (direct, no code)
+router.post('/api/reviews/submit', ah(async (req, res) => {
+  const model = new ReviewModel(req.db);
+  const { rating, title, comment, customer_name } = req.body;
+
+  const ratingInt = parseInt(rating, 10);
+  if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
+    return res.status(400).json({ success: false, error: 'Rating must be 1-5' });
+  }
+
+  const ownerId = 5;
+
+  let location_id = null;
+  let device_id = null;
+  try {
+    const [devices] = await req.db.query(
+      'SELECT device_id, location_id FROM ss_devices WHERE owner_id = ? LIMIT 1',
+      [ownerId]
+    );
+    if (devices.length) {
+      device_id = devices[0].device_id;
+      location_id = devices[0].location_id;
+    }
+  } catch (e) { /* ignore */ }
+
+  try {
+    const { code } = await model.create({
+      owner_id: ownerId,
+      location_id,
+      device_id,
+      customer_name: (customer_name || 'Anonymous').trim().slice(0, 100),
+      rating: ratingInt,
+      title: (title || '').trim().slice(0, 200) || null,
+      comment: (comment || '').trim().slice(0, 2000) || null,
+      is_verified: 0,
+      status: 'pending',
+      ip_address: req.ip,
+      user_agent: (req.headers['user-agent'] || '').slice(0, 500),
+      source: 'web'
+    });
+
+    res.json({ success: true, review_code: code });
+  } catch (e) {
+    console.error('Review submit error:', e);
+    res.status(500).json({ success: false, error: 'Submission failed: ' + e.message });
+  }
+}));
+
 // Mark helpful
 router.post('/api/reviews/:id/helpful', ah(async (req, res) => {
   const model = new ReviewModel(req.db);
@@ -406,7 +416,7 @@ router.post('/api/reviews/:id/helpful', ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// HOOK: Called when order completes → queue review request
+// HOOK: Order completes → queue review request
 // ═══════════════════════════════════════════════════
 
 router.post('/api/orders/:id/request-review', isAuth, ah(async (req, res) => {
