@@ -29,6 +29,12 @@
   margin: 0 auto 25px;
   color: white;
   font-size: 2.5rem;
+  animation: popIn 0.5s ease;
+}
+@keyframes popIn {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 .thanks-card h2 {
   color: #0c4a6e;
@@ -40,6 +46,12 @@
   font-size: 1.05rem;
   margin-bottom: 25px;
 }
+.thanks-card .btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 </style>
 
 <div class="thanks-wrapper">
@@ -49,14 +61,17 @@
     </div>
 
     <% if (typeof alreadyDone !== 'undefined' && alreadyDone) { %>
-      <h2><%= title %></h2>
-      <p><%= message %></p>
+      <h2><%= title || 'Already Reviewed' %></h2>
+      <p><%= message || 'You already submitted a review for this order. Thank you!' %></p>
     <% } else { %>
       <h2>Thank you! 🎉</h2>
-      <p>Your review has been submitted. Our team will review it shortly and it'll appear on our website.</p>
+      <p>
+        Your review has been submitted.
+        Our team will review it shortly and it'll appear on our website.
+      </p>
     <% } %>
 
-    <div class="d-flex gap-2 justify-content-center flex-wrap">
+    <div class="btn-row">
       <a href="/" class="ss-btn">
         <i class="fas fa-home me-2"></i>Back to Home
       </a>

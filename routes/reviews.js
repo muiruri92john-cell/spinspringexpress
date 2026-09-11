@@ -34,7 +34,6 @@ router.get('/review/:code', ah(async (req, res) => {
 
   const request = await model.findRequestByCode(code);
 
-  // If it's a request code → show review form
   if (request) {
     if (request.status === 'completed') {
       return res.render('spinspring/review-thanks', {
@@ -52,7 +51,6 @@ router.get('/review/:code', ah(async (req, res) => {
       });
     }
 
-    // Look up order for context
     let order = null;
     if (request.order_id) {
       const [orders] = await req.db.query(
@@ -75,7 +73,6 @@ router.get('/review/:code', ah(async (req, res) => {
     });
   }
 
-  // Otherwise try as a review code → show public review
   const review = await model.findByCode(code);
   if (review) {
     return res.redirect('/reviews');
@@ -87,7 +84,7 @@ router.get('/review/:code', ah(async (req, res) => {
   });
 }));
 
-// ─── Submit review ────────────────────────────────
+// ─── Submit review via request code ───────────────
 router.post('/review/:code', ah(async (req, res) => {
   const model = new ReviewModel(req.db);
   const { code } = req.params;
@@ -107,7 +104,6 @@ router.post('/review/:code', ah(async (req, res) => {
     return res.status(400).json({ success: false, error: 'Rating must be 1-5' });
   }
 
-  // Look up order + owner
   let order = null;
   let owner_id = null;
   let location_id = null;
@@ -133,12 +129,10 @@ router.post('/review/:code', ah(async (req, res) => {
     return res.status(400).json({ success: false, error: 'Order not found' });
   }
 
-  // Sanitize
   const cleanTitle = (title || '').trim().slice(0, 200);
   const cleanComment = (comment || '').trim().slice(0, 2000);
   const cleanName = (customer_name || request.customer_name || 'Anonymous').trim().slice(0, 100);
 
-  // Create review
   const { id, code: reviewCode } = await model.create({
     owner_id,
     location_id,
@@ -167,13 +161,70 @@ router.post('/review/:code', ah(async (req, res) => {
   });
 }));
 
-// ─── Direct review (no request code) ──────────────
+// ─── Direct submission (no request code) ─────────
+router.post('/api/reviews/submit', ah(async (req, res) => {
+  const model = new ReviewModel(req.db);
+  const { rating, title, comment, customer_name } = req.body;
+
+  const ratingInt = parseInt(rating, 10);
+  if (isNaN(ratingInt) || ratingInt < 1 || ratingInt > 5) {
+    return res.status(400).json({ success: false, error: 'Rating must be 1-5' });
+  }
+
+  const ownerId = 5;
+
+  let location_id = null;
+  let device_id = null;
+  try {
+    const [devices] = await req.db.query(
+      'SELECT device_id, location_id FROM ss_devices WHERE owner_id = ? LIMIT 1',
+      [ownerId]
+    );
+    if (devices.length) {
+      device_id = devices[0].device_id;
+      location_id = devices[0].location_id;
+    }
+  } catch (e) { /* ignore */ }
+
+  try {
+    const { code } = await model.create({
+      owner_id: ownerId,
+      location_id,
+      device_id,
+      customer_name: (customer_name || 'Anonymous').trim().slice(0, 100),
+      rating: ratingInt,
+      title: (title || '').trim().slice(0, 200) || null,
+      comment: (comment || '').trim().slice(0, 2000) || null,
+      is_verified: 0,
+      status: 'pending',
+      ip_address: req.ip,
+      user_agent: (req.headers['user-agent'] || '').slice(0, 500),
+      source: 'web'
+    });
+
+    res.json({ success: true, review_code: code });
+  } catch (e) {
+    console.error('Review submit error:', e);
+    res.status(500).json({ success: false, error: 'Submission failed: ' + e.message });
+  }
+}));
+
+// ─── New review form (public) ─────────────────────
 router.get('/reviews/new', (req, res) => {
   res.render('spinspring/review-form', {
     title: 'Leave a Review - SpinSpring Express',
     request: null,
     order: null,
     code: null
+  });
+});
+
+// ─── Thank you page ─────────────────────────────
+router.get('/review/thanks', (req, res) => {
+  res.render('spinspring/review-thanks', {
+    title: 'Thank You - SpinSpring Express',
+    user: req.session.spinUser || null,
+    alreadyDone: false
   });
 });
 
@@ -225,7 +276,6 @@ router.get('/owner/reviews', isOwner, ah(async (req, res) => {
   const stats = await model.statsByOwner(ownerId);
   const byLocation = await model.statsByLocation(ownerId);
 
-  // Locations for filter dropdown
   const [locations] = await req.db.query(
     'SELECT id, location_name FROM ss_locations WHERE owner_id = ? AND is_active = 1 ORDER BY is_primary DESC, location_name',
     [ownerId]
@@ -257,7 +307,6 @@ router.post('/owner/reviews/:id/status', isOwner, ah(async (req, res) => {
     ownerId
   );
 
-  // If AJAX, return JSON
   if (req.xhr || req.headers.accept?.includes('json')) {
     return res.json({ success: true, status });
   }
@@ -358,7 +407,6 @@ router.post('/api/reviews/:id/helpful', ah(async (req, res) => {
 
 // ═══════════════════════════════════════════════════
 // HOOK: Called when order completes → queue review request
-// (import this from your order-complete handler)
 // ═══════════════════════════════════════════════════
 
 router.post('/api/orders/:id/request-review', isAuth, ah(async (req, res) => {
@@ -390,7 +438,6 @@ router.post('/api/orders/:id/request-review', isAuth, ah(async (req, res) => {
     orderNumber: order.order_number
   });
 
-  // Queue for sending (or send immediately if you have SMS/WA set up)
   await model.markRequestSent(code);
 
   res.json({
