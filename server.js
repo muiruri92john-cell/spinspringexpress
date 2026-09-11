@@ -9,7 +9,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ─────────────────────────────────────────────────────────────
-// MIDDLEWARE (must run BEFORE route handlers)
+// CORE MIDDLEWARE (must run BEFORE any route)
 // ─────────────────────────────────────────────────────────────
 
 // View engine
@@ -50,7 +50,7 @@ app.get('/ping-selftest', (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// DATABASE + SESSION STORE
+// DATABASE
 // ─────────────────────────────────────────────────────────────
 const db = require('./config/database');
 const { sessionStore, closeSessionStore } = require('./config/sessionStore');
@@ -82,7 +82,7 @@ app.use(session({
 app.use(flash());
 
 // ─────────────────────────────────────────────────────────────
-// ATTACH req.db + locals (must run BEFORE routes)
+// ATTACH req.db + LOCALS (must run BEFORE routes)
 // ─────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   req.db = db;
@@ -96,19 +96,19 @@ app.use((req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// ROUTES (NOW they can safely use req.db)
+// ROUTES (NOW they can safely use req.db, req.body, req.session)
 // ─────────────────────────────────────────────────────────────
 
-// Main routes (dual mounts = both URL styles work)
+// Main routes (dual mount for both URL styles)
 const spinRoutes = require('./routes/spinspring');
 app.use('/', spinRoutes);
 app.use('/spinspg', spinRoutes);
 
-// Location routes
+// Location routes (owner management)
 const locationRoutes = require('./routes/locations');
 app.use('/', locationRoutes);
 
-// Public location routes
+// Public location routes (find-nearest)
 const publicLocationRoutes = require('./routes/public-locations');
 app.use('/', publicLocationRoutes);
 
@@ -190,13 +190,15 @@ app.use((err, req, res, next) => {
 
   console.error(`[${ref}] ${req.method} ${req.originalUrl} -> ${status}:`, err.stack || err);
 
-  // Persist error (best effort)
+  // Best-effort error logging
   try {
     db.query(
       'CREATE TABLE IF NOT EXISTS ss_error_logs (id INT AUTO_INCREMENT PRIMARY KEY, ref VARCHAR(20), method VARCHAR(10), url VARCHAR(500), status INT, message TEXT, stack MEDIUMTEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB'
     ).then(() => db.query(
       'INSERT INTO ss_error_logs (ref, method, url, status, message, stack) VALUES (?, ?, ?, ?, ?, ?)',
-      [ref, req.method, req.originalUrl, status, String((err && err.message) || err).slice(0, 2000), String((err && err.stack) || err).slice(0, 8000)]
+      [ref, req.method, req.originalUrl, status,
+       String((err && err.message) || err).slice(0, 2000),
+       String((err && err.stack) || err).slice(0, 8000)]
     )).catch((e) => console.error('error-log write failed:', e.message));
   } catch (e) { console.error('error-log setup failed:', e.message); }
 
@@ -210,6 +212,7 @@ app.use((err, req, res, next) => {
     ? ' (Database/session unavailable — check DB_* env vars and MySQL)'
     : '';
 
+  // API/ESP32 gets JSON
   if (req.path.startsWith('/api/') || req.xhr) {
     return res.status(status).json({
       error: friendly + outageHint,
@@ -245,7 +248,7 @@ app.use((err, req, res, next) => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// LISTEN (only for direct node server.js — Passenger uses app.js)
+// LISTEN (dev only — Passenger uses app.js)
 // ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 let server = null;
