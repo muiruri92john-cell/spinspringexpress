@@ -104,6 +104,12 @@ app.use((req, res, next) => {
 // ROUTES (NOW they can safely use req.db, req.body, req.session)
 // ─────────────────────────────────────────────────────────────
 
+
+// Owner routes FIRST (they handle /login, /register, /owner)
+const ownerRoutes = require('./routes/owner');
+app.use('/', ownerRoutes);
+
+
 // Main routes (dual mount for both URL styles)
 const spinRoutes = require('./routes/spinspring');
 app.use('/', spinRoutes);
@@ -130,9 +136,7 @@ app.get('/find-location', (req, res) => {
 });
 
 
-// Owner routes (must be after session middleware)
-const ownerRoutes = require('./routes/owner');
-app.use('/', ownerRoutes);
+
 
 // ─────────────────────────────────────────────────────────────
 // ALIASES (redirect /spinspg/* → /*)
