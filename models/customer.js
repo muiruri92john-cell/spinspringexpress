@@ -103,9 +103,6 @@ class CustomerModel {
     );
     return rows[0] || {};
   }
-}
-
-
 
   async verifyPassword(email, password) {
     const bcrypt = require('bcryptjs');
@@ -152,7 +149,7 @@ class CustomerModel {
     return rows;
   }
 
-  async getStats(customerId) {
+  async getOrderStats(customerId) {
     const [rows] = await this.db.query(
       `SELECT 
         COUNT(*) AS total_orders,
@@ -165,5 +162,6 @@ class CustomerModel {
     );
     return rows[0] || {};
   }
+}
 
 module.exports = CustomerModel;

@@ -52,7 +52,6 @@ class AttendantModel {
     return { id: result.insertId };
   }
 
-
   async update(id, ownerId, data) {
     const allowed = ['full_name', 'phone', 'pin_code', 'location_id', 'is_active'];
     const updates = [];
@@ -100,8 +99,6 @@ class AttendantModel {
     return rows[0] || {};
   }
 
-
-
   async verifyPin(email, pinCode) {
     const [rows] = await this.db.query(
       `SELECT a.*, o.company_name AS owner_company
@@ -113,6 +110,6 @@ class AttendantModel {
     );
     return rows[0] || null;
   }
+}
 
-  
 module.exports = AttendantModel;
