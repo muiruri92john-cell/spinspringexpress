@@ -99,7 +99,7 @@ class AttendantModel {
     );
     return rows[0] || {};
   }
-}
+
 
 
   async verifyPin(email, pinCode) {
