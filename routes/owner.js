@@ -1,3 +1,209 @@
+// =====================================================
+// routes/owner.js — Owner auth + dashboard + management
+// =====================================================
+
+const express = require('express');
+const router = express.Router();
+
+const OwnerModel = require('../models/owner');
+const AttendantModel = require('../models/attendant');
+const CustomerModel = require('../models/customer');
+const bcrypt = require('bcryptjs');
+const { isOwner } = require('../middleware/auth');
+
+const ah = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
+
+// ═══════════════════════════════════════════════════
+// AUTH — REGISTER
+// ═══════════════════════════════════════════════════
+
+router.get('/register', (req, res) => {
+  if (req.session.spinUser) return res.redirect('/owner');
+  res.render('spinspring/owner-register', {
+    title: 'Register Company - SpinSpring Express',
+    user: null
+  });
+});
+
+router.post('/register', ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  const { company_name, contact_name, email, password, password2, phone, address, city } = req.body;
+
+  if (!company_name || !contact_name || !email || !password) {
+    req.flash('error_msg', 'All required fields must be filled');
+    return res.redirect('/register');
+  }
+  if (password !== password2) {
+    req.flash('error_msg', 'Passwords do not match');
+    return res.redirect('/register');
+  }
+  if (password.length < 6) {
+    req.flash('error_msg', 'Password must be at least 6 characters');
+    return res.redirect('/register');
+  }
+
+  const existing = await model.findByEmail(email);
+  if (existing) {
+    req.flash('error_msg', 'Email already registered');
+    return res.redirect('/register');
+  }
+
+  await model.create({
+    company_name, contact_name, email, phone, password, address, city
+  });
+
+  req.flash('success_msg', '✅ Company registered! Please login.');
+  res.redirect('/login');
+}));
+
+// ═══════════════════════════════════════════════════
+// AUTH — LOGIN
+// ═══════════════════════════════════════════════════
+
+router.get('/login', (req, res) => {
+  if (req.session.spinUser) {
+    const role = req.session.spinUser.role;
+    if (role === 'owner') return res.redirect('/owner');
+    if (role === 'attendant') return res.redirect('/attendant');
+    if (role === 'customer') return res.redirect('/customer');
+  }
+  res.render('spinspring/owner-login', {
+    title: 'Owner Login - SpinSpring Express',
+    user: null
+  });
+});
+
+router.post('/login', ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    req.flash('error_msg', 'Email and password required');
+    return res.redirect('/login');
+  }
+
+  const owner = await model.verifyPassword(email, password);
+  if (!owner) {
+    req.flash('error_msg', 'Invalid credentials');
+    return res.redirect('/login');
+  }
+
+  if (!owner.is_active) {
+    req.flash('error_msg', 'Account disabled. Contact support.');
+    return res.redirect('/login');
+  }
+
+  req.session.spinUser = {
+    id: owner.id,
+    role: 'owner',
+    email: owner.email,
+    name: owner.contact_name,
+    company: owner.company_name
+  };
+
+  req.flash('success_msg', `Welcome back, ${owner.contact_name}!`);
+  res.redirect('/owner');
+}));
+
+// ═══════════════════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════════════════
+
+router.get('/logout', (req, res) => {
+  delete req.session.spinUser;
+  req.flash('success_msg', 'Logged out successfully');
+  res.redirect('/');
+});
+
+// ═══════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════
+
+router.get('/owner', isOwner, ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  const ownerId = req.session.spinUser.id;
+
+  const owner = await model.findById(ownerId);
+  if (!owner) {
+    delete req.session.spinUser;
+    req.flash('error_msg', 'Session invalid. Please login again.');
+    return res.redirect('/login');
+  }
+
+  const [stats, devices, attendants, customers, recentOrders] = await Promise.all([
+    model.getDashboardStats(ownerId),
+    model.listDevices(ownerId),
+    model.listAttendants(ownerId),
+    model.listCustomers(ownerId, 10),
+    model.listRecentOrders(ownerId, 10)
+  ]);
+
+  res.render('spinspring/owner-dashboard', {
+    title: `${owner.company_name} - Owner Dashboard`,
+    user: req.session.spinUser,
+    owner,
+    stats,
+    devices,
+    attendants,
+    customers,
+    recentOrders
+  });
+}));
+
+// ═══════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════
+
+router.get('/owner/settings', isOwner, ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  const owner = await model.findById(req.session.spinUser.id);
+  res.render('spinspring/owner-settings', {
+    title: 'Settings - SpinSpring Express',
+    user: req.session.spinUser,
+    owner
+  });
+}));
+
+router.post('/owner/settings', isOwner, ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  await model.update(req.session.spinUser.id, {
+    company_name: req.body.company_name,
+    contact_name: req.body.contact_name,
+    phone: req.body.phone,
+    address: req.body.address,
+    city: req.body.city
+  });
+  req.flash('success_msg', 'Settings saved');
+  res.redirect('/owner/settings');
+}));
+
+router.post('/owner/settings/password', isOwner, ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  const { current_password, new_password, confirm_password } = req.body;
+  const ownerId = req.session.spinUser.id;
+
+  if (new_password !== confirm_password) {
+    req.flash('error_msg', 'New passwords do not match');
+    return res.redirect('/owner/settings');
+  }
+  if (new_password.length < 6) {
+    req.flash('error_msg', 'Password must be at least 6 characters');
+    return res.redirect('/owner/settings');
+  }
+
+  const owner = await model.findById(ownerId);
+  const valid = await bcrypt.compare(current_password, owner.password);
+  if (!valid) {
+    req.flash('error_msg', 'Current password is incorrect');
+    return res.redirect('/owner/settings');
+  }
+
+  await model.changePassword(ownerId, new_password);
+  req.flash('success_msg', 'Password changed successfully');
+  res.redirect('/owner/settings');
+}));
+
 // ═══════════════════════════════════════════════════
 // LOCATIONS MANAGEMENT
 // ═══════════════════════════════════════════════════
@@ -77,19 +283,17 @@ router.post('/owner/locations/:id/primary', isOwner, ah(async (req, res) => {
 // ATTENDANTS MANAGEMENT
 // ═══════════════════════════════════════════════════
 
-const AttendantModel = require('../models/attendant');
-
 router.get('/owner/attendants', isOwner, ah(async (req, res) => {
   const model = new AttendantModel(req.db);
   const ownerId = req.session.spinUser.id;
 
-  const [attendants, stats, locations] = await Promise.all([
+  const [attendants, stats, [locations]] = await Promise.all([
     model.listByOwner(ownerId),
     model.getStats(ownerId),
     req.db.query(
       'SELECT id, location_name FROM ss_locations WHERE owner_id = ? AND is_active = 1 ORDER BY is_primary DESC, location_name',
       [ownerId]
-    ).then(([rows]) => rows)
+    )
   ]);
 
   res.render('spinspring/owner-attendants', {
@@ -149,20 +353,17 @@ router.post('/owner/attendants/:id/delete', isOwner, ah(async (req, res) => {
 // CUSTOMERS MANAGEMENT
 // ═══════════════════════════════════════════════════
 
-const CustomerModel = require('../models/customer');
-const bcrypt = require('bcryptjs');
-
 router.get('/owner/customers', isOwner, ah(async (req, res) => {
   const model = new CustomerModel(req.db);
   const ownerId = req.session.spinUser.id;
 
-  const [customers, stats, locations] = await Promise.all([
+  const [customers, stats, [locations]] = await Promise.all([
     model.listByOwner(ownerId),
     model.getStats(ownerId),
     req.db.query(
       'SELECT id, location_name FROM ss_locations WHERE owner_id = ? AND is_active = 1 ORDER BY is_primary DESC, location_name',
       [ownerId]
-    ).then(([rows]) => rows)
+    )
   ]);
 
   res.render('spinspring/owner-customers', {
@@ -279,3 +480,15 @@ router.get('/owner/orders', isOwner, ah(async (req, res) => {
     stats: stats[0] || {}
   });
 }));
+
+// ═══════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════
+
+router.get('/api/owner/stats', isOwner, ah(async (req, res) => {
+  const model = new OwnerModel(req.db);
+  const stats = await model.getDashboardStats(req.session.spinUser.id);
+  res.json({ success: true, stats, timestamp: new Date().toISOString() });
+}));
+
+module.exports = router;
