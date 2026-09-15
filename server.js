@@ -24,8 +24,6 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// Owner routes
-app.use('/', require('./routes/owner'));
 
 // ─────────────────────────────────────────────────────────────
 // LIGHTWEIGHT PROBES (no session/DB/flash needed)
@@ -130,6 +128,11 @@ app.get('/find-location', (req, res) => {
     user: req.session.spinUser || null,
   });
 });
+
+
+// Owner routes (must be after session middleware)
+const ownerRoutes = require('./routes/owner');
+app.use('/', ownerRoutes);
 
 // ─────────────────────────────────────────────────────────────
 // ALIASES (redirect /spinspg/* → /*)
