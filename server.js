@@ -104,13 +104,13 @@ app.use((req, res, next) => {
 // ROUTES (NOW they can safely use req.db, req.body, req.session)
 // ─────────────────────────────────────────────────────────────
 
+// Main routes (dual mount for both URL styles)
+// Owner routes FIRST (they handle /login, /register, /owner)
 
 // Owner routes FIRST (they handle /login, /register, /owner)
 const ownerRoutes = require('./routes/owner');
 app.use('/', ownerRoutes);
 
-
-// Main routes (dual mount for both URL styles)
 const spinRoutes = require('./routes/spinspring');
 app.use('/', spinRoutes);
 app.use('/spinspg', spinRoutes);
@@ -134,7 +134,6 @@ app.get('/find-location', (req, res) => {
     user: req.session.spinUser || null,
   });
 });
-
 
 
 
