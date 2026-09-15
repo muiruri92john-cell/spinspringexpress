@@ -1,0 +1,108 @@
+<%
+  const seo = {
+    title: typeof title !== 'undefined' && title
+      ? title
+      : 'SpinSpring Express — Premium Laundry Service in Nairobi',
+    description: typeof description !== 'undefined' && description
+      ? description
+      : 'Premium laundry, dry cleaning, and pickup & delivery in Nairobi. Fast 24-hour turnaround. Book online or WhatsApp us on 0741237542.',
+    keywords: typeof keywords !== 'undefined' && keywords
+      ? keywords
+      : 'laundry Nairobi, dry cleaning Nairobi, laundry service, wash and fold, laundry pickup, laundry delivery, SpinSpring Express',
+    image: typeof image !== 'undefined' && image
+      ? image
+      : 'https://spinspringexpress.co.ke/images/spinspring/hero-image.jpg',
+    url: typeof canonicalUrl !== 'undefined' && canonicalUrl
+      ? canonicalUrl
+      : 'https://spinspringexpress.co.ke/',
+    type: typeof pageType !== 'undefined' && pageType
+      ? pageType
+      : 'website'
+  };
+%>
+
+<!-- HTML Title (MOST IMPORTANT FOR SEO) -->
+<title><%= seo.title %></title>
+
+<!-- Primary Meta Tags -->
+<meta name="title" content="<%= seo.title %>">
+<meta name="description" content="<%= seo.description %>">
+<meta name="keywords" content="<%= seo.keywords %>">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="SpinSpring Express">
+<meta name="language" content="en-KE">
+<meta name="geo.region" content="KE-110">
+<meta name="geo.placename" content="Nairobi">
+<meta name="ICBM" content="-1.2921, 36.8219">
+
+<!-- Canonical URL -->
+<link rel="canonical" href="<%= seo.url %>">
+
+<!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
+<meta property="og:type" content="<%= seo.type %>">
+<meta property="og:url" content="<%= seo.url %>">
+<meta property="og:title" content="<%= seo.title %>">
+<meta property="og:description" content="<%= seo.description %>">
+<meta property="og:image" content="<%= seo.image %>">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="SpinSpring Express">
+<meta property="og:locale" content="en_KE">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="<%= seo.url %>">
+<meta name="twitter:title" content="<%= seo.title %>">
+<meta name="twitter:description" content="<%= seo.description %>">
+<meta name="twitter:image" content="<%= seo.image %>">
+<meta name="twitter:site" content="@spinspring_kenya">
+
+<!-- Structured Data: LocalBusiness / LaundryService -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LaundryService",
+  "name": "SpinSpring Express",
+  "image": "<%= seo.image %>",
+  "@id": "https://spinspringexpress.co.ke",
+  "url": "https://spinspringexpress.co.ke",
+  "telephone": "+254741237542",
+  "priceRange": "KES 200 - KES 2,500",
+  "description": "<%= seo.description %>",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Westlands",
+    "addressLocality": "Nairobi",
+    "addressRegion": "Nairobi",
+    "postalCode": "00100",
+    "addressCountry": "KE"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": -1.2921,
+    "longitude": 36.8219
+  },
+  "areaServed": {
+    "@type": "City",
+    "name": "Nairobi"
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+      "opens": "08:00",
+      "closes": "20:00"
+    },
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": "Sunday",
+      "opens": "10:00",
+      "closes": "18:00"
+    }
+  ],
+  "sameAs": [
+    "https://wa.me/254741237542",
+    "https://instagram.com/spinspring_kenya"
+  ]
+}
+</script>
