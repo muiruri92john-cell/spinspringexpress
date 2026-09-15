@@ -23,6 +23,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+// Owner routes
+app.use('/', require('./routes/owner'));
+
 // ─────────────────────────────────────────────────────────────
 // LIGHTWEIGHT PROBES (no session/DB/flash needed)
 // ─────────────────────────────────────────────────────────────
@@ -78,6 +82,9 @@ app.use(session({
     secure: isProduction
   }
 }));
+
+
+
 
 app.use(flash());
 
