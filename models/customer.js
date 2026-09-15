@@ -1,5 +1,6 @@
 // =====================================================
 // models/customer.js — Customer DB operations
+// Aligned with actual schema (total_cycles, preferred_location_id)
 // =====================================================
 
 class CustomerModel {
@@ -18,7 +19,7 @@ class CustomerModel {
       `SELECT c.*, l.location_name,
         (SELECT COUNT(*) FROM ss_orders WHERE customer_id = c.id) AS order_count
        FROM ss_customers c
-       LEFT JOIN ss_locations l ON c.location_id = l.id
+       LEFT JOIN ss_locations l ON c.preferred_location_id = l.id
        WHERE c.owner_id = ?
        ORDER BY c.created_at DESC
        LIMIT ?`,
@@ -47,24 +48,25 @@ class CustomerModel {
     const customerId = this.generateUniqueId();
     const [result] = await this.db.query(
       `INSERT INTO ss_customers 
-       (owner_id, customer_unique_id, full_name, email, phone, password, address, location_id, is_active)
+       (owner_id, customer_unique_id, full_name, email, phone, password, 
+        address, preferred_location_id, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
         ownerId,
         customerId,
         data.full_name,
         data.email,
-        data.phone,
+        data.phone || null,
         passwordHash,
         data.address || null,
-        data.location_id || null
+        data.location_id || data.preferred_location_id || null
       ]
     );
     return { id: result.insertId, customer_unique_id: customerId };
   }
 
   async update(id, ownerId, data) {
-    const allowed = ['full_name', 'phone', 'address', 'location_id', 'is_active'];
+    const allowed = ['full_name', 'phone', 'address', 'preferred_location_id', 'is_active'];
     const updates = [];
     const values = [];
     for (const key of allowed) {
@@ -96,7 +98,7 @@ class CustomerModel {
         COUNT(*) AS total,
         SUM(is_active = 1) AS active,
         SUM(is_active = 0) AS inactive,
-        COALESCE(SUM(total_orders), 0) AS total_orders,
+        COALESCE(SUM(total_cycles), 0) AS total_orders,
         COALESCE(SUM(total_spent), 0) AS total_spent
        FROM ss_customers WHERE owner_id = ?`,
       [ownerId]
