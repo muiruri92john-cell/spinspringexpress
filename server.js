@@ -85,6 +85,7 @@ app.use(flash());
 // ATTACH req.db + LOCALS (must run BEFORE routes)
 // ─────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
+
   req.db = db;
   req.requestId = Math.random().toString(36).slice(2, 8).toUpperCase()
                 + Date.now().toString(36).slice(-4).toUpperCase();
@@ -92,6 +93,14 @@ app.use((req, res, next) => {
   res.locals.error_msg = req.flash('error_msg') || [];
   res.locals.user = req.session.spinUser || null;
   res.locals.requestId = req.requestId;
+
+    // Business contact (from .env)
+  res.locals.business = {
+    name:    process.env.BUSINESS_NAME    || 'SpinSpring Express',
+    phone:   process.env.BUSINESS_PHONE   || '+254 741 237 542',
+    whatsapp: process.env.BUSINESS_WHATSAPP || '+254741237542',
+    email:   process.env.BUSINESS_EMAIL   || 'hello@spinspringexpress.co.ke'
+  };
   next();
 });
 
