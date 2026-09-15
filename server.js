@@ -104,6 +104,13 @@ app.use((req, res, next) => {
 // ROUTES (NOW they can safely use req.db, req.body, req.session)
 // ─────────────────────────────────────────────────────────────
 
+
+// Attendant + Customer routes
+const attendantRoutes = require('./routes/attendant');
+app.use('/', attendantRoutes);
+
+const customerRoutes = require('./routes/customer');
+app.use('/', customerRoutes);
 // Main routes (dual mount for both URL styles)
 // Owner routes FIRST (they handle /login, /register, /owner)
 

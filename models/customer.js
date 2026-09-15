@@ -105,4 +105,65 @@ class CustomerModel {
   }
 }
 
+
+
+  async verifyPassword(email, password) {
+    const bcrypt = require('bcryptjs');
+    const [rows] = await this.db.query(
+      `SELECT c.*, o.company_name AS owner_company
+       FROM ss_customers c
+       LEFT JOIN ss_owners o ON c.owner_id = o.id
+       WHERE c.email = ? AND c.is_active = 1
+       LIMIT 1`,
+      [email]
+    );
+    if (!rows.length) return null;
+    const customer = rows[0];
+    if (!customer.password) return null;
+    const match = await bcrypt.compare(password, customer.password);
+    if (!match) return null;
+    return customer;
+  }
+
+  async getOrders(customerId, limit = 50) {
+    const [rows] = await this.db.query(
+      `SELECT o.*, d.device_name, l.location_name
+       FROM ss_orders o
+       LEFT JOIN ss_devices d ON o.device_id = d.device_id
+       LEFT JOIN ss_locations l ON o.location_id = l.id
+       WHERE o.customer_id = ?
+       ORDER BY o.created_at DESC
+       LIMIT ?`,
+      [customerId, limit]
+    );
+    return rows;
+  }
+
+  async getActiveOrders(customerId) {
+    const [rows] = await this.db.query(
+      `SELECT o.*, d.device_name
+       FROM ss_orders o
+       LEFT JOIN ss_devices d ON o.device_id = d.device_id
+       WHERE o.customer_id = ?
+         AND o.order_status IN ('pending','queued','in_progress')
+       ORDER BY o.created_at DESC`,
+      [customerId]
+    );
+    return rows;
+  }
+
+  async getStats(customerId) {
+    const [rows] = await this.db.query(
+      `SELECT 
+        COUNT(*) AS total_orders,
+        SUM(order_status = 'completed') AS completed,
+        SUM(order_status IN ('pending','queued','in_progress')) AS active,
+        COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN price ELSE 0 END), 0) AS total_spent
+       FROM ss_orders
+       WHERE customer_id = ?`,
+      [customerId]
+    );
+    return rows[0] || {};
+  }
+
 module.exports = CustomerModel;
