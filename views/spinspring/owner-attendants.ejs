@@ -1,0 +1,157 @@
+<%- include('../layouts/main') %>
+
+<style>
+.page-header {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 25px 0;
+  margin-bottom: 30px;
+}
+.page-header h1 { color: white; font-weight: 800; margin: 0; }
+.page-header .sub { color: rgba(255,255,255,0.9); margin-top: 4px; }
+
+.stat-box { background: white; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #e0f2fe; }
+.stat-box .v { font-size: 1.75rem; font-weight: 800; color: #10b981; }
+.stat-box .l { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+
+.att-table { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(2,132,199,0.08); }
+.att-table table { margin: 0; }
+.att-table thead { background: #f0f9ff; }
+.att-table thead th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; border: none; padding: 14px; }
+.att-table tbody td { padding: 14px; border-color: #f1f5f9; vertical-align: middle; }
+.status-pill { padding: 3px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.status-active { background: #d1fae5; color: #065f46; }
+.status-inactive { background: #f1f5f9; color: #64748b; }
+</style>
+
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="fas fa-user-tie me-2"></i>Attendants</h1>
+      <div class="sub">Manage your staff members</div>
+    </div>
+    <button class="btn btn-light rounded-pill" data-bs-toggle="modal" data-bs-target="#addAttModal">
+      <i class="fas fa-plus me-1"></i>Add Attendant
+    </button>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <%- include('../partials/flash') %>
+
+  <div class="mb-3">
+    <a href="/owner" class="btn btn-sm btn-outline-secondary rounded-pill">
+      <i class="fas fa-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v"><%= stats.total || 0 %></div><div class="l">Total</div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v" style="color:#10b981;"><%= stats.active || 0 %></div><div class="l">Active</div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v" style="color:#64748b;"><%= stats.inactive || 0 %></div><div class="l">Inactive</div></div></div>
+  </div>
+
+  <% if (attendants.length === 0) { %>
+    <div class="text-center py-5">
+      <i class="fas fa-user-tie fa-4x mb-3" style="color:#bae6fd;"></i>
+      <h4 style="color:#0c4a6e;">No attendants yet</h4>
+      <p class="text-muted">Add your first staff member</p>
+      <button class="ss-btn" data-bs-toggle="modal" data-bs-target="#addAttModal">
+        <i class="fas fa-plus me-2"></i>Add Attendant
+      </button>
+    </div>
+  <% } else { %>
+    <div class="att-table">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% attendants.forEach(a => { %>
+            <tr>
+              <td><strong><%= a.full_name %></strong></td>
+              <td><%= a.email %></td>
+              <td><%= a.phone || '—' %></td>
+              <td><%= a.location_name || '—' %></td>
+              <td><span class="status-pill <%= a.is_active ? 'status-active' : 'status-inactive' %>">
+                <%= a.is_active ? 'Active' : 'Inactive' %>
+              </span></td>
+              <td class="text-end">
+                <form method="POST" action="/owner/attendants/<%= a.id %>/toggle" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill" title="Toggle status">
+                    <i class="fas fa-power-off"></i>
+                  </button>
+                </form>
+                <form method="POST" action="/owner/attendants/<%= a.id %>/delete" class="d-inline"
+                      onsubmit="return confirm('Delete this attendant?');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- ADD ATTENDANT MODAL -->
+<div class="modal fade" id="addAttModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;">
+      <form method="POST" action="/owner/attendants">
+        <div class="modal-header" style="background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:20px 20px 0 0;">
+          <h5 class="modal-title"><i class="fas fa-user-tie me-2"></i>Add Attendant</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Full Name *</label>
+            <input type="text" name="full_name" class="form-control" required maxlength="100">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Email *</label>
+            <input type="email" name="email" class="form-control" required>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Phone</label>
+              <input type="tel" name="phone" class="form-control" placeholder="+254...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">PIN Code *</label>
+              <input type="text" name="pin_code" class="form-control" required maxlength="10"
+                     placeholder="4-6 digits" pattern="[0-9]{4,6}">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label fw-bold">Assign to Location</label>
+            <select name="location_id" class="form-select">
+              <option value="">— None —</option>
+              <% locations.forEach(l => { %>
+                <option value="<%= l.id %>"><%= l.location_name %></option>
+              <% }); %>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="ss-btn ss-btn-success">Create Attendant</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
