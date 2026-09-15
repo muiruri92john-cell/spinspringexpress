@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="google-site-verification" content="bTaWwS-mlv4IvJS6UoM3Q21p2WGOvujV81__1IsXEuA" />
-    <title><%= typeof title !== 'undefined' ? title : 'Ardthon Solutions' %></title>
+    <%- include('../partials/seo') %>
     <%- include('../partials/analytics') %>
     
     <!-- Favicon -->
@@ -24,7 +24,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="SpinSpring Express">
     <meta name="theme-color" content="#0284c7">
-    <meta name="description" content="Premium laundry and dry cleaning service in Nairobi with pickup and delivery">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
