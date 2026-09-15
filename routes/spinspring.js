@@ -4,9 +4,6 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const [owner] = await req.db.query('SELECT phone FROM ss_owners WHERE id = ?', [ownerId]);
-const waNum = (owner[0]?.phone || process.env.BUSINESS_WHATSAPP || '254741237542').replace(/\D/g, '');
-const waLink = `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`;
 
 // Async wrapper
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -20,8 +17,6 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
     ))
   );
 });
-
-
 
 // ============ AUTH MIDDLEWARE ============
 function isAuth(req, res, next) {
