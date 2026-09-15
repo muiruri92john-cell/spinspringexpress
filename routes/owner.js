@@ -20,41 +20,89 @@ const ah = (fn) => (req, res, next) =>
 
 router.get('/register', (req, res) => {
   if (req.session.spinUser) return res.redirect('/owner');
+  
+  // Check if invite code was provided in query
+  const inviteCode = req.query.invite || '';
+  
   res.render('spinspring/owner-register', {
     title: 'Register Company - SpinSpring Express',
-    user: null
+    user: null,
+    inviteCode: inviteCode,
+    requiresInvite: true
   });
 });
 
 router.post('/register', ah(async (req, res) => {
+  const InviteModel = require('../models/invite');
   const model = new OwnerModel(req.db);
-  const { company_name, contact_name, email, password, password2, phone, address, city } = req.body;
+  const inviteModel = new InviteModel(req.db);
 
+  const { 
+    company_name, contact_name, email, password, password2, 
+    phone, address, city, invite_code 
+  } = req.body;
+
+  // ═══════════════════════════════════════════════════
+  // VALIDATE INVITE CODE FIRST
+  // ═══════════════════════════════════════════════════
+  if (!invite_code || !invite_code.trim()) {
+    req.flash('error_msg', 'Invite code is required to register');
+    return res.redirect('/register');
+  }
+
+  const validation = await inviteModel.validate(invite_code.trim(), 'owner');
+  if (!validation.valid) {
+    req.flash('error_msg', 'Invalid invite: ' + validation.error);
+    return res.redirect('/register?invite=' + encodeURIComponent(invite_code));
+  }
+
+  // ═══════════════════════════════════════════════════
+  // VALIDATE FORM FIELDS
+  // ═══════════════════════════════════════════════════
   if (!company_name || !contact_name || !email || !password) {
     req.flash('error_msg', 'All required fields must be filled');
-    return res.redirect('/register');
+    return res.redirect('/register?invite=' + encodeURIComponent(invite_code));
   }
   if (password !== password2) {
     req.flash('error_msg', 'Passwords do not match');
-    return res.redirect('/register');
+    return res.redirect('/register?invite=' + encodeURIComponent(invite_code));
   }
   if (password.length < 6) {
     req.flash('error_msg', 'Password must be at least 6 characters');
-    return res.redirect('/register');
+    return res.redirect('/register?invite=' + encodeURIComponent(invite_code));
   }
 
+  // Check email isn't already used
   const existing = await model.findByEmail(email);
   if (existing) {
     req.flash('error_msg', 'Email already registered');
-    return res.redirect('/register');
+    return res.redirect('/register?invite=' + encodeURIComponent(invite_code));
   }
 
-  await model.create({
-    company_name, contact_name, email, phone, password, address, city
-  });
+  // ═══════════════════════════════════════════════════
+  // CREATE OWNER
+  // ═══════════════════════════════════════════════════
+  try {
+    const { id: ownerId } = await model.create({
+      company_name, contact_name, email, phone, password, address, city
+    });
 
-  req.flash('success_msg', '✅ Company registered! Please login.');
-  res.redirect('/login');
+    // Record the invite code used
+    await req.db.query(
+      'UPDATE ss_owners SET invite_code_used = ? WHERE id = ?',
+      [invite_code.trim(), ownerId]
+    );
+
+    // Mark invite as used
+    await inviteModel.use(invite_code.trim(), ownerId);
+
+    req.flash('success_msg', '✅ Company registered! Please login.');
+    res.redirect('/login');
+  } catch (e) {
+    console.error('Register error:', e);
+    req.flash('error_msg', 'Registration failed: ' + e.message);
+    res.redirect('/register?invite=' + encodeURIComponent(invite_code));
+  }
 }));
 
 // ═══════════════════════════════════════════════════
@@ -490,5 +538,83 @@ router.get('/api/owner/stats', isOwner, ah(async (req, res) => {
   const stats = await model.getDashboardStats(req.session.spinUser.id);
   res.json({ success: true, stats, timestamp: new Date().toISOString() });
 }));
+
+
+// ═══════════════════════════════════════════════════
+// INVITE CODE MANAGEMENT
+// ═══════════════════════════════════════════════════
+
+const InviteModel = require('../models/invite');
+
+router.get('/owner/invites', isOwner, ah(async (req, res) => {
+  const model = new InviteModel(req.db);
+  const ownerId = req.session.spinUser.id;
+
+  const [invites, stats] = await Promise.all([
+    model.listByOwner(ownerId),
+    model.getStats(ownerId)
+  ]);
+
+  res.render('spinspring/owner-invites', {
+    title: 'Invite Codes - SpinSpring Express',
+    user: req.session.spinUser,
+    invites,
+    stats,
+    ownerId
+  });
+}));
+
+router.post('/owner/invites', isOwner, ah(async (req, res) => {
+  const model = new InviteModel(req.db);
+  const ownerId = req.session.spinUser.id;
+  const { type, max_uses, expires_in_days, notes } = req.body;
+
+  const validTypes = ['owner', 'attendant', 'customer'];
+  if (!validTypes.includes(type)) {
+    req.flash('error_msg', 'Invalid invite type');
+    return res.redirect('/owner/invites');
+  }
+
+  let expiresAt = null;
+  if (expires_in_days && parseInt(expires_in_days, 10) > 0) {
+    expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + parseInt(expires_in_days, 10));
+  }
+
+  const { code } = await model.create(ownerId, type, {
+    max_uses: parseInt(max_uses, 10) || 1,
+    expires_at: expiresAt,
+    notes: notes || null
+  });
+
+  req.flash('success_msg', `✅ Invite code created: ${code}`);
+  res.redirect('/owner/invites');
+}));
+
+router.post('/owner/invites/:id/toggle', isOwner, ah(async (req, res) => {
+  const model = new InviteModel(req.db);
+  await model.toggleActive(req.params.id, req.session.spinUser.id);
+  req.flash('success_msg', 'Invite status updated');
+  res.redirect('/owner/invites');
+}));
+
+router.post('/owner/invites/:id/delete', isOwner, ah(async (req, res) => {
+  const model = new InviteModel(req.db);
+  await model.delete(req.params.id, req.session.spinUser.id);
+  req.flash('success_msg', 'Invite deleted');
+  res.redirect('/owner/invites');
+}));
+
+// Quick API to validate code
+router.get('/api/invite/validate', ah(async (req, res) => {
+  const model = new InviteModel(req.db);
+  const { code, type } = req.query;
+
+  if (!code) return res.json({ valid: false, error: 'No code provided' });
+
+  const result = await model.validate(code.trim(), type || 'owner');
+  res.json(result);
+}));
+
 
 module.exports = router;

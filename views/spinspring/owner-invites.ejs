@@ -1,0 +1,194 @@
+<%- include('../layouts/main') %>
+
+<style>
+.page-header {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  padding: 25px 0;
+  margin-bottom: 30px;
+}
+.page-header h1 { color: white; font-weight: 800; margin: 0; }
+.page-header .sub { color: rgba(255,255,255,0.9); }
+
+.stat-box { background: white; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #e0f2fe; }
+.stat-box .v { font-size: 1.75rem; font-weight: 800; color: #f59e0b; }
+.stat-box .l { font-size: 0.75rem; color: #64748b; text-transform: uppercase; }
+
+.invite-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e0f2fe;
+  box-shadow: 0 3px 15px rgba(2,132,199,0.08);
+  margin-bottom: 12px;
+}
+.invite-code {
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #d97706;
+  background: #fef3c7;
+  padding: 6px 12px;
+  border-radius: 8px;
+  letter-spacing: 1px;
+  display: inline-block;
+}
+.badge-type {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.badge-owner { background: #dbeafe; color: #1e40af; }
+.badge-attendant { background: #d1fae5; color: #065f46; }
+.badge-customer { background: #fef3c7; color: #92400e; }
+.badge-active { background: #d1fae5; color: #065f46; }
+.badge-inactive { background: #f1f5f9; color: #64748b; }
+</style>
+
+<div class="page-header">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="fas fa-key me-2"></i>Invite Codes</h1>
+      <div class="sub">Generate codes to invite new owners, attendants, or customers</div>
+    </div>
+    <button class="btn btn-light rounded-pill" data-bs-toggle="modal" data-bs-target="#newInviteModal">
+      <i class="fas fa-plus me-1"></i>New Invite Code
+    </button>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <%- include('../partials/flash') %>
+
+  <div class="mb-3">
+    <a href="/owner" class="btn btn-sm btn-outline-secondary rounded-pill">
+      <i class="fas fa-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <!-- STATS -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v"><%= stats.total_codes || 0 %></div><div class="l">Total Codes</div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v" style="color:#10b981;"><%= stats.active_codes || 0 %></div><div class="l">Active</div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v" style="color:#3b82f6;"><%= stats.available_codes || 0 %></div><div class="l">Available</div></div></div>
+    <div class="col-md-3 col-6"><div class="stat-box"><div class="v" style="color:#8b5cf6;"><%= stats.total_uses || 0 %></div><div class="l">Total Uses</div></div></div>
+  </div>
+
+  <!-- INVITES LIST -->
+  <% if (invites.length === 0) { %>
+    <div class="text-center py-5">
+      <i class="fas fa-key fa-4x mb-3" style="color:#fef3c7;"></i>
+      <h4 style="color:#0c4a6e;">No invite codes yet</h4>
+      <p class="text-muted">Generate one to invite new users</p>
+      <button class="ss-btn" data-bs-toggle="modal" data-bs-target="#newInviteModal" style="background:#f59e0b;">
+        <i class="fas fa-plus me-2"></i>New Invite Code
+      </button>
+    </div>
+  <% } else { %>
+    <% invites.forEach(inv => { %>
+      <div class="invite-card">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <div style="flex:1;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="invite-code"><%= inv.code %></span>
+              <span class="badge-type badge-<%= inv.type %>"><%= inv.type %></span>
+              <span class="badge-type <%= inv.is_active ? 'badge-active' : 'badge-inactive' %>">
+                <%= inv.is_active ? 'Active' : 'Inactive' %>
+              </span>
+            </div>
+            <div style="font-size:0.85rem;color:#64748b;">
+              <div><i class="fas fa-redo me-1"></i><%= inv.times_used %> / <%= inv.max_uses %> uses</div>
+              <% if (inv.expires_at) { %>
+                <div><i class="fas fa-clock me-1"></i>Expires <%= new Date(inv.expires_at).toLocaleDateString() %></div>
+              <% } %>
+              <% if (inv.notes) { %>
+                <div><i class="fas fa-sticky-note me-1"></i><%= inv.notes %></div>
+              <% } %>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-primary rounded-pill copy-btn" data-code="<%= inv.code %>">
+              <i class="fas fa-copy"></i> Copy
+            </button>
+            <form method="POST" action="/owner/invites/<%= inv.id %>/toggle" class="d-inline">
+              <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill">
+                <i class="fas fa-power-off"></i>
+              </button>
+            </form>
+            <form method="POST" action="/owner/invites/<%= inv.id %>/delete" class="d-inline"
+                  onsubmit="return confirm('Delete this invite code?');">
+              <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+</div>
+
+<!-- NEW INVITE MODAL -->
+<div class="modal fade" id="newInviteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;">
+      <form method="POST" action="/owner/invites">
+        <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border-radius:20px 20px 0 0;">
+          <h5 class="modal-title"><i class="fas fa-key me-2"></i>New Invite Code</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Invite Type *</label>
+            <select name="type" class="form-select" required>
+              <option value="owner">Owner (new company)</option>
+              <option value="attendant">Attendant</option>
+              <option value="customer">Customer</option>
+            </select>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Max Uses</label>
+              <input type="number" name="max_uses" class="form-control" value="1" min="1" max="100">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Expires In (days)</label>
+              <input type="number" name="expires_in_days" class="form-control" min="1" max="365"
+                     placeholder="Leave blank for never">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="form-label fw-bold">Notes</label>
+            <input type="text" name="notes" class="form-control" maxlength="255"
+                   placeholder="e.g., For Sarah's team">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="ss-btn" style="background:#f59e0b;">Generate Code</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.copy-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var code = this.dataset.code;
+    navigator.clipboard.writeText(code).then(function() {
+      btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+      setTimeout(function() {
+        btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+      }, 2000);
+    });
+  });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
