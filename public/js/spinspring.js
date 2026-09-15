@@ -11,7 +11,7 @@
   // ============================================================
   const SS = {
     ownerId: 5,                          // default owner for public API
-    whatsapp: '254793972143',            // business WhatsApp
+    whatsapp: '254741237542',            // business WhatsApp
     apiBase: '',                         // same-origin
     debug: false,                        // set true to log
 
