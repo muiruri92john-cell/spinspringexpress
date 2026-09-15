@@ -114,6 +114,10 @@ app.use('/', customerRoutes);
 // Main routes (dual mount for both URL styles)
 // Owner routes FIRST (they handle /login, /register, /owner)
 
+// Sitemap + robots.txt (public, no auth)
+const sitemapRoutes = require('./routes/sitemap');
+app.use('/', sitemapRoutes);
+
 // Owner routes FIRST (they handle /login, /register, /owner)
 const ownerRoutes = require('./routes/owner');
 app.use('/', ownerRoutes);
