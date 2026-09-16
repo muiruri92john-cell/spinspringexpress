@@ -637,7 +637,7 @@
     if (DOM.cpSignal) DOM.cpSignal.textContent = data.signal_strength || '-';
 
     if (DOM.heartbeatBadge) {
-      const age = data.seconds_since_heartbeat || 999;
+      const age = data.seconds_since_sync || 999;
       if (age < 60) {
         DOM.heartbeatBadge.className = 'badge bg-success';
         DOM.heartbeatBadge.textContent = 'Online';
