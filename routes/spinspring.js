@@ -1123,15 +1123,25 @@ router.post('/api/sync', ah(async (req, res) => {
     );
   } catch (e) { console.error('heartbeat log failed:', e.message); }
 
-  if (typeof data.current_credit === 'number') {
-    try {
-      await req.db.query(
-        'UPDATE ss_machine_params SET current_credit_minutes = ?, firmware_version = ? WHERE device_id = ?',
-        [data.current_credit, data.firmware_version || null, deviceId]
-      );
-    } catch (e) { console.error('credit sync failed:', e.message); }
-  }
+if (typeof data.current_credit === 'number') {
+  // Only trust ESP32's credit if it's non-zero, or if the DB has 0
+  // (prevents ESP32 reboot wiping credits that server knows about)
+  const [current] = await req.db.query(
+    'SELECT current_credit_minutes FROM ss_machine_params WHERE device_id = ?',
+    [deviceId]
+  );
+  const dbCredit = current[0]?.current_credit_minutes || 0;
+  const espCredit = data.current_credit || 0;
 
+  // If DB has credits but ESP32 says 0, keep DB value (ESP32 reset)
+  // If both agree, or ESP32 has more, take ESP32 value
+  const finalCredit = (dbCredit > 0 && espCredit === 0) ? dbCredit : espCredit;
+
+  await req.db.query(
+    'UPDATE ss_machine_params SET current_credit_minutes = ?, firmware_version = ? WHERE device_id = ?',
+    [finalCredit, data.firmware_version || null, deviceId]
+  );
+}
   const [commands] = await req.db.query(
     "SELECT id, command_type, command_value FROM ss_commands WHERE device_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 10",
     [deviceId]
