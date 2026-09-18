@@ -584,17 +584,23 @@ router.get('/api/machine/:deviceId/heartbeat', isAuth, async (req, res) => {
   }
 });
 
-// ============ PULSE / CREDIT DISPATCH ============
 router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, res) => {
   try {
     const { deviceId } = req.params;
-    const { credits = 1, reason = 'manual', order_number = null } = req.body;
+    const {
+      credits = 1,
+      reason = 'manual',
+      order_number = null,
+      cycle_type = 'wash',        // ← NEW
+      service_type = 'wash'       // ← NEW
+    } = req.body;
 
     const creditsInt = parseInt(credits, 10);
     if (isNaN(creditsInt) || creditsInt < 1 || creditsInt > 99) {
       return res.status(400).json({ success: false, error: 'Credits must be 1-99' });
     }
 
+    // Get current params
     let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
     if (params.length === 0) {
       await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
@@ -602,10 +608,12 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
     }
     const p = params[0];
 
+    // Check lockout
     if (p.is_locked_out && p.lockout_until && new Date(p.lockout_until) > new Date()) {
       return res.status(429).json({ success: false, error: 'Device locked out until ' + p.lockout_until });
     }
 
+    // Check max credit cap
     const newTotal = (p.current_credit_minutes || 0) + (creditsInt * p.run_time_per_credit_min);
     if (newTotal > p.max_credit_minutes) {
       return res.status(400).json({
@@ -614,8 +622,12 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       });
     }
 
+    // ✅ Build command with cycle info
     const commandValue = JSON.stringify({
       credits: creditsInt,
+      cycle_type: cycle_type,           // ← NEW
+      service_type: service_type,       // ← NEW
+      order_number: order_number || '', // ← NEW
       pulses_per_credit: p.pulses_per_credit,
       pulse_width_ms: p.pulse_width_ms,
       pulse_gap_ms: p.pulse_gap_ms,
@@ -629,12 +641,14 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       [deviceId, commandValue]
     );
 
+    // Log for audit
     await req.db.query(
       `INSERT INTO ss_pulse_log (device_id, pulses_sent, pulse_width_ms, pulse_gap_ms, credits_granted, reason, order_number) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [deviceId, creditsInt * p.pulses_per_credit, p.pulse_width_ms, p.pulse_gap_ms, creditsInt, reason, order_number]
     );
 
+    // Update running credit total
     await req.db.query(
       'UPDATE ss_machine_params SET current_credit_minutes = current_credit_minutes + ?, total_pulses_sent = total_pulses_sent + ?, last_pulse_at = NOW() WHERE device_id = ?',
       [creditsInt * p.run_time_per_credit_min, creditsInt * p.pulses_per_credit, deviceId]
@@ -644,6 +658,9 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       success: true,
       queued: {
         credits: creditsInt,
+        cycle_type: cycle_type,
+        service_type: service_type,
+        order_number: order_number,
         pulses: creditsInt * p.pulses_per_credit,
         minutes_added: creditsInt * p.run_time_per_credit_min,
         new_total_minutes: newTotal

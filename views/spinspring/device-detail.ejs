@@ -296,34 +296,75 @@
       </div>
 
       <!-- DISPENSE TAB -->
-      <div class="tab-pane fade" id="tabDispense">
-        <div class="alert alert-warning small">
-          <i class="fas fa-exclamation-triangle me-1"></i>
-          Credits will be queued and applied on next device sync.
-        </div>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Credits to Add</label>
-            <input type="number" id="dispenseCredits" class="form-control" min="1" max="99" value="1">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Reason</label>
-            <select id="dispenseReason" class="form-select">
-              <option value="manual">Manual (attendant)</option>
-              <option value="payment">Payment received</option>
-              <option value="refund">Refund</option>
-              <option value="test">Test</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Order # (optional)</label>
-            <input type="text" id="dispenseOrder" class="form-control" placeholder="SS-XXXX">
-          </div>
-        </div>
-        <button class="btn btn-success rounded-pill mt-3" id="dispenseBtn">
-          <i class="fas fa-bolt me-2"></i> Queue Dispense
-        </button>
-      </div>
+<div class="tab-pane fade" id="tabDispense">
+  <div class="alert alert-warning small">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    Credits will be queued and applied on next device sync.
+  </div>
+
+  <!-- Row 1: Cycle Type (FULL WIDTH) -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label class="form-label fw-bold">
+        <i class="fas fa-tshirt me-1" style="color:#0284c7;"></i>
+        Cycle Type
+      </label>
+      <select id="dispenseCycleType" class="form-select">
+        <option value="wash">🧺 Wash Only (15 min/credit)</option>
+        <option value="wash_dry" selected>🌀 Wash + Dry (30 min/credit)</option>
+        <option value="dry">🌬️ Dry Only (10 min/credit)</option>
+        <option value="iron">🔥 Iron Only (5 min/credit)</option>
+        <option value="quick">⚡ Quick Wash (5 min/credit)</option>
+        <option value="delicate">🌸 Delicate (20 min/credit)</option>
+      </select>
+      <small class="text-muted">Determines what the machine does</small>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-bold">
+        <i class="fas fa-cog me-1" style="color:#0284c7;"></i>
+        Service Type
+      </label>
+      <select id="dispenseServiceType" class="form-select">
+        <option value="wash">Wash</option>
+        <option value="dry_clean">Dry Clean</option>
+        <option value="iron">Iron</option>
+      </select>
+      <small class="text-muted">For reporting / categorization</small>
+    </div>
+  </div>
+
+  <!-- Row 2: Credits, Reason, Order -->
+  <div class="row g-3">
+    <div class="col-md-4">
+      <label class="form-label fw-bold">Credits to Add</label>
+      <input type="number" id="dispenseCredits" class="form-control" min="1" max="99" value="1">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-bold">Reason</label>
+      <select id="dispenseReason" class="form-select">
+        <option value="manual">Manual (attendant)</option>
+        <option value="payment">Payment received</option>
+        <option value="refund">Refund</option>
+        <option value="test">Test</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-bold">Order # (optional)</label>
+      <input type="text" id="dispenseOrder" class="form-control" placeholder="SS-XXXX">
+    </div>
+  </div>
+
+  <!-- Live preview -->
+  <div id="dispensePreview" class="alert alert-info small mt-3 mb-0" style="display:none;">
+    <i class="fas fa-info-circle me-1"></i>
+    <span id="dispensePreviewText"></span>
+  </div>
+
+  <!-- Submit button -->
+  <button class="btn btn-success rounded-pill mt-3" id="dispenseBtn">
+    <i class="fas fa-bolt me-2"></i> Queue Dispense
+  </button>
+</div>
 
       <!-- TIMING TAB -->
       <div class="tab-pane fade" id="tabTiming">
@@ -587,35 +628,82 @@
     }
   }
 
-  async function dispenseCredits() {
-    const credits = parseInt(DOM.dispenseCredits?.value || 1, 10);
-    const reason = DOM.dispenseReason?.value || 'manual';
-    const order = DOM.dispenseOrder?.value || null;
+ async function dispenseCredits() {
+  const credits = parseInt(DOM.dispenseCredits?.value || 1, 10);
+  const reason = DOM.dispenseReason?.value || 'manual';
+  const order = DOM.dispenseOrder?.value || null;
+  const cycleType = document.getElementById('dispenseCycleType')?.value || 'wash';
+  const serviceType = document.getElementById('dispenseServiceType')?.value || 'wash';
 
-    if (credits < 1) {
-      showToast('Credits must be at least 1', 'warning');
-      return;
+  if (credits < 1) {
+    showToast('Credits must be at least 1', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/machine/${CP_DEVICE_ID}/dispense`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        credits,
+        reason,
+        order_number: order,
+        cycle_type: cycleType,      // ← NEW
+        service_type: serviceType   // ← NEW
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Queued ${credits} credit(s) — ${cycleType}`, 'success');
+      DOM.dispenseCredits.value = 1;
+      DOM.dispenseOrder.value = '';
+    } else {
+      showToast(data.error || 'Dispense failed', 'danger');
     }
+  } catch (e) {
+    console.error('Dispense failed:', e);
+    showToast('Network error during dispense', 'danger');
+  }
+}
 
-    try {
-      const res = await fetch(`/api/machine/${CP_DEVICE_ID}/dispense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credits, reason, order_number: order })
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast(`Queued ${credits} credit(s) for dispense`, 'success');
-        DOM.dispenseCredits.value = 1;
-        DOM.dispenseOrder.value = '';
-      } else {
-        showToast(data.error || 'Dispense failed', 'danger');
-      }
-    } catch (e) {
-      console.error('Dispense failed:', e);
-      showToast('Network error during dispense', 'danger');
+
+// Live preview of what will be sent
+(function() {
+  function updatePreview() {
+    const credits = parseInt(document.getElementById('dispenseCredits')?.value || 1, 10);
+    const cycleType = document.getElementById('dispenseCycleType')?.value || 'wash';
+    const preview = document.getElementById('dispensePreview');
+    const text = document.getElementById('dispensePreviewText');
+
+    if (!preview || !text) return;
+
+    const cycleNames = {
+      'wash': '🧺 Wash Only',
+      'wash_dry': '🌀 Wash + Dry',
+      'dry': '🌬️ Dry Only',
+      'iron': '🔥 Iron Only',
+      'quick': '⚡ Quick Wash',
+      'delicate': '🌸 Delicate'
+    };
+
+    const minutesPerCredit = {
+      'wash': 15, 'wash_dry': 30, 'dry': 10,
+      'iron': 5, 'quick': 5, 'delicate': 20
+    };
+
+    if (credits > 0) {
+      const totalMin = credits * (minutesPerCredit[cycleType] || 15);
+      text.textContent = `Will run: ${cycleNames[cycleType]} for ${totalMin} minutes total`;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
     }
   }
+
+  document.getElementById('dispenseCredits')?.addEventListener('input', updatePreview);
+  document.getElementById('dispenseCycleType')?.addEventListener('change', updatePreview);
+  document.getElementById('dispenseServiceType')?.addEventListener('change', updatePreview);
+})();
 
   async function loadPulseLog() {
     try {
@@ -637,7 +725,7 @@
     if (DOM.cpSignal) DOM.cpSignal.textContent = data.signal_strength || '-';
 
     if (DOM.heartbeatBadge) {
-      const age = data.seconds_since_heartbeat || 999;
+      const age = data.seconds_since_sync || 999;
       if (age < 60) {
         DOM.heartbeatBadge.className = 'badge bg-success';
         DOM.heartbeatBadge.textContent = 'Online';
@@ -666,6 +754,8 @@
       </tr>
     `).join('');
   }
+
+  
 
   function showToast(message, type) {
     // Simple toast fallback
@@ -703,6 +793,8 @@
   }
 })();
 </script>
+
+
 
 </body>
 </html>

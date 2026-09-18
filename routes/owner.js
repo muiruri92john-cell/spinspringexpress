@@ -256,6 +256,10 @@ router.post('/owner/settings/password', isOwner, ah(async (req, res) => {
 // LOCATIONS MANAGEMENT
 // ═══════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════
+// LOCATIONS MANAGEMENT
+// ═══════════════════════════════════════════════════
+
 router.get('/owner/locations', isOwner, ah(async (req, res) => {
   const ownerId = req.session.spinUser.id;
   const [locations] = await req.db.query(
