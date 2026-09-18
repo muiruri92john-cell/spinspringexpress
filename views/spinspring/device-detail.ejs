@@ -6,11 +6,7 @@
   background: linear-gradient(135deg, #0284c7, #0ea5e9);
   padding: 15px 0;
 }
-
-.ss-nav a {
-  color: white !important;
-  text-decoration: none;
-}
+.ss-nav a { color: white !important; text-decoration: none; }
 
 /* ===== CARDS ===== */
 .ss-card {
@@ -21,7 +17,6 @@
   border: 1px solid #e0f2fe;
   margin-bottom: 20px;
 }
-
 .ss-card .section-title {
   display: flex;
   justify-content: space-between;
@@ -35,13 +30,7 @@
 }
 
 /* ===== STATUS BADGES ===== */
-.status-badge {
-  padding: 5px 15px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
+.status-badge { padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
 .status-idle { background: #e0f2fe; color: #0284c7; }
 .status-running { background: #d1fae5; color: #065f46; }
 .status-paused { background: #fef3c7; color: #92400e; }
@@ -58,76 +47,29 @@
 }
 
 /* ===== STAT BOXES ===== */
-.ss-stat {
-  background: #f0f9ff;
-  border-radius: 12px;
-  padding: 15px;
-  text-align: center;
-}
-
-.ss-stat .value {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0284c7;
-}
-
-.ss-stat .label {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-top: 4px;
-}
+.ss-stat { background: #f0f9ff; border-radius: 12px; padding: 15px; text-align: center; }
+.ss-stat .value { font-size: 1.5rem; font-weight: 800; color: #0284c7; }
+.ss-stat .label { font-size: 0.75rem; color: #64748b; margin-top: 4px; }
 
 /* ===== TABS ===== */
-.nav-tabs .nav-link {
-  color: #64748b;
-  font-weight: 600;
-  border: none;
-  border-bottom: 3px solid transparent;
-}
-
-.nav-tabs .nav-link.active {
-  color: #0284c7;
-  border-bottom-color: #0284c7;
-  background: transparent;
-}
-
-.nav-tabs .nav-link:hover {
-  color: #0284c7;
-  border-color: transparent;
-  border-bottom-color: #bae6fd;
-}
+.nav-tabs .nav-link { color: #64748b; font-weight: 600; border: none; border-bottom: 3px solid transparent; }
+.nav-tabs .nav-link.active { color: #0284c7; border-bottom-color: #0284c7; background: transparent; }
+.nav-tabs .nav-link:hover { color: #0284c7; border-color: transparent; border-bottom-color: #bae6fd; }
 
 /* ===== FORM CONTROLS ===== */
-.cp-param {
-  font-size: 0.9rem;
-}
-
-.form-label.fw-bold {
-  font-size: 0.85rem;
-  color: #0c4a6e;
-}
+.cp-param { font-size: 0.9rem; }
+.form-label.fw-bold { font-size: 0.85rem; color: #0c4a6e; }
 
 /* ===== HEARTBEAT BADGE ===== */
-#heartbeatBadge {
-  font-size: 0.7rem;
-  padding: 5px 12px;
-  border-radius: 20px;
-}
+#heartbeatBadge { font-size: 0.7rem; padding: 5px 12px; border-radius: 20px; }
 
 /* ===== PULSE LOG TABLE ===== */
-#cpPulseLog td {
-  font-size: 0.8rem;
-  vertical-align: middle;
-}
+#cpPulseLog td { font-size: 0.8rem; vertical-align: middle; }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .ss-card {
-    padding: 18px;
-  }
-  .ss-stat .value {
-    font-size: 1.2rem;
-  }
+  .ss-card { padding: 18px; }
+  .ss-stat .value { font-size: 1.2rem; }
 }
 </style>
 
@@ -296,75 +238,75 @@
       </div>
 
       <!-- DISPENSE TAB -->
-<div class="tab-pane fade" id="tabDispense">
-  <div class="alert alert-warning small">
-    <i class="fas fa-exclamation-triangle me-1"></i>
-    Credits will be queued and applied on next device sync.
-  </div>
+      <div class="tab-pane fade" id="tabDispense">
+        <div class="alert alert-warning small">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          Credits will be queued and applied on next device sync (within 30s).
+        </div>
 
-  <!-- Row 1: Cycle Type (FULL WIDTH) -->
-  <div class="row g-3 mb-3">
-    <div class="col-md-6">
-      <label class="form-label fw-bold">
-        <i class="fas fa-tshirt me-1" style="color:#0284c7;"></i>
-        Cycle Type
-      </label>
-      <select id="dispenseCycleType" class="form-select">
-        <option value="wash">🧺 Wash Only (15 min/credit)</option>
-        <option value="wash_dry" selected>🌀 Wash + Dry (30 min/credit)</option>
-        <option value="dry">🌬️ Dry Only (10 min/credit)</option>
-        <option value="iron">🔥 Iron Only (5 min/credit)</option>
-        <option value="quick">⚡ Quick Wash (5 min/credit)</option>
-        <option value="delicate">🌸 Delicate (20 min/credit)</option>
-      </select>
-      <small class="text-muted">Determines what the machine does</small>
-    </div>
-    <div class="col-md-6">
-      <label class="form-label fw-bold">
-        <i class="fas fa-cog me-1" style="color:#0284c7;"></i>
-        Service Type
-      </label>
-      <select id="dispenseServiceType" class="form-select">
-        <option value="wash">Wash</option>
-        <option value="dry_clean">Dry Clean</option>
-        <option value="iron">Iron</option>
-      </select>
-      <small class="text-muted">For reporting / categorization</small>
-    </div>
-  </div>
+        <!-- Row 1: Cycle Type + Service Type -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">
+              <i class="fas fa-tshirt me-1" style="color:#0284c7;"></i>
+              Cycle Type
+            </label>
+            <select id="dispenseCycleType" class="form-select">
+              <option value="wash">🧺 Wash Only</option>
+              <option value="wash_dry" selected>🌀 Wash + Dry</option>
+              <option value="dry">🌬️ Dry Only</option>
+              <option value="iron">🔥 Iron Only</option>
+              <option value="quick">⚡ Quick Wash</option>
+              <option value="delicate">🌸 Delicate</option>
+            </select>
+            <small class="text-muted">Duration is set by "Run Time per Credit"</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold">
+              <i class="fas fa-cog me-1" style="color:#0284c7;"></i>
+              Service Type
+            </label>
+            <select id="dispenseServiceType" class="form-select">
+              <option value="wash">Wash</option>
+              <option value="dry_clean">Dry Clean</option>
+              <option value="iron">Iron</option>
+            </select>
+            <small class="text-muted">For reporting / categorization</small>
+          </div>
+        </div>
 
-  <!-- Row 2: Credits, Reason, Order -->
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label fw-bold">Credits to Add</label>
-      <input type="number" id="dispenseCredits" class="form-control" min="1" max="99" value="1">
-    </div>
-    <div class="col-md-4">
-      <label class="form-label fw-bold">Reason</label>
-      <select id="dispenseReason" class="form-select">
-        <option value="manual">Manual (attendant)</option>
-        <option value="payment">Payment received</option>
-        <option value="refund">Refund</option>
-        <option value="test">Test</option>
-      </select>
-    </div>
-    <div class="col-md-4">
-      <label class="form-label fw-bold">Order # (optional)</label>
-      <input type="text" id="dispenseOrder" class="form-control" placeholder="SS-XXXX">
-    </div>
-  </div>
+        <!-- Row 2: Credits, Reason, Order -->
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Credits to Add</label>
+            <input type="number" id="dispenseCredits" class="form-control" min="1" max="99" value="1">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Reason</label>
+            <select id="dispenseReason" class="form-select">
+              <option value="manual">Manual (attendant)</option>
+              <option value="payment">Payment received</option>
+              <option value="refund">Refund</option>
+              <option value="test">Test</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Order # (optional)</label>
+            <input type="text" id="dispenseOrder" class="form-control" placeholder="SS-XXXX">
+          </div>
+        </div>
 
-  <!-- Live preview -->
-  <div id="dispensePreview" class="alert alert-info small mt-3 mb-0" style="display:none;">
-    <i class="fas fa-info-circle me-1"></i>
-    <span id="dispensePreviewText"></span>
-  </div>
+        <!-- Live preview -->
+        <div id="dispensePreview" class="alert alert-info small mt-3 mb-0" style="display:none;">
+          <i class="fas fa-info-circle me-1"></i>
+          <span id="dispensePreviewText"></span>
+        </div>
 
-  <!-- Submit button -->
-  <button class="btn btn-success rounded-pill mt-3" id="dispenseBtn">
-    <i class="fas fa-bolt me-2"></i> Queue Dispense
-  </button>
-</div>
+        <!-- Submit button -->
+        <button class="btn btn-success rounded-pill mt-3" id="dispenseBtn">
+          <i class="fas fa-bolt me-2"></i> Queue Dispense
+        </button>
+      </div>
 
       <!-- TIMING TAB -->
       <div class="tab-pane fade" id="tabTiming">
@@ -481,17 +423,19 @@
           <div class="mb-3">
             <label class="form-label">Command</label>
             <select name="command_type" class="form-select" required>
-              <option value="start_cycle">Start Cycle</option>
               <option value="stop">Stop Machine</option>
-              <option value="pause">Pause</option>
-              <option value="resume">Resume</option>
-              <option value="lock_door">Lock Door</option>
-              <option value="unlock_door">Unlock Door</option>
+              <option value="start_cycle">Start Cycle</option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Value</label>
-            <input type="text" name="command_value" class="form-control" placeholder="e.g., normal for cycle">
+            <label class="form-label">Value (JSON)</label>
+            <input type="text" name="command_value" class="form-control"
+                   placeholder='{"credits":1,"cycle_type":"wash"}'>
+            <small class="text-muted">
+              For <code>start_cycle</code>: JSON like
+              <code>{"credits":1,"cycle_type":"wash"}</code>.
+              Leave blank for <code>stop</code>.
+            </small>
           </div>
           <button type="submit" class="btn btn-primary w-100 rounded-pill" style="background:#0284c7;border:none;">
             <i class="fas fa-paper-plane me-2"></i> Send Command
@@ -628,82 +572,76 @@
     }
   }
 
- async function dispenseCredits() {
-  const credits = parseInt(DOM.dispenseCredits?.value || 1, 10);
-  const reason = DOM.dispenseReason?.value || 'manual';
-  const order = DOM.dispenseOrder?.value || null;
-  const cycleType = document.getElementById('dispenseCycleType')?.value || 'wash';
-  const serviceType = document.getElementById('dispenseServiceType')?.value || 'wash';
-
-  if (credits < 1) {
-    showToast('Credits must be at least 1', 'warning');
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/machine/${CP_DEVICE_ID}/dispense`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        credits,
-        reason,
-        order_number: order,
-        cycle_type: cycleType,      // ← NEW
-        service_type: serviceType   // ← NEW
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast(`Queued ${credits} credit(s) — ${cycleType}`, 'success');
-      DOM.dispenseCredits.value = 1;
-      DOM.dispenseOrder.value = '';
-    } else {
-      showToast(data.error || 'Dispense failed', 'danger');
-    }
-  } catch (e) {
-    console.error('Dispense failed:', e);
-    showToast('Network error during dispense', 'danger');
-  }
-}
-
-
-// Live preview of what will be sent
-(function() {
-  function updatePreview() {
-    const credits = parseInt(document.getElementById('dispenseCredits')?.value || 1, 10);
+  async function dispenseCredits() {
+    const credits = parseInt(DOM.dispenseCredits?.value || 1, 10);
+    const reason = DOM.dispenseReason?.value || 'manual';
+    const order = DOM.dispenseOrder?.value || null;
     const cycleType = document.getElementById('dispenseCycleType')?.value || 'wash';
-    const preview = document.getElementById('dispensePreview');
-    const text = document.getElementById('dispensePreviewText');
+    const serviceType = document.getElementById('dispenseServiceType')?.value || 'wash';
 
-    if (!preview || !text) return;
+    if (credits < 1) {
+      showToast('Credits must be at least 1', 'warning');
+      return;
+    }
 
-    const cycleNames = {
-      'wash': '🧺 Wash Only',
-      'wash_dry': '🌀 Wash + Dry',
-      'dry': '🌬️ Dry Only',
-      'iron': '🔥 Iron Only',
-      'quick': '⚡ Quick Wash',
-      'delicate': '🌸 Delicate'
-    };
-
-    const minutesPerCredit = {
-      'wash': 15, 'wash_dry': 30, 'dry': 10,
-      'iron': 5, 'quick': 5, 'delicate': 20
-    };
-
-    if (credits > 0) {
-      const totalMin = credits * (minutesPerCredit[cycleType] || 15);
-      text.textContent = `Will run: ${cycleNames[cycleType]} for ${totalMin} minutes total`;
-      preview.style.display = 'block';
-    } else {
-      preview.style.display = 'none';
+    try {
+      const res = await fetch(`/api/machine/${CP_DEVICE_ID}/dispense`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credits,
+          reason,
+          order_number: order,
+          cycle_type: cycleType,
+          service_type: serviceType
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Queued ${credits} credit(s) — ${cycleType}`, 'success');
+        DOM.dispenseCredits.value = 1;
+        DOM.dispenseOrder.value = '';
+        // Refresh heartbeat after a moment
+        setTimeout(fetchHeartbeat, 1500);
+      } else {
+        showToast(data.error || 'Dispense failed', 'danger');
+      }
+    } catch (e) {
+      console.error('Dispense failed:', e);
+      showToast('Network error during dispense', 'danger');
     }
   }
 
-  document.getElementById('dispenseCredits')?.addEventListener('input', updatePreview);
-  document.getElementById('dispenseCycleType')?.addEventListener('change', updatePreview);
-  document.getElementById('dispenseServiceType')?.addEventListener('change', updatePreview);
-})();
+  // Live preview of what will be sent
+  (function() {
+    function updatePreview() {
+      const credits = parseInt(document.getElementById('dispenseCredits')?.value || 1, 10);
+      const cycleType = document.getElementById('dispenseCycleType')?.value || 'wash';
+      const preview = document.getElementById('dispensePreview');
+      const text = document.getElementById('dispensePreviewText');
+      if (!preview || !text) return;
+
+      const cycleNames = {
+        'wash': '🧺 Wash Only',
+        'wash_dry': '🌀 Wash + Dry',
+        'dry': '🌬️ Dry Only',
+        'iron': '🔥 Iron Only',
+        'quick': '⚡ Quick Wash',
+        'delicate': '🌸 Delicate'
+      };
+
+      if (credits > 0) {
+        text.textContent = `Will queue ${credits} credit(s) of ${cycleNames[cycleType] || cycleType}`;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    document.getElementById('dispenseCredits')?.addEventListener('input', updatePreview);
+    document.getElementById('dispenseCycleType')?.addEventListener('change', updatePreview);
+    document.getElementById('dispenseServiceType')?.addEventListener('change', updatePreview);
+  })();
 
   async function loadPulseLog() {
     try {
@@ -720,8 +658,8 @@
   // ============ RENDERING ============
   function updateHeartbeat(data) {
     if (DOM.cpCurrentCredit) DOM.cpCurrentCredit.textContent = data.current_credit || 0;
-    if (DOM.cpState) DOM.cpState.textContent = data.state || 'idle';
-    if (DOM.cpBattery) DOM.cpBattery.textContent = (data.battery_voltage || 0) + 'V';
+    if (DOM.cpState) DOM.cpState.textContent = data.current_state || data.state || 'idle';
+    if (DOM.cpBattery) DOM.cpBattery.textContent = (data.battery_voltage || 0).toFixed(1) + 'V';
     if (DOM.cpSignal) DOM.cpSignal.textContent = data.signal_strength || '-';
 
     if (DOM.heartbeatBadge) {
@@ -748,17 +686,14 @@
     DOM.cpPulseLog.innerHTML = log.map(entry => `
       <tr>
         <td>${new Date(entry.created_at).toLocaleString()}</td>
-        <td>${entry.pulses || 0}</td>
-        <td>${entry.credits || 0}</td>
+        <td>${entry.pulses_sent || 0}</td>
+        <td>${entry.credits_granted || 0}</td>
         <td>${entry.reason || '-'}</td>
       </tr>
     `).join('');
   }
 
-  
-
   function showToast(message, type) {
-    // Simple toast fallback
     const toast = document.createElement('div');
     toast.className = `alert alert-${type} position-fixed`;
     toast.style.cssText = 'top:20px;right:20px;z-index:9999;min-width:250px;box-shadow:0 5px 20px rgba(0,0,0,0.2);';
@@ -769,20 +704,16 @@
 
   // ============ INITIALIZATION ============
   function init() {
-    // Load initial data
     fetchHeartbeat();
     loadParams();
     loadPulseLog();
 
-    // Poll heartbeat every 30 seconds
     setInterval(fetchHeartbeat, 30000);
 
-    // Event listeners
     DOM.saveParamsBtn?.addEventListener('click', saveParams);
     DOM.reloadParamsBtn?.addEventListener('click', loadParams);
     DOM.dispenseBtn?.addEventListener('click', dispenseCredits);
 
-    // Refresh button
     document.getElementById('refreshBtn')?.addEventListener('click', () => location.reload());
   }
 
@@ -793,8 +724,6 @@
   }
 })();
 </script>
-
-
 
 </body>
 </html>

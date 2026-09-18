@@ -292,7 +292,6 @@ router.post('/api/quote/save', async (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     const ua = req.headers['user-agent'] || '';
 
-    // Add location_id column if missing
     try {
       await req.db.query('ALTER TABLE ss_quotes ADD COLUMN location_id INT NULL');
     } catch (e) { /* already exists */ }
@@ -373,7 +372,6 @@ router.get('/owner/quotes', isOwner, async (req, res) => {
   }
 });
 
-// Update quote status / notes
 router.post('/owner/quotes/:id/update', isOwner, async (req, res) => {
   try {
     const { status, notes } = req.body;
@@ -388,7 +386,6 @@ router.post('/owner/quotes/:id/update', isOwner, async (req, res) => {
   res.redirect('/owner/quotes');
 });
 
-// Delete quote
 router.post('/owner/quotes/:id/delete', isOwner, async (req, res) => {
   try {
     await req.db.query('DELETE FROM ss_quotes WHERE id = ?', [req.params.id]);
@@ -399,7 +396,6 @@ router.post('/owner/quotes/:id/delete', isOwner, async (req, res) => {
   res.redirect('/owner/quotes');
 });
 
-// API: get quotes as JSON
 router.get('/api/owner/quotes', isOwner, async (req, res) => {
   try {
     const [quotes] = await req.db.query('SELECT * FROM ss_quotes ORDER BY created_at DESC LIMIT 100');
@@ -449,7 +445,6 @@ router.post('/api/machine/:deviceId/params', isAuth, isOwner, async (req, res) =
       'start_pulse_duration_ms', 'run_time_per_credit_min', 'cooldown_period_sec'
     ];
 
-    // Accept both { params: {...} } and flat { ... }
     const payload = req.body.params || req.body;
 
     const updates = {};
@@ -571,8 +566,8 @@ router.get('/api/machine/:deviceId/heartbeat', isAuth, async (req, res) => {
       battery_voltage: d.battery_voltage,
       signal_strength: d.signal_strength,
       uptime_seconds: d.uptime_seconds,
-      current_credit: d.current_credit_minutes || 0,
-      current_state: d.current_state || d.status,
+      current_credit: d.current_credit_minutes || d.current_credit || 0,
+      current_state: d.current_state || d.status || 'idle',
       firmware_version: d.firmware_version,
       error_code: d.error_code,
       is_locked_out: d.is_locked_out === 1,
@@ -584,6 +579,7 @@ router.get('/api/machine/:deviceId/heartbeat', isAuth, async (req, res) => {
   }
 });
 
+// ============ PULSE / CREDIT DISPATCH ============
 router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -591,8 +587,8 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       credits = 1,
       reason = 'manual',
       order_number = null,
-      cycle_type = 'wash',        // ← NEW
-      service_type = 'wash'       // ← NEW
+      cycle_type = 'wash',
+      service_type = 'wash'
     } = req.body;
 
     const creditsInt = parseInt(credits, 10);
@@ -600,7 +596,6 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       return res.status(400).json({ success: false, error: 'Credits must be 1-99' });
     }
 
-    // Get current params
     let [params] = await req.db.query('SELECT * FROM ss_machine_params WHERE device_id = ?', [deviceId]);
     if (params.length === 0) {
       await req.db.query('INSERT INTO ss_machine_params (device_id) VALUES (?)', [deviceId]);
@@ -608,12 +603,10 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
     }
     const p = params[0];
 
-    // Check lockout
     if (p.is_locked_out && p.lockout_until && new Date(p.lockout_until) > new Date()) {
       return res.status(429).json({ success: false, error: 'Device locked out until ' + p.lockout_until });
     }
 
-    // Check max credit cap
     const newTotal = (p.current_credit_minutes || 0) + (creditsInt * p.run_time_per_credit_min);
     if (newTotal > p.max_credit_minutes) {
       return res.status(400).json({
@@ -622,12 +615,11 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       });
     }
 
-    // ✅ Build command with cycle info
     const commandValue = JSON.stringify({
       credits: creditsInt,
-      cycle_type: cycle_type,           // ← NEW
-      service_type: service_type,       // ← NEW
-      order_number: order_number || '', // ← NEW
+      cycle_type: cycle_type,
+      service_type: service_type,
+      order_number: order_number || '',
       pulses_per_credit: p.pulses_per_credit,
       pulse_width_ms: p.pulse_width_ms,
       pulse_gap_ms: p.pulse_gap_ms,
@@ -641,17 +633,17 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       [deviceId, commandValue]
     );
 
-    // Log for audit
     await req.db.query(
       `INSERT INTO ss_pulse_log (device_id, pulses_sent, pulse_width_ms, pulse_gap_ms, credits_granted, reason, order_number) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [deviceId, creditsInt * p.pulses_per_credit, p.pulse_width_ms, p.pulse_gap_ms, creditsInt, reason, order_number]
     );
 
-    // Update running credit total
+    // NOTE: no longer incrementing current_credit_minutes here.
+    // The ESP32 is the source of truth — its heartbeat writes back via /api/sync.
     await req.db.query(
-      'UPDATE ss_machine_params SET current_credit_minutes = current_credit_minutes + ?, total_pulses_sent = total_pulses_sent + ?, last_pulse_at = NOW() WHERE device_id = ?',
-      [creditsInt * p.run_time_per_credit_min, creditsInt * p.pulses_per_credit, deviceId]
+      'UPDATE ss_machine_params SET total_pulses_sent = total_pulses_sent + ?, last_pulse_at = NOW() WHERE device_id = ?',
+      [creditsInt * p.pulses_per_credit, deviceId]
     );
 
     res.json({
@@ -662,8 +654,7 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
         service_type: service_type,
         order_number: order_number,
         pulses: creditsInt * p.pulses_per_credit,
-        minutes_added: creditsInt * p.run_time_per_credit_min,
-        new_total_minutes: newTotal
+        minutes_added: creditsInt * p.run_time_per_credit_min
       }
     });
   } catch (err) {
@@ -846,12 +837,20 @@ router.post('/attendant/orders', isAttendant, async (req, res) => {
     const orderNumber = 'SS-' + Date.now().toString(36).toUpperCase();
     await req.db.query(
       "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, weight_kg, price_per_kg, total_weight_price, price, payment_status, order_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'queued')",
-      [orderNumber, device_id, ownerId, customer_id || 'walk-in', service_type || 'wash', cycle_type || 'normal', isNaN(weight) ? null : weight, pricePerKg, weightPrice, finalPrice]
+      [orderNumber, device_id, ownerId, customer_id || 'walk-in', service_type || 'wash', cycle_type || 'wash', isNaN(weight) ? null : weight, pricePerKg, weightPrice, finalPrice]
     );
+
+    // Queue the start command with a proper JSON payload
     try {
+      const cmdValue = JSON.stringify({
+        credits: 1,
+        cycle_type: cycle_type || 'wash',
+        service_type: service_type || 'wash',
+        order_number: orderNumber
+      });
       await req.db.query(
         "INSERT INTO ss_commands (device_id, command_type, command_value, status) VALUES (?, 'start_cycle', ?, 'pending')",
-        [device_id, (cycle_type || 'normal')]
+        [device_id, cmdValue]
       );
     } catch (e) { console.error('queue command failed:', e.message); }
 
@@ -889,7 +888,6 @@ router.post('/order/:id/status', isAttendant, async (req, res) => {
           await req.db.query('UPDATE ss_customers SET total_cycles = COALESCE(total_cycles,0)+1, total_spent = COALESCE(total_spent,0)+?, loyalty_points = COALESCE(loyalty_points,0)+1 WHERE customer_unique_id = ?', [o.price, o.customer_name]);
         }
 
-        // Send review request
         try {
           const ReviewModel = require('../models/review');
           const reviewHelper = require('../utils/reviewHelper');
@@ -998,7 +996,7 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
     );
 
     await req.db.query(
-      "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, 'wash', 'normal', ?, 'paid', 'queued')",
+      "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, 'wash', 'wash', ?, 'paid', 'queued')",
       [orderNumber, device_id, req.session.spinUser.ownerId || req.session.spinUser.id, customer_id, totalAmount]
     );
 
@@ -1140,25 +1138,40 @@ router.post('/api/sync', ah(async (req, res) => {
     );
   } catch (e) { console.error('heartbeat log failed:', e.message); }
 
-if (typeof data.current_credit === 'number') {
-  // Only trust ESP32's credit if it's non-zero, or if the DB has 0
-  // (prevents ESP32 reboot wiping credits that server knows about)
-  const [current] = await req.db.query(
-    'SELECT current_credit_minutes FROM ss_machine_params WHERE device_id = ?',
-    [deviceId]
-  );
-  const dbCredit = current[0]?.current_credit_minutes || 0;
-  const espCredit = data.current_credit || 0;
+  // ── Credit sync ──
+  // ESP32 is the source of truth, EXCEPT for a short grace window right
+  // after a dispense command is queued. This prevents both:
+  //   (a) the ESP32 wiping credits via a reboot (old bug), and
+  //   (b) the DB getting stuck on a phantom value (previous bug).
+  if (typeof data.current_credit === 'number') {
+    const espCredit = data.current_credit || 0;
+    let finalCredit = espCredit;
 
-  // If DB has credits but ESP32 says 0, keep DB value (ESP32 reset)
-  // If both agree, or ESP32 has more, take ESP32 value
-  const finalCredit = (dbCredit > 0 && espCredit === 0) ? dbCredit : espCredit;
+    if (espCredit === 0) {
+      const [recent] = await req.db.query(
+        `SELECT COUNT(*) AS n FROM ss_commands
+         WHERE device_id = ? AND command_type = 'dispense_credits'
+           AND created_at > NOW() - INTERVAL 60 SECOND
+           AND status IN ('pending','sent')`,
+        [deviceId]
+      );
+      if (recent[0]?.n > 0) {
+        const [current] = await req.db.query(
+          'SELECT current_credit_minutes FROM ss_machine_params WHERE device_id = ?',
+          [deviceId]
+        );
+        finalCredit = current[0]?.current_credit_minutes || 0;
+      }
+    }
 
-  await req.db.query(
-    'UPDATE ss_machine_params SET current_credit_minutes = ?, firmware_version = ? WHERE device_id = ?',
-    [finalCredit, data.firmware_version || null, deviceId]
-  );
-}
+    try {
+      await req.db.query(
+        'UPDATE ss_machine_params SET current_credit_minutes = ?, firmware_version = ? WHERE device_id = ?',
+        [finalCredit, data.firmware_version || null, deviceId]
+      );
+    } catch (e) { console.error('credit sync failed:', e.message); }
+  }
+
   const [commands] = await req.db.query(
     "SELECT id, command_type, command_value FROM ss_commands WHERE device_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 10",
     [deviceId]
