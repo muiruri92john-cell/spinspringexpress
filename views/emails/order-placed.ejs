@@ -1,0 +1,28 @@
+<%- include('_header', { title: 'Order received' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">We've got your order, <%= customer.full_name %>!</h2>
+
+<p>Your laundry order has been received by <strong><%= owner.company_name %></strong>.</p>
+
+<table cellpadding="10" cellspacing="0" style="border-collapse:collapse;margin:20px 0;background:#f9fafb;border-radius:8px;width:100%;">
+  <tr>
+    <td style="color:#6b7280;font-size:13px;">Order Number</td>
+    <td style="font-weight:700;font-family:monospace;color:#0f172a;"><%= order.order_number %></td>
+  </tr>
+  <tr>
+    <td style="color:#6b7280;font-size:13px;">Status</td>
+    <td style="font-weight:600;color:#f59e0b;">Pending</td>
+  </tr>
+  <tr>
+    <td style="color:#6b7280;font-size:13px;">Amount</td>
+    <td style="font-weight:700;color:#0f172a;">KES <%= order.price %></td>
+  </tr>
+</table>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/customer" style="background:#0ea5e9;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Track Order</a>
+</p>
+
+<p style="color:#6b7280;font-size:13px;">We'll email you when your order is ready for pickup.</p>
+
+<%- include('_footer') %>

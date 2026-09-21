@@ -1,0 +1,28 @@
+<%- include('_header', { title: 'New order' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">New order received</h2>
+
+<p>Hi <%= owner.contact_name %>,</p>
+
+<p><strong><%= customer.full_name %></strong> just placed an order at <%= owner.company_name %>.</p>
+
+<table cellpadding="10" cellspacing="0" style="border-collapse:collapse;margin:20px 0;background:#eff6ff;border-radius:8px;width:100%;border-left:4px solid #3b82f6;">
+  <tr>
+    <td style="color:#1e40af;font-size:13px;">Order Number</td>
+    <td style="font-weight:700;font-family:monospace;color:#1e40af;"><%= order.order_number %></td>
+  </tr>
+  <tr>
+    <td style="color:#1e40af;font-size:13px;">Customer</td>
+    <td style="font-weight:600;color:#1e40af;"><%= customer.full_name %></td>
+  </tr>
+  <tr>
+    <td style="color:#1e40af;font-size:13px;">Amount</td>
+    <td style="font-weight:700;color:#1e40af;">KES <%= order.price %></td>
+  </tr>
+</table>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/owner/orders" style="background:#3b82f6;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">View in Dashboard</a>
+</p>
+
+<%- include('_footer') %>

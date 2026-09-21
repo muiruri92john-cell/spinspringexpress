@@ -1,0 +1,28 @@
+<%- include('_header', { title: 'Order completed' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">Thank you, <%= customer.full_name %>!</h2>
+
+<p>Your order <strong><%= order.order_number %></strong> is complete. Here's your receipt:</p>
+
+<table cellpadding="10" cellspacing="0" style="border-collapse:collapse;margin:20px 0;background:#f9fafb;border-radius:8px;width:100%;">
+  <tr style="border-bottom:1px solid #e5e7eb;">
+    <td style="color:#6b7280;font-size:13px;">Order Number</td>
+    <td style="font-weight:600;font-family:monospace;text-align:right;"><%= order.order_number %></td>
+  </tr>
+  <tr style="border-bottom:1px solid #e5e7eb;">
+    <td style="color:#6b7280;font-size:13px;">Service</td>
+    <td style="font-weight:600;text-align:right;">Laundry</td>
+  </tr>
+  <tr>
+    <td style="font-weight:700;font-size:15px;">TOTAL PAID</td>
+    <td style="font-weight:700;font-size:18px;color:#0ea5e9;text-align:right;">KES <%= order.price %></td>
+  </tr>
+</table>
+
+<p style="text-align:center;color:#6b7280;font-size:14px;">Thank you for choosing <%= owner.company_name %>.</p>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/customer" style="background:#0ea5e9;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Place New Order</a>
+</p>
+
+<%- include('_footer') %>

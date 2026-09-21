@@ -1,26 +1,26 @@
 // services/emailService.js
 const transporter = require('../config/mailer');
 const { renderTemplate } = require('./emailTemplates');
-const db = require('../config/db'); // adjust to your existing DB pool
 
 /**
- * Core send function — logs to ss_email_log
+ * Core send — accepts optional `db` connection for audit logging.
+ * If `db` is not provided, email still sends but is not logged.
  */
-async function sendEmail({ to, subject, template, data = {}, replyTo }) {
+async function sendEmail({ to, subject, template, data = {}, replyTo, db }) {
   let logId = null;
-  try {
-    // 1. Insert queued log
-    const [logResult] = await db.execute(
-      `INSERT INTO ss_email_log (to_email, subject, template, status)
-       VALUES (?, ?, ?, 'queued')`,
-      [to, subject, template || null]
-    );
-    logId = logResult.insertId;
 
-    // 2. Render HTML
+  try {
+    if (db) {
+      const [logResult] = await db.execute(
+        `INSERT INTO ss_email_log (to_email, subject, template, status)
+         VALUES (?, ?, ?, 'queued')`,
+        [to, subject, template || null]
+      );
+      logId = logResult.insertId;
+    }
+
     const html = await renderTemplate(template, data);
 
-    // 3. Send
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM,
       to,
@@ -29,19 +29,18 @@ async function sendEmail({ to, subject, template, data = {}, replyTo }) {
       replyTo: replyTo || process.env.SMTP_REPLY_TO,
     });
 
-    // 4. Mark sent
-    await db.execute(
-      `UPDATE ss_email_log
-         SET status='sent', sent_at=NOW(), message_id=?
-       WHERE id=?`,
-      [info.messageId, logId]
-    );
+    if (db && logId) {
+      await db.execute(
+        `UPDATE ss_email_log SET status='sent', sent_at=NOW(), message_id=? WHERE id=?`,
+        [info.messageId, logId]
+      );
+    }
 
-    console.log(`📧 Sent [${template}] → ${to} (${info.messageId})`);
+    console.log(`📧 Sent [${template}] → ${to}`);
     return { ok: true, messageId: info.messageId };
   } catch (err) {
     console.error(`📧 Failed [${template}] → ${to}:`, err.message);
-    if (logId) {
+    if (db && logId) {
       await db.execute(
         `UPDATE ss_email_log SET status='failed', error=? WHERE id=?`,
         [err.message.slice(0, 1000), logId]
@@ -51,88 +50,95 @@ async function sendEmail({ to, subject, template, data = {}, replyTo }) {
   }
 }
 
-/* ── Convenience wrappers ─────────────────────────────── */
+/* ── Wrappers — db is optional last parameter ─────────── */
 
-const sendWelcomeOwner = (owner) =>
+const sendWelcomeOwner = (owner, db) =>
   sendEmail({
     to: owner.email,
-    subject: `Welcome to ${process.env.APP_NAME}, ${owner.contact_name}!`,
+    subject: `Welcome to ${process.env.APP_NAME || 'SpinSpring Express'}, ${owner.contact_name}!`,
     template: 'welcome-owner',
     data: { owner },
+    db,
   });
 
-const sendWelcomeAttendant = (attendant, owner) =>
+const sendWelcomeAttendant = (attendant, owner, db) =>
   sendEmail({
     to: attendant.email,
     subject: `You've been added to ${owner.company_name}`,
     template: 'welcome-attendant',
     data: { attendant, owner },
+    db,
   });
 
-const sendWelcomeCustomer = (customer, owner, plainPassword) =>
+const sendWelcomeCustomer = (customer, owner, plainPassword, db) =>
   sendEmail({
     to: customer.email,
     subject: `Welcome to ${owner.company_name}`,
     template: 'welcome-customer',
     data: { customer, owner, plainPassword },
+    db,
   });
 
-const sendPasswordReset = (user, resetUrl) =>
-  sendEmail({
-    to: user.email,
-    subject: 'Reset your SpinSpring Express password',
-    template: 'password-reset',
-    data: { user, resetUrl },
-  });
-
-const sendOrderPlaced = (order, customer, owner) =>
-  sendEmail({
-    to: customer.email,
-    subject: `Order ${order.order_number} received`,
-    template: 'order-placed',
-    data: { order, customer, owner },
-  });
-
-const sendOrderReady = (order, customer, owner) =>
-  sendEmail({
-    to: customer.email,
-    subject: `Order ${order.order_number} is ready for pickup 🎉`,
-    template: 'order-ready',
-    data: { order, customer, owner },
-  });
-
-const sendOrderCompleted = (order, customer, owner) =>
-  sendEmail({
-    to: customer.email,
-    subject: `Receipt for order ${order.order_number}`,
-    template: 'order-completed',
-    data: { order, customer, owner },
-  });
-
-const sendNewOrderToOwner = (order, customer, owner) =>
-  sendEmail({
-    to: owner.email,
-    subject: `New order ${order.order_number} from ${customer.full_name}`,
-    template: 'new-order-owner',
-    data: { order, customer, owner },
-  });
-  
-
-
-  const sendCustomerPasswordReset = (customer, owner, newPassword) =>
+const sendCustomerPasswordReset = (customer, owner, newPassword, db) =>
   sendEmail({
     to: customer.email,
     subject: `Your new password for ${owner.company_name}`,
     template: 'customer-password-reset',
     data: { customer, owner, newPassword },
+    db,
   });
 
+const sendPasswordReset = (user, resetUrl, db) =>
+  sendEmail({
+    to: user.email,
+    subject: 'Reset your SpinSpring Express password',
+    template: 'password-reset',
+    data: { user, resetUrl },
+    db,
+  });
+
+const sendOrderPlaced = (order, customer, owner, db) =>
+  sendEmail({
+    to: customer.email,
+    subject: `Order ${order.order_number} received`,
+    template: 'order-placed',
+    data: { order, customer, owner },
+    db,
+  });
+
+const sendOrderReady = (order, customer, owner, db) =>
+  sendEmail({
+    to: customer.email,
+    subject: `Order ${order.order_number} is ready for pickup`,
+    template: 'order-ready',
+    data: { order, customer, owner },
+    db,
+  });
+
+const sendOrderCompleted = (order, customer, owner, db) =>
+  sendEmail({
+    to: customer.email,
+    subject: `Receipt for order ${order.order_number}`,
+    template: 'order-completed',
+    data: { order, customer, owner },
+    db,
+  });
+
+const sendNewOrderToOwner = (order, customer, owner, db) =>
+  sendEmail({
+    to: owner.email,
+    subject: `New order ${order.order_number} from ${customer.full_name}`,
+    template: 'new-order-owner',
+    data: { order, customer, owner },
+    db,
+  });
 
 module.exports = {
   sendEmail,
   sendWelcomeOwner,
   sendWelcomeAttendant,
   sendWelcomeCustomer,
+  sendCustomerPasswordReset,
   sendPasswordReset,
   sendOrderPlaced,
   sendOrderReady,

@@ -1,0 +1,32 @@
+<%- include('_header', { title: 'Welcome' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">Welcome, <%= customer.full_name %>!</h2>
+
+<p><strong><%= owner.contact_name %></strong> from <strong><%= owner.company_name %></strong> has created a customer account for you on <%= appName %>.</p>
+
+<p>You can now track your laundry orders online.</p>
+
+<table cellpadding="8" cellspacing="0" style="border-collapse:collapse;margin:16px 0;background:#f9fafb;border-radius:8px;width:100%;">
+  <tr>
+    <td style="color:#6b7280;font-size:13px;">Email</td>
+    <td style="font-weight:600;font-family:monospace;"><%= customer.email %></td>
+  </tr>
+  <tr>
+    <td style="color:#6b7280;font-size:13px;">Password</td>
+    <td style="font-weight:700;font-family:monospace;font-size:18px;color:#0ea5e9;"><%= plainPassword %></td>
+  </tr>
+  <% if (customer.customer_unique_id) { %>
+  <tr>
+    <td style="color:#6b7280;font-size:13px;">Customer ID</td>
+    <td style="font-family:monospace;"><%= customer.customer_unique_id %></td>
+  </tr>
+  <% } %>
+</table>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/customer-login" style="background:#0ea5e9;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Customer Login</a>
+</p>
+
+<p style="color:#6b7280;font-size:13px;">Please change your password after your first login.</p>
+
+<%- include('_footer') %>
