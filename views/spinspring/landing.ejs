@@ -1,4 +1,8 @@
-<%- include('../layouts/main') %>
+<%- include('../layouts/main', {
+  pageTitle: 'SpinSpring Express | Laundry & Dry Cleaning Services in Nairobi',
+  metaDescription: 'Professional laundry, dry cleaning, duvet, curtain and sneaker cleaning across Nairobi. Same-day turnaround, free Westlands pickup, and 3 convenient locations.',
+  canonicalPath: '/'
+}) %>
 
 <style>
 /* ===== VARIABLES ===== */
@@ -251,6 +255,85 @@ nav.ss-nav {
 
 .ss-section-title p { color: #64748b; font-size: 1.05rem; }
 
+/* ===== BLOG ===== */
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.blog-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 5px 25px rgba(2, 132, 199, 0.08);
+  border: 1px solid #e0f2fe;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+
+.blog-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(2, 132, 199, 0.15); color: inherit; }
+
+.blog-card .blog-img {
+  height: 180px;
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0284c7;
+  font-size: 3rem;
+  overflow: hidden;
+}
+
+.blog-card .blog-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.blog-card .blog-body { padding: 22px; flex: 1; display: flex; flex-direction: column; }
+
+.blog-card .blog-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.blog-card .blog-meta .cat {
+  background: #e0f2fe;
+  color: #0284c7;
+  padding: 3px 10px;
+  border-radius: 50px;
+  margin-right: 8px;
+}
+
+.blog-card h3 {
+  color: var(--ss-dark);
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  line-height: 1.35;
+}
+
+.blog-card p {
+  color: #64748b;
+  font-size: 0.9rem;
+  flex: 1;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.blog-card .read-more {
+  color: var(--ss-primary);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
 /* ===== LOCATION CARDS ===== */
 .location-grid {
   display: grid;
@@ -278,7 +361,7 @@ nav.ss-nav {
   position: relative;
 }
 
-.location-card .loc-header h5 { color: white; margin: 0 0 4px; font-weight: 800; font-size: 1.15rem; }
+.location-card .loc-header h3 { color: white; margin: 0 0 4px; font-weight: 800; font-size: 1.15rem; }
 .location-card .loc-header .loc-code { font-size: 0.75rem; opacity: 0.85; font-family: monospace; }
 
 .location-card .loc-badge-primary,
@@ -329,7 +412,7 @@ nav.ss-nav {
   gap: 20px;
 }
 
-.nearest-banner h4 { color: #0c4a6e; margin: 0 0 4px; font-weight: 800; }
+.nearest-banner h3 { color: #0c4a6e; margin: 0 0 4px; font-weight: 800; font-size: 1.25rem; }
 .nearest-banner p { color: #64748b; margin: 0; font-size: 0.95rem; }
 
 .nearest-banner button {
@@ -360,7 +443,7 @@ nav.ss-nav {
 
 .pricing-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(2, 132, 199, 0.2); }
 
-.pricing-card h4 {
+.pricing-card h3 {
   color: var(--ss-primary);
   font-weight: 800;
   border-bottom: 2px solid #e0f2fe;
@@ -406,7 +489,7 @@ nav.ss-nav {
 }
 
 .service-card .icon-wrap i { font-size: 2rem; color: var(--ss-primary); }
-.service-card h5 { color: var(--ss-dark); font-weight: 700; margin-bottom: 10px; }
+.service-card h3 { color: var(--ss-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem; }
 .service-card p { color: #64748b; font-size: 0.9rem; margin: 0; }
 
 /* ===== PROCESS CARDS ===== */
@@ -434,7 +517,7 @@ nav.ss-nav {
   box-shadow: 0 5px 15px rgba(2, 132, 199, 0.3);
 }
 
-.process-card h5 { color: var(--ss-dark); font-weight: 700; margin-bottom: 10px; }
+.process-card h3 { color: var(--ss-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.15rem; }
 .process-card p { color: #64748b; font-size: 0.9rem; }
 
 /* ===== GALLERY ===== */
@@ -477,6 +560,7 @@ nav.ss-nav {
 }
 
 .gallery-item:hover .gallery-overlay { transform: translateY(0); }
+.gallery-overlay h3 { font-size: 1rem; font-weight: 700; margin: 0 0 4px; }
 
 /* ===== REVIEWS / TESTIMONIALS ===== */
 .testimonial-card {
@@ -587,57 +671,94 @@ nav.ss-nav {
 }
 </style>
 
+<!-- ===== STRUCTURED DATA (JSON-LD) ===== -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LaundryService",
+  "name": "SpinSpring Express",
+  "image": "https://spinspringexpress.co.ke/images/spinspring/hero-image.jpg",
+  "url": "https://spinspringexpress.co.ke",
+  "telephone": "+254741237542",
+  "email": "hello@spinspringexpress.co.ke",
+  "priceRange": "KES 200 - KES 2500",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Nairobi",
+    "addressCountry": "KE"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": -1.2921,
+    "longitude": 36.8219
+  },
+  "openingHoursSpecification": [{
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    "opens": "08:00",
+    "closes": "20:00"
+  }],
+  "sameAs": [
+    "https://wa.me/254741237542"
+  ],
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.9",
+    "reviewCount": "120"
+  }
+}
+</script>
+
 <!-- ===== NAVIGATION ===== -->
-<nav class="ss-nav">
+<nav class="ss-nav" aria-label="Main navigation">
   <div class="container">
-    <a href="/" class="brand">
-      <i class="fas fa-soap"></i> SpinSpring Express
+    <a href="/" class="brand" aria-label="SpinSpring Express home">
+      <i class="fas fa-soap" aria-hidden="true"></i> SpinSpring Express
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-      <i class="fas fa-bars"></i>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu" aria-expanded="false">
+      <i class="fas fa-bars" aria-hidden="true"></i>
     </button>
     <ul class="nav-menu" id="navMenu">
-      <li><a href="#quote" class="nav-link" style="background:#10b981;color:white !important;">💰 Get Quote</a></li>
-      <li><a href="#locations" class="nav-link">📍 Locations</a></li>
+      <li><a href="#quote" class="nav-link" style="background:#10b981;color:white !important;">Get a Quote</a></li>
+      <li><a href="#locations" class="nav-link">Locations</a></li>
       <li><a href="#pricing" class="nav-link">Pricing</a></li>
       <li><a href="#services" class="nav-link">Services</a></li>
-      <li><a href="#gallery" class="nav-link">Gallery</a></li>
-      <li><a href="#how" class="nav-link">How it Works</a></li>
-      <li><a href="#reviews" class="nav-link">⭐ Reviews</a></li>
-      <li><a href="/find-location" class="nav-link" style="color:#10b981;">🧭 Find Nearest</a></li>
+      <li><a href="#blog" class="nav-link">Blog</a></li>
+      <li><a href="#how" class="nav-link">How It Works</a></li>
+      <li><a href="#reviews" class="nav-link">Reviews</a></li>
+      <li><a href="/find-location" class="nav-link" style="color:#10b981;">Find Nearest Branch</a></li>
 
-      <!-- LOGIN DROPDOWN -->
       <li class="ss-dropdown" id="loginDropdown">
         <button class="ss-dropdown-toggle" id="loginDropdownBtn" type="button" aria-haspopup="true" aria-expanded="false">
-          <i class="fas fa-user-circle"></i>
+          <i class="fas fa-user-circle" aria-hidden="true"></i>
           <span>Login</span>
-          <i class="fas fa-chevron-down caret"></i>
+          <i class="fas fa-chevron-down caret" aria-hidden="true"></i>
         </button>
         <div class="ss-dropdown-menu" role="menu">
           <a href="/login" role="menuitem">
-            <span class="icon-box icon-owner"><i class="fas fa-store"></i></span>
+            <span class="icon-box icon-owner"><i class="fas fa-store" aria-hidden="true"></i></span>
             <span class="item-text">
               <strong>Owner</strong>
               <small>Manage your business</small>
             </span>
           </a>
           <a href="/attendant-login" role="menuitem">
-            <span class="icon-box icon-attendant"><i class="fas fa-user-tie"></i></span>
+            <span class="icon-box icon-attendant"><i class="fas fa-user-tie" aria-hidden="true"></i></span>
             <span class="item-text">
               <strong>Attendant</strong>
-              <small>Process orders & cycles</small>
+              <small>Process orders and cycles</small>
             </span>
           </a>
           <a href="/customer-login" role="menuitem">
-            <span class="icon-box icon-customer"><i class="fas fa-id-card"></i></span>
+            <span class="icon-box icon-customer"><i class="fas fa-id-card" aria-hidden="true"></i></span>
             <span class="item-text">
               <strong>Customer</strong>
-              <small>View orders & history</small>
+              <small>View orders and history</small>
             </span>
           </a>
           <div class="ss-dropdown-divider"></div>
           <a href="/register" role="menuitem">
-            <span class="icon-box" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-user-plus"></i></span>
+            <span class="icon-box" style="background:#e0f2fe;color:#0284c7;"><i class="fas fa-user-plus" aria-hidden="true"></i></span>
             <span class="item-text">
               <strong>Register</strong>
               <small>Invite code required</small>
@@ -650,21 +771,21 @@ nav.ss-nav {
 </nav>
 
 <!-- ===== HERO ===== -->
-<section class="ss-hero">
+<header class="ss-hero">
   <div class="container ss-hero-content">
     <div class="row align-items-center">
       <div class="col-lg-7">
         <span class="badge-light">
-          <i class="fas fa-star me-1"></i> Premium Laundry Service in Nairobi
+          <i class="fas fa-star me-1" aria-hidden="true"></i> Trusted laundry service in Nairobi
         </span>
-        <h1>✨ Premium care, 24hr turnaround</h1>
-        <p class="tagline">Full-service laundry and dry cleaning with pickup and delivery. Your clothes, treated like our own.</p>
+        <h1>Laundry and dry cleaning, done right the first time</h1>
+        <p class="tagline">Full-service laundry and dry cleaning with pickup and delivery across Nairobi. Your clothes handled with care, returned on time.</p>
         <div class="d-flex flex-wrap gap-3 mt-4">
           <a href="https://wa.me/254741237542" class="btn btn-light btn-lg rounded-pill fw-bold px-4" target="_blank" rel="noopener">
-            <i class="fab fa-whatsapp me-2"></i> Schedule a Pick-up
+            <i class="fab fa-whatsapp me-2" aria-hidden="true"></i> Schedule a Pickup
           </a>
           <a href="#locations" class="btn btn-outline-light btn-lg rounded-pill px-4">
-            <i class="fas fa-map-marker-alt me-2"></i> Find a Branch
+            <i class="fas fa-map-marker-alt me-2" aria-hidden="true"></i> Find a Branch
           </a>
         </div>
         <div class="row mt-5 text-white">
@@ -673,8 +794,8 @@ nav.ss-nav {
             <small>Faster turnaround</small>
           </div>
           <div class="col-4">
-            <div class="h5 fw-bold mb-0">World-Class</div>
-            <small>Quality inspected</small>
+            <div class="h5 fw-bold mb-0">Quality Checked</div>
+            <small>Every garment inspected</small>
           </div>
           <div class="col-4">
             <div class="h5 fw-bold mb-0">24 Hours</div>
@@ -685,54 +806,79 @@ nav.ss-nav {
       <div class="col-lg-5 text-center mt-4 mt-lg-0">
         <div class="hero-image-box">
           <img src="/images/spinspring/hero-image.jpg" 
-               alt="SpinSpring Express"
+               alt="SpinSpring Express laundry facility in Nairobi with modern washers and dryers"
+               loading="eager"
+               width="600" height="400"
                onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
           <div style="display:none; padding:40px; text-align:center;">
-            <i class="fas fa-washing-machine fa-5x mb-3" style="color:#0284c7;"></i>
-            <h4 style="color:#0c4a6e;">Modern Equipment</h4>
-            <p class="text-muted mb-0">Industrial washers & dryers</p>
+            <i class="fas fa-washing-machine fa-5x mb-3" style="color:#0284c7;" aria-hidden="true"></i>
+            <h2 style="color:#0c4a6e;font-size:1.3rem;">Modern Equipment</h2>
+            <p class="text-muted mb-0">Industrial washers and dryers</p>
           </div>
         </div>
       </div>
     </div>
   </div>
-</section>
+</header>
 
 <!-- ===== LOCATIONS ===== -->
 <section id="locations" class="ss-section" style="background:white;">
   <div class="container">
     <div class="ss-section-title">
-      <h2>📍 Our Locations</h2>
-      <p>Visit us at any of our branches across Nairobi</p>
+      <h2>Our Locations in Nairobi</h2>
+      <p>Drop off at any of our branches, or book a pickup and we'll come to you</p>
     </div>
 
     <div class="nearest-banner">
       <div>
-        <h4><i class="fas fa-location-arrow me-2"></i>Find the branch closest to you</h4>
+        <h3><i class="fas fa-location-arrow me-2" aria-hidden="true"></i>Find the branch closest to you</h3>
         <p>Tap the button and we'll sort branches by distance from your location</p>
       </div>
       <button id="findNearestBtn" type="button">
-        <i class="fas fa-crosshairs me-2"></i>Find Nearest to Me
+        <i class="fas fa-crosshairs me-2" aria-hidden="true"></i>Find Nearest to Me
       </button>
     </div>
 
     <div id="locationsGrid" class="location-grid">
       <div class="text-center py-5" style="grid-column:1/-1;">
-        <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;"></i>
+        <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;" aria-hidden="true"></i>
         <p class="text-muted mt-3">Loading locations...</p>
       </div>
     </div>
 
     <div class="text-center mt-5">
       <a href="/find-location" class="btn btn-outline-primary btn-lg rounded-pill px-4">
-        <i class="fas fa-map-marked-alt me-2"></i>Open Full Map View
+        <i class="fas fa-map-marked-alt me-2" aria-hidden="true"></i>Open Full Map View
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BLOG ===== -->
+<section id="blog" class="ss-section" style="background:#f8fafc;">
+  <div class="container">
+    <div class="ss-section-title">
+      <h2>From Our Blog</h2>
+      <p>Laundry tips, fabric care guides, and updates from SpinSpring Express</p>
+    </div>
+
+    <div id="blogGrid" class="blog-grid">
+      <div class="text-center py-5" style="grid-column:1/-1;">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;" aria-hidden="true"></i>
+        <p class="text-muted mt-3">Loading posts...</p>
+      </div>
+    </div>
+
+    <div class="text-center mt-5">
+      <a href="/blog" class="btn btn-outline-primary btn-lg rounded-pill px-4">
+        <i class="fas fa-newspaper me-2" aria-hidden="true"></i>View All Posts
       </a>
     </div>
   </div>
 </section>
 
 <!-- ===== GALLERY ===== -->
-<section id="gallery" class="ss-section" style="background:#f8fafc;">
+<section id="gallery" class="ss-section" style="background:white;">
   <div class="container">
     <div class="ss-section-title">
       <h2>Our Facilities</h2>
@@ -740,38 +886,42 @@ nav.ss-nav {
     </div>
     <div class="gallery-grid">
       <div class="gallery-item">
-        <img src="/images/spinspring/dashboard.jpg" alt="Dashboard"
+        <img src="/images/spinspring/dashboard.jpg" alt="SpinSpring Express operations dashboard showing live order tracking"
+             loading="lazy" width="400" height="300"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-desktop placeholder-icon" style="display:none;"></i>
+        <i class="fas fa-desktop placeholder-icon" style="display:none;" aria-hidden="true"></i>
         <div class="gallery-overlay">
-          <h6>Dashboard</h6>
+          <h3>Dashboard</h3>
           <small>Real-time monitoring</small>
         </div>
       </div>
       <div class="gallery-item">
-        <img src="/images/spinspring/machine.jpg" alt="Washing Machine"
+        <img src="/images/spinspring/machine.jpg" alt="Industrial washing machines at SpinSpring Express Nairobi"
+             loading="lazy" width="400" height="300"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-washing-machine placeholder-icon" style="display:none;"></i>
+        <i class="fas fa-washing-machine placeholder-icon" style="display:none;" aria-hidden="true"></i>
         <div class="gallery-overlay">
-          <h6>Industrial Washers</h6>
+          <h3>Industrial Washers</h3>
           <small>Modern equipment</small>
         </div>
       </div>
       <div class="gallery-item">
-        <img src="/images/spinspring/lounge.jpg" alt="Lounge"
+        <img src="/images/spinspring/lounge.jpg" alt="Customer waiting lounge at SpinSpring Express"
+             loading="lazy" width="400" height="300"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-couch placeholder-icon" style="display:none;"></i>
+        <i class="fas fa-couch placeholder-icon" style="display:none;" aria-hidden="true"></i>
         <div class="gallery-overlay">
-          <h6>Lounge & Waiting Area</h6>
-          <small>Comfortable space</small>
+          <h3>Lounge Area</h3>
+          <small>Comfortable waiting space</small>
         </div>
       </div>
       <div class="gallery-item">
-        <img src="/images/spinspring/lcd.jpg" alt="LCD Display"
+        <img src="/images/spinspring/lcd.jpg" alt="Self-service kiosk at SpinSpring Express"
+             loading="lazy" width="400" height="300"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <i class="fas fa-tv placeholder-icon" style="display:none;"></i>
+        <i class="fas fa-tv placeholder-icon" style="display:none;" aria-hidden="true"></i>
         <div class="gallery-overlay">
-          <h6>Self-Service Kiosk</h6>
+          <h3>Self-Service Kiosk</h3>
           <small>Easy to use</small>
         </div>
       </div>
@@ -783,21 +933,21 @@ nav.ss-nav {
 <section id="quote" class="ss-section" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
   <div class="container">
     <div class="ss-section-title">
-      <h2>💰 Get Instant Quote</h2>
-      <p>Real-time pricing based on your selections</p>
+      <h2>Get an Instant Quote</h2>
+      <p>See your price before you commit. No surprises.</p>
     </div>
 
     <div class="row g-4">
       <div class="col-lg-7">
         <div class="pricing-card" style="border:2px solid #0284c7;">
-          <h4><i class="fas fa-list me-2"></i>Select Services</h4>
+          <h3><i class="fas fa-list me-2" aria-hidden="true"></i>Select Services</h3>
           <div id="quoteItems"></div>
 
           <button type="button" id="addQuoteItem" class="btn btn-sm btn-outline-primary rounded-pill mb-3">
-            <i class="fas fa-plus me-1"></i> Add Item
+            <i class="fas fa-plus me-1" aria-hidden="true"></i> Add Item
           </button>
 
-          <h4 class="mt-3"><i class="fas fa-plus-circle me-2"></i>Add-ons</h4>
+          <h3 class="mt-3"><i class="fas fa-plus-circle me-2" aria-hidden="true"></i>Add-ons</h3>
           <div id="quoteAddons" class="mb-3">
             <div class="form-check">
               <input class="form-check-input q-addon" type="checkbox" value="stain" id="addonStain">
@@ -817,35 +967,36 @@ nav.ss-nav {
             </div>
           </div>
 
-          <h4 class="mt-3"><i class="fas fa-map-marker-alt me-2"></i>Your Branch</h4>
+          <h3 class="mt-3"><i class="fas fa-map-marker-alt me-2" aria-hidden="true"></i>Your Branch</h3>
           <div class="row g-2 mb-3">
             <div class="col-md-8">
+              <label for="qLocation" class="visually-hidden">Select branch</label>
               <select id="qLocation" class="form-select form-select-sm">
                 <option value="">Loading branches...</option>
               </select>
               <small class="text-muted d-block mt-1">
-                <i class="fas fa-info-circle me-1"></i>
+                <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
                 Your pickup location determines which branch handles your order
               </small>
             </div>
             <div class="col-md-4">
               <button type="button" id="detectLocationBtn" class="btn btn-sm btn-outline-primary w-100 rounded-pill">
-                <i class="fas fa-crosshairs me-1"></i> Auto-detect
+                <i class="fas fa-crosshairs me-1" aria-hidden="true"></i> Auto-detect
               </button>
             </div>
           </div>
           <div id="detectedInfo" class="alert alert-success small mb-3" style="display:none;">
-            <i class="fas fa-check-circle me-1"></i>
+            <i class="fas fa-check-circle me-1" aria-hidden="true"></i>
             <span id="detectedText"></span>
           </div>
 
-          <h4 class="mt-3"><i class="fas fa-truck me-2"></i>Delivery Options</h4>
+          <h3 class="mt-3"><i class="fas fa-truck me-2" aria-hidden="true"></i>Delivery Options</h3>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="qExpress">
-            <label class="form-check-label" for="qExpress">⚡ Express Service (3 hours, +KES 1,000)</label>
+            <label class="form-check-label" for="qExpress">Express Service (3 hours, +KES 1,000)</label>
           </div>
           <div class="mb-3">
-            <label class="form-label small mb-1">Pickup & Delivery</label>
+            <label class="form-label small mb-1" for="qPickup">Pickup and Delivery</label>
             <select id="qPickup" class="form-select form-select-sm">
               <option value="none">No pickup (drop-off)</option>
               <option value="westlands">Westlands (FREE)</option>
@@ -853,16 +1004,16 @@ nav.ss-nav {
             </select>
           </div>
 
-          <h4 class="mt-3"><i class="fas fa-user me-2"></i>Your Info (optional)</h4>
+          <h3 class="mt-3"><i class="fas fa-user me-2" aria-hidden="true"></i>Your Info (optional)</h3>
           <div class="row g-2 mb-3">
             <div class="col-md-4">
-              <input type="text" id="qName" class="form-control form-control-sm" placeholder="Name">
+              <input type="text" id="qName" class="form-control form-control-sm" placeholder="Name" aria-label="Your name">
             </div>
             <div class="col-md-4">
-              <input type="tel" id="qPhone" class="form-control form-control-sm" placeholder="Phone">
+              <input type="tel" id="qPhone" class="form-control form-control-sm" placeholder="Phone" aria-label="Your phone number">
             </div>
             <div class="col-md-4">
-              <input type="email" id="qEmail" class="form-control form-control-sm" placeholder="Email">
+              <input type="email" id="qEmail" class="form-control form-control-sm" placeholder="Email" aria-label="Your email">
             </div>
           </div>
         </div>
@@ -870,7 +1021,7 @@ nav.ss-nav {
 
       <div class="col-lg-5">
         <div class="pricing-card" style="border:2px solid #10b981; position:sticky; top:100px;">
-          <h4 style="color:#10b981;"><i class="fas fa-calculator me-2"></i>Live Quote</h4>
+          <h3 style="color:#10b981;"><i class="fas fa-calculator me-2" aria-hidden="true"></i>Live Quote</h3>
 
           <div id="quoteBreakdown" style="max-height:400px; overflow-y:auto; margin-bottom:15px;">
             <p class="text-muted text-center py-3">Add items to see pricing</p>
@@ -899,18 +1050,18 @@ nav.ss-nav {
 
           <div class="mt-3">
             <button id="qWhatsApp" class="btn btn-success w-100 rounded-pill mb-2" disabled>
-              <i class="fab fa-whatsapp me-2"></i> Send Quote via WhatsApp
+              <i class="fab fa-whatsapp me-2" aria-hidden="true"></i> Send Quote via WhatsApp
             </button>
             <button id="qSave" class="btn btn-outline-primary w-100 rounded-pill mb-2" disabled>
-              <i class="fas fa-save me-2"></i> Save Quote for Follow-up
+              <i class="fas fa-save me-2" aria-hidden="true"></i> Save Quote for Follow-up
             </button>
             <div id="qSaved" class="text-center text-success small" style="display:none;">
-              <i class="fas fa-check-circle me-1"></i> Saved: <span id="qRef"></span>
+              <i class="fas fa-check-circle me-1" aria-hidden="true"></i> Saved: <span id="qRef"></span>
             </div>
           </div>
 
           <div class="alert alert-info small mt-3 mb-0">
-            <i class="fas fa-info-circle me-1"></i>
+            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
             Prices are estimates. Final quote confirmed on pickup.
           </div>
         </div>
@@ -923,21 +1074,21 @@ nav.ss-nav {
 <section id="pricing" class="ss-section" style="background:#f8fafc;">
   <div class="container">
     <div class="ss-section-title">
-      <h2>Pricing</h2>
+      <h2>Our Pricing</h2>
       <p>All prices in KES. Minimum order KES 1,000.</p>
     </div>
     <div class="row g-4">
       <div class="col-md-4">
         <div class="pricing-card">
-          <h4><i class="fas fa-tag me-2"></i>Drop-off</h4>
-          <div class="price-row"><span>Wash + Fold / kg</span><span class="price">KES 200</span></div>
-          <div class="price-row"><span>Wash + Fold + Iron / kg</span><span class="price">KES 350</span></div>
+          <h3><i class="fas fa-tag me-2" aria-hidden="true"></i>Drop-off</h3>
+          <div class="price-row"><span>Wash and Fold per kg</span><span class="price">KES 200</span></div>
+          <div class="price-row"><span>Wash, Fold, and Iron per kg</span><span class="price">KES 350</span></div>
           <div class="price-row"><span>Minimum order</span><span class="price">KES 1,000</span></div>
         </div>
       </div>
       <div class="col-md-4">
         <div class="pricing-card">
-          <h4><i class="fas fa-tshirt me-2"></i>Dry Cleaning</h4>
+          <h3><i class="fas fa-tshirt me-2" aria-hidden="true"></i>Dry Cleaning</h3>
           <div class="price-row"><span>Jacket</span><span class="price">KES 750</span></div>
           <div class="price-row"><span>Suit (2-piece)</span><span class="price">KES 1,500</span></div>
           <div class="price-row"><span>Dress</span><span class="price">KES 1,750</span></div>
@@ -946,11 +1097,11 @@ nav.ss-nav {
       </div>
       <div class="col-md-4">
         <div class="pricing-card">
-          <h4><i class="fas fa-star me-2"></i>Special Items</h4>
+          <h3><i class="fas fa-star me-2" aria-hidden="true"></i>Special Items</h3>
           <div class="price-row"><span>Duvet</span><span class="price">KES 950</span></div>
           <div class="price-row"><span>Pillow</span><span class="price">KES 350</span></div>
-          <div class="price-row"><span>Curtains / kg</span><span class="price">KES 400</span></div>
-          <div class="price-row"><span>Carpets / sqft</span><span class="price">KES 50</span></div>
+          <div class="price-row"><span>Curtains per kg</span><span class="price">KES 400</span></div>
+          <div class="price-row"><span>Carpets per sqft</span><span class="price">KES 50</span></div>
           <div class="price-row"><span>Sneakers</span><span class="price">KES 500</span></div>
         </div>
       </div>
@@ -959,23 +1110,23 @@ nav.ss-nav {
     <div class="row g-4 mt-4">
       <div class="col-md-6">
         <div class="pricing-card">
-          <h4><i class="fas fa-truck me-2"></i>Pick-up & Delivery</h4>
+          <h3><i class="fas fa-truck me-2" aria-hidden="true"></i>Pickup and Delivery</h3>
           <div class="price-row"><span>Westlands</span><span class="price" style="color:#10b981;">FREE</span></div>
           <div class="price-row"><span>Rest of Nairobi</span><span class="price">KES 500</span></div>
         </div>
       </div>
       <div class="col-md-6">
         <div class="pricing-card">
-          <h4><i class="fas fa-bolt me-2"></i>Express & Add-ons</h4>
-          <div class="price-row"><span>⚡ Express Service (3 hours)</span><span class="price">+KES 1,000</span></div>
-          <div class="price-row"><span>🪟 Curtain Service (take down + hang)</span><span class="price">+KES 50/kg</span></div>
+          <h3><i class="fas fa-bolt me-2" aria-hidden="true"></i>Express and Add-ons</h3>
+          <div class="price-row"><span>Express Service (3 hours)</span><span class="price">+KES 1,000</span></div>
+          <div class="price-row"><span>Curtain Service (take down and hang)</span><span class="price">+KES 50/kg</span></div>
         </div>
       </div>
     </div>
 
     <div class="text-center mt-5">
       <a href="https://wa.me/254741237542" class="btn btn-success rounded-pill px-5 py-3 fw-bold" target="_blank" rel="noopener">
-        <i class="fab fa-whatsapp me-2"></i> WhatsApp us for a quote
+        <i class="fab fa-whatsapp me-2" aria-hidden="true"></i> WhatsApp us for a quote
       </a>
     </div>
   </div>
@@ -986,35 +1137,35 @@ nav.ss-nav {
   <div class="container">
     <div class="ss-section-title">
       <h2>We Handle the Special Items Too</h2>
-      <p>Not just everyday laundry — bring us anything.</p>
+      <p>Not just everyday laundry. Bring us anything.</p>
     </div>
     <div class="row g-4">
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-window-maximize"></i></div>
-          <h5>Curtains</h5>
-          <p>Deep cleaned & pressed</p>
+          <div class="icon-wrap"><i class="fas fa-window-maximize" aria-hidden="true"></i></div>
+          <h3>Curtains</h3>
+          <p>Deep cleaned and pressed</p>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-bed"></i></div>
-          <h5>Duvets</h5>
+          <div class="icon-wrap"><i class="fas fa-bed" aria-hidden="true"></i></div>
+          <h3>Duvets</h3>
           <p>Fluffy like day one</p>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-shoe-prints"></i></div>
-          <h5>Sneakers</h5>
-          <p>Hand-cleaned & fresh</p>
+          <div class="icon-wrap"><i class="fas fa-shoe-prints" aria-hidden="true"></i></div>
+          <h3>Sneakers</h3>
+          <p>Hand-cleaned and fresh</p>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-tshirt"></i></div>
-          <h5>Dry Cleaning</h5>
-          <p>Suits, dresses & more</p>
+          <div class="icon-wrap"><i class="fas fa-tshirt" aria-hidden="true"></i></div>
+          <h3>Dry Cleaning</h3>
+          <p>Suits, dresses, and more</p>
         </div>
       </div>
     </div>
@@ -1032,24 +1183,24 @@ nav.ss-nav {
       <div class="col-md-4">
         <div class="process-card">
           <div class="step-num">1</div>
-          <i class="fas fa-box-open fa-3x mb-3" style="color:#0284c7;"></i>
-          <h5>Drop Off or Book Pickup</h5>
-          <p>Bring your laundry to any location — or book a free pickup via WhatsApp or online.</p>
+          <i class="fas fa-box-open fa-3x mb-3" style="color:#0284c7;" aria-hidden="true"></i>
+          <h3>Drop Off or Book a Pickup</h3>
+          <p>Bring your laundry to any location, or book a free pickup via WhatsApp or online.</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="process-card">
           <div class="step-num">2</div>
-          <i class="fas fa-washing-machine fa-3x mb-3" style="color:#0284c7;"></i>
-          <h5>We Clean It</h5>
+          <i class="fas fa-washing-machine fa-3x mb-3" style="color:#0284c7;" aria-hidden="true"></i>
+          <h3>We Clean It</h3>
           <p>Washed, dried, and folded by our team. Dry cleaning and special items handled with care.</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="process-card">
           <div class="step-num">3</div>
-          <i class="fas fa-truck fa-3x mb-3" style="color:#0284c7;"></i>
-          <h5>Collect or We Deliver</h5>
+          <i class="fas fa-truck fa-3x mb-3" style="color:#0284c7;" aria-hidden="true"></i>
+          <h3>Collect or Get It Delivered</h3>
           <p>Pick it up at the shop, or we'll bring it right to your door.</p>
         </div>
       </div>
@@ -1067,29 +1218,29 @@ nav.ss-nav {
     <div class="row g-4">
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-layer-group"></i></div>
-          <h5>Sorted by Fabric</h5>
+          <div class="icon-wrap"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
+          <h3>Sorted by Fabric</h3>
           <p>Inspected and sorted before washing</p>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-flask"></i></div>
-          <h5>Premium Detergents</h5>
+          <div class="icon-wrap"><i class="fas fa-flask" aria-hidden="true"></i></div>
+          <h3>Premium Detergents</h3>
           <p>Eco-friendly, fabric-safe products</p>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-wind"></i></div>
-          <h5>Professional Pressing</h5>
+          <div class="icon-wrap"><i class="fas fa-wind" aria-hidden="true"></i></div>
+          <h3>Professional Pressing</h3>
           <p>Steam-pressed for a crisp finish</p>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="service-card">
-          <div class="icon-wrap"><i class="fas fa-box"></i></div>
-          <h5>Individual Packaging</h5>
+          <div class="icon-wrap"><i class="fas fa-box" aria-hidden="true"></i></div>
+          <h3>Individual Packaging</h3>
           <p>Wrapped and hung, ready to wear</p>
         </div>
       </div>
@@ -1101,22 +1252,22 @@ nav.ss-nav {
 <section id="reviews" class="ss-section" style="background:#f8fafc;">
   <div class="container">
     <div class="ss-section-title">
-      <h2>⭐ What Our Customers Say</h2>
+      <h2>What Our Customers Say</h2>
       <p id="reviewsSummary">Loading...</p>
     </div>
 
     <div id="reviewsGrid" class="row g-4">
       <div class="text-center py-4" style="grid-column:1/-1;">
-        <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;"></i>
+        <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7;" aria-hidden="true"></i>
       </div>
     </div>
 
     <div class="text-center mt-4">
       <a href="/reviews" class="btn btn-outline-primary rounded-pill px-4 me-2">
-        <i class="fas fa-star me-2"></i>See All Reviews
+        <i class="fas fa-star me-2" aria-hidden="true"></i>See All Reviews
       </a>
       <a href="/reviews/new" class="btn btn-primary rounded-pill px-4">
-        <i class="fas fa-pen me-2"></i>Write a Review
+        <i class="fas fa-pen me-2" aria-hidden="true"></i>Write a Review
       </a>
     </div>
   </div>
@@ -1134,20 +1285,20 @@ nav.ss-nav {
       </div>
       <div class="col-md-3 col-6">
         <div class="stat-box">
-          <div class="num" id="statReviewAvg">4.9★</div>
+          <div class="num" id="statReviewAvg">4.9</div>
           <div class="lbl">Customer Rating</div>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="stat-box">
           <div class="num" id="statLocationCount">3</div>
-          <div class="lbl">Locations</div>
+          <div class="lbl">Locations in Nairobi</div>
         </div>
       </div>
       <div class="col-md-3 col-6">
         <div class="stat-box">
-          <div class="num">Same-Day</div>
-          <div class="lbl">Turnaround</div>
+          <div class="num">24hr</div>
+          <div class="lbl">Standard Turnaround</div>
         </div>
       </div>
     </div>
@@ -1161,13 +1312,13 @@ nav.ss-nav {
     <p class="lead mb-4">Schedule a free pickup or drop off at any of our Nairobi locations.</p>
     <div class="d-flex flex-wrap justify-content-center gap-3">
       <a href="https://wa.me/254741237542" class="btn btn-light btn-lg rounded-pill fw-bold px-4" target="_blank" rel="noopener">
-        <i class="fab fa-whatsapp me-2"></i> Schedule a Pick-up
+        <i class="fab fa-whatsapp me-2" aria-hidden="true"></i> Schedule a Pickup
       </a>
       <a href="#locations" class="btn btn-warning btn-lg rounded-pill fw-bold px-4">
-        <i class="fas fa-map-marker-alt me-2"></i> Find a Branch
+        <i class="fas fa-map-marker-alt me-2" aria-hidden="true"></i> Find a Branch
       </a>
       <a href="/reviews/new" class="btn btn-outline-light btn-lg rounded-pill px-4">
-        <i class="fas fa-star me-2"></i> Leave a Review
+        <i class="fas fa-star me-2" aria-hidden="true"></i> Leave a Review
       </a>
     </div>
   </div>
@@ -1178,40 +1329,39 @@ nav.ss-nav {
   <div class="container">
     <div class="row">
       <div class="col-md-3 mb-4">
-        <h5><i class="fas fa-soap me-2"></i>SpinSpring Express</h5>
+        <h3 style="font-size:1.1rem;"><i class="fas fa-soap me-2" aria-hidden="true"></i>SpinSpring Express</h3>
         <p class="text-white-50">Faster. Cheaper. Cleaner. Fun.</p>
       </div>
       <div class="col-md-3 mb-4">
-        <h6>Services</h6>
+        <h4 style="font-size:1rem;">Services</h4>
         <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Self-Service</a>
         <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Drop-Off</a>
         <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Subscriptions</a>
         <a href="#services" class="text-white-50 d-block mb-1" style="text-decoration:none;">Dry Cleaning</a>
       </div>
       <div class="col-md-3 mb-4">
-        <h6>Locations</h6>
+        <h4 style="font-size:1rem;">Explore</h4>
         <a href="#locations" class="text-white-50 d-block mb-1" style="text-decoration:none;">All Branches</a>
         <a href="/find-location" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-location-arrow me-1"></i>Find Nearest
+          Find Nearest
         </a>
         <a href="#pricing" class="text-white-50 d-block mb-1" style="text-decoration:none;">Pricing</a>
-        <a href="/reviews" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-star me-1"></i>Reviews
-        </a>
+        <a href="/blog" class="text-white-50 d-block mb-1" style="text-decoration:none;">Blog</a>
+        <a href="/reviews" class="text-white-50 d-block mb-1" style="text-decoration:none;">Reviews</a>
       </div>
       <div class="col-md-3 mb-4">
-        <h6>Account</h6>
+        <h4 style="font-size:1rem;">Account</h4>
         <a href="/login" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-store me-2"></i>Owner Login
+          <i class="fas fa-store me-2" aria-hidden="true"></i>Owner Login
         </a>
         <a href="/attendant-login" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-user-tie me-2"></i>Attendant Login
+          <i class="fas fa-user-tie me-2" aria-hidden="true"></i>Attendant Login
         </a>
         <a href="/customer-login" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-id-card me-2"></i>Customer Login
+          <i class="fas fa-id-card me-2" aria-hidden="true"></i>Customer Login
         </a>
         <a href="/register" class="text-white-50 d-block mb-1" style="text-decoration:none;">
-          <i class="fas fa-user-plus me-2"></i>Register (Invite)
+          <i class="fas fa-user-plus me-2" aria-hidden="true"></i>Register (Invite)
         </a>
       </div>
     </div>
@@ -1219,10 +1369,10 @@ nav.ss-nav {
     <div class="row">
       <div class="col-md-6 text-white-50">
         <p class="mb-0">
-          <i class="fab fa-whatsapp me-1"></i>
+          <i class="fab fa-whatsapp me-1" aria-hidden="true"></i>
           <a href="https://wa.me/254741237542" class="text-white-50" style="text-decoration:none;" target="_blank" rel="noopener">+254 741 237 542</a>
-          &nbsp;·&nbsp;
-          <i class="fas fa-envelope me-1"></i>
+          &middot;
+          <i class="fas fa-envelope me-1" aria-hidden="true"></i>
           <a href="mailto:hello@spinspringexpress.co.ke" class="text-white-50" style="text-decoration:none;">hello@spinspringexpress.co.ke</a>
         </p>
       </div>
@@ -1234,12 +1384,12 @@ nav.ss-nav {
 </footer>
 
 <!-- ===== WHATSAPP FLOAT ===== -->
-<a href="https://wa.me/254741237542" class="wa-float" target="_blank" rel="noopener" title="Chat on WhatsApp">
-  <i class="fab fa-whatsapp"></i>
+<a href="https://wa.me/254741237542" class="wa-float" target="_blank" rel="noopener" title="Chat with us on WhatsApp" aria-label="Chat with us on WhatsApp">
+  <i class="fab fa-whatsapp" aria-hidden="true"></i>
 </a>
 
 <!-- ===== SCRIPTS ===== -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
 
 <script>
 // ============ NAV + DROPDOWN ============
@@ -1248,7 +1398,10 @@ nav.ss-nav {
   const navToggle = document.getElementById('navToggle');
   const navMenu = document.getElementById('navMenu');
   if (navToggle && navMenu) {
-    navToggle.addEventListener('click', () => navMenu.classList.toggle('show'));
+    navToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('show');
+      navToggle.setAttribute('aria-expanded', String(navMenu.classList.contains('show')));
+    });
   }
   const dropdown = document.getElementById('loginDropdown');
   const dropdownBtn = document.getElementById('loginDropdownBtn');
@@ -1273,6 +1426,47 @@ nav.ss-nav {
   });
 })();
 
+// ============ BLOG ============
+(function() {
+  'use strict';
+  const grid = document.getElementById('blogGrid');
+  if (!grid) return;
+  const OWNER_ID = 1;
+
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]); }
+  function fmtDate(d) {
+    try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    catch (e) { return ''; }
+  }
+
+  fetch(`/api/public/posts?owner_id=${OWNER_ID}&limit=3`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success || !data.posts || data.posts.length === 0) {
+        grid.innerHTML = '<div class="text-center py-5" style="grid-column:1/-1;"><i class="fas fa-newspaper fa-3x mb-3" style="color:#bae6fd;"></i><p class="text-muted">No posts yet. Check back soon.</p></div>';
+        return;
+      }
+      grid.innerHTML = data.posts.map(p => `
+        <a class="blog-card" href="/blog/${esc(p.slug)}">
+          <div class="blog-img">
+            ${p.featured_image ? `<img src="${esc(p.featured_image)}" alt="${esc(p.title)}" loading="lazy">` : '<i class="fas fa-newspaper" aria-hidden="true"></i>'}
+          </div>
+          <div class="blog-body">
+            <div class="blog-meta">
+              ${p.category ? `<span class="cat">${esc(p.category)}</span>` : ''}
+              ${fmtDate(p.published_at || p.created_at)}
+            </div>
+            <h3>${esc(p.title)}</h3>
+            <p>${esc(p.excerpt || (p.content || '').substring(0, 150) + '...')}</p>
+            <span class="read-more">Read more <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></span>
+          </div>
+        </a>`).join('');
+    })
+    .catch(() => {
+      grid.innerHTML = '<div class="text-center py-4" style="grid-column:1/-1;"><p class="text-muted">Posts unavailable right now.</p></div>';
+    });
+})();
+
 // ============ LOCATIONS ============
 (function() {
   'use strict';
@@ -1286,32 +1480,32 @@ nav.ss-nav {
 
   function renderLocations(locations, withDistance) {
     if (!locations || locations.length === 0) {
-      GRID.innerHTML = '<div class="text-center py-5" style="grid-column:1/-1;"><i class="fas fa-map-marked-alt fa-3x mb-3" style="color:#bae6fd;"></i><h5 style="color:#0c4a6e;">No locations available</h5><p class="text-muted">Check back soon!</p></div>';
+      GRID.innerHTML = '<div class="text-center py-5" style="grid-column:1/-1;"><i class="fas fa-map-marked-alt fa-3x mb-3" style="color:#bae6fd;" aria-hidden="true"></i><h3 style="color:#0c4a6e;font-size:1.2rem;">No locations available</h3><p class="text-muted">Check back soon.</p></div>';
       return;
     }
     GRID.innerHTML = locations.map(loc => {
       const badge = loc.is_primary ? '<span class="loc-badge-primary">PRIMARY</span>' : (loc.is_open_now ? '<span class="loc-badge-open">OPEN</span>' : '<span class="loc-badge-closed">CLOSED</span>');
-      const distanceBlock = (withDistance && loc.distance_km !== undefined) ? `<span class="distance-badge show"><i class="fas fa-route me-1"></i>${loc.distance_km} km away</span>` : '';
+      const distanceBlock = (withDistance && loc.distance_km !== undefined) ? `<span class="distance-badge show"><i class="fas fa-route me-1" aria-hidden="true"></i>${loc.distance_km} km away</span>` : '';
       const phone = loc.phone || loc.whatsapp || '';
       const waLink = phone ? `https://wa.me/${phone.replace(/\D/g, '')}` : '';
       return `
-        <div class="location-card">
+        <article class="location-card">
           <div class="loc-header">
             ${badge}
-            <h5><i class="fas fa-store me-2"></i>${loc.location_name}</h5>
+            <h3><i class="fas fa-store me-2" aria-hidden="true"></i>${loc.location_name}</h3>
             <div class="loc-code">${loc.location_code || ''}</div>
             ${distanceBlock}
           </div>
           <div class="loc-body">
-            <div class="loc-row"><i class="fas fa-map-pin"></i><div>${loc.address_line1 || ''}${loc.address_line2 ? '<br>' + loc.address_line2 : ''}<br>${loc.city || 'Nairobi'}</div></div>
-            ${phone ? `<div class="loc-row"><i class="fas fa-phone"></i><div>${phone}</div></div>` : ''}
-            <div class="loc-row"><i class="fas fa-clock"></i><div>${formatTime(loc.opening_time)} - ${formatTime(loc.closing_time)}</div></div>
+            <div class="loc-row"><i class="fas fa-map-pin" aria-hidden="true"></i><div>${loc.address_line1 || ''}${loc.address_line2 ? '<br>' + loc.address_line2 : ''}<br>${loc.city || 'Nairobi'}</div></div>
+            ${phone ? `<div class="loc-row"><i class="fas fa-phone" aria-hidden="true"></i><div>${phone}</div></div>` : ''}
+            <div class="loc-row"><i class="fas fa-clock" aria-hidden="true"></i><div>${formatTime(loc.opening_time)} - ${formatTime(loc.closing_time)}</div></div>
           </div>
           <div class="loc-actions">
-            <a class="btn-map" href="https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}" target="_blank" rel="noopener"><i class="fas fa-directions me-1"></i>Directions</a>
-            ${waLink ? `<a class="btn-wa" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp me-1"></i>WhatsApp</a>` : ''}
+            <a class="btn-map" href="https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}" target="_blank" rel="noopener"><i class="fas fa-directions me-1" aria-hidden="true"></i>Directions</a>
+            ${waLink ? `<a class="btn-wa" href="${waLink}" target="_blank" rel="noopener"><i class="fab fa-whatsapp me-1" aria-hidden="true"></i>WhatsApp</a>` : ''}
           </div>
-        </div>`;
+        </article>`;
     }).join('');
   }
 
@@ -1324,16 +1518,16 @@ nav.ss-nav {
           renderLocations(locs, false);
           if (STAT_COUNT) STAT_COUNT.textContent = locs.length || 3;
           const sel = document.getElementById('qLocation');
-          if (sel) sel.innerHTML = '<option value="">— Select a branch —</option>' + locs.map(l => `<option value="${l.id}">${l.location_name} (${l.city})</option>`).join('');
+          if (sel) sel.innerHTML = '<option value="">Select a branch</option>' + locs.map(l => `<option value="${l.id}">${l.location_name} (${l.city})</option>`).join('');
         }
       })
       .catch(err => { console.error('Locations:', err); });
   }
 
   function findNearest() {
-    if (!navigator.geolocation) return alert('Geolocation not supported');
+    if (!navigator.geolocation) return alert('Geolocation not supported by this browser');
     FIND_BTN.disabled = true;
-    FIND_BTN.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Locating...';
+    FIND_BTN.innerHTML = '<i class="fas fa-spinner fa-spin me-2" aria-hidden="true"></i>Locating...';
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -1342,13 +1536,13 @@ nav.ss-nav {
           .then(data => {
             if (data.success) {
               renderLocations(data.locations || [], true);
-              FIND_BTN.innerHTML = '<i class="fas fa-check me-2"></i>Sorted by Distance';
-              setTimeout(() => { FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Find Nearest to Me'; FIND_BTN.disabled = false; }, 3000);
+              FIND_BTN.innerHTML = '<i class="fas fa-check me-2" aria-hidden="true"></i>Sorted by Distance';
+              setTimeout(() => { FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2" aria-hidden="true"></i>Find Nearest to Me'; FIND_BTN.disabled = false; }, 3000);
             }
           })
-          .catch(err => { alert('Could not sort: ' + err.message); FIND_BTN.disabled = false; FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Find Nearest to Me'; });
+          .catch(err => { alert('Could not sort: ' + err.message); FIND_BTN.disabled = false; FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2" aria-hidden="true"></i>Find Nearest to Me'; });
       },
-      (err) => { alert('Location denied'); FIND_BTN.disabled = false; FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Find Nearest to Me'; },
+      () => { alert('Location access denied'); FIND_BTN.disabled = false; FIND_BTN.innerHTML = '<i class="fas fa-crosshairs me-2" aria-hidden="true"></i>Find Nearest to Me'; },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
@@ -1400,7 +1594,8 @@ nav.ss-nav {
 
   function populateSelects() {
     document.querySelectorAll('.q-service').forEach(sel => {
-      sel.innerHTML = '<option value="">-- Select Service --</option>';
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Select Service</option>';
       state.services.forEach(s => {
         const o = document.createElement('option');
         o.value = s.service_key;
@@ -1408,6 +1603,7 @@ nav.ss-nav {
         o.dataset.unit = s.unit;
         sel.appendChild(o);
       });
+      if (cur) sel.value = cur;
     });
   }
 
@@ -1416,10 +1612,10 @@ nav.ss-nav {
     row.className = 'quote-item-row';
     row.style.cssText = 'display:flex;gap:8px;margin-bottom:10px;align-items:end;';
     row.innerHTML = `
-      <div style="flex:2;"><label class="form-label small mb-1">Service</label><select class="form-select form-select-sm q-service"><option value="">-- Select --</option></select></div>
+      <div style="flex:2;"><label class="form-label small mb-1">Service</label><select class="form-select form-select-sm q-service"><option value="">Select</option></select></div>
       <div style="flex:1;"><label class="form-label small mb-1">Qty</label><input type="number" class="form-control form-control-sm q-qty" value="1" min="0.1" step="0.1"></div>
       <div style="flex:1;"><label class="form-label small mb-1">Unit</label><input type="text" class="form-control form-control-sm q-unit" readonly></div>
-      <div><button type="button" class="btn btn-sm btn-outline-danger q-remove"><i class="fas fa-trash"></i></button></div>`;
+      <div><button type="button" class="btn btn-sm btn-outline-danger q-remove" aria-label="Remove item"><i class="fas fa-trash" aria-hidden="true"></i></button></div>`;
     D.items.appendChild(row);
     populateSelects();
     const sel = row.querySelector('.q-service');
@@ -1481,8 +1677,8 @@ nav.ss-nav {
     const d = state.current; if (!d) return;
     const loc = getLocName();
     const lines = ['Hi SpinSpring Express,', 'I would like a quote:', ''];
-    if (loc) lines.push(`📍 Branch: ${loc}`, '');
-    d.breakdown.forEach(b => lines.push(`• ${b.item}${b.quantity ? ` (${b.quantity}${b.unit || ''})` : ''} — KES ${b.line_total}`));
+    if (loc) lines.push(`Branch: ${loc}`, '');
+    d.breakdown.forEach(b => lines.push(`- ${b.item}${b.quantity ? ` (${b.quantity}${b.unit || ''})` : ''} - KES ${b.line_total}`));
     lines.push('', `TOTAL: KES ${d.total}`, '');
     lines.push('Name: ' + (D.qName?.value || ''));
     lines.push('Phone: ' + (D.qPhone?.value || ''));
@@ -1505,7 +1701,7 @@ nav.ss-nav {
   function detect() {
     if (!navigator.geolocation) return alert('Geolocation not supported');
     D.detectBtn.disabled = true;
-    D.detectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    D.detectBtn.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         fetch(`/api/public/locations/nearest?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}&owner_id=1&limit=1`)
@@ -1514,15 +1710,15 @@ nav.ss-nav {
             if (data.success && data.locations?.length > 0) {
               const n = data.locations[0];
               if (D.qLocation) D.qLocation.value = n.id;
-              if (D.detectedText) D.detectedText.textContent = `Nearest: ${n.location_name} — ${n.distance_km} km away`;
+              if (D.detectedText) D.detectedText.textContent = `Nearest: ${n.location_name} - ${n.distance_km} km away`;
               if (D.detectedInfo) D.detectedInfo.style.display = 'block';
             }
             D.detectBtn.disabled = false;
-            D.detectBtn.innerHTML = '<i class="fas fa-crosshairs me-1"></i> Auto-detect';
+            D.detectBtn.innerHTML = '<i class="fas fa-crosshairs me-1" aria-hidden="true"></i> Auto-detect';
           })
-          .catch(() => { D.detectBtn.disabled = false; D.detectBtn.innerHTML = '<i class="fas fa-crosshairs me-1"></i> Auto-detect'; });
+          .catch(() => { D.detectBtn.disabled = false; D.detectBtn.innerHTML = '<i class="fas fa-crosshairs me-1" aria-hidden="true"></i> Auto-detect'; });
       },
-      () => { D.detectBtn.disabled = false; D.detectBtn.innerHTML = '<i class="fas fa-crosshairs me-1"></i> Auto-detect'; },
+      () => { D.detectBtn.disabled = false; D.detectBtn.innerHTML = '<i class="fas fa-crosshairs me-1" aria-hidden="true"></i> Auto-detect'; },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }
@@ -1551,7 +1747,7 @@ nav.ss-nav {
   const statAvg = document.getElementById('statReviewAvg');
   if (!grid) return;
 
-  function stars(r) { let h = ''; for (let i = 1; i <= 5; i++) h += `<i class="${i <= r ? 'fas' : 'far'} fa-star"></i>`; return h; }
+  function stars(r) { let h = ''; for (let i = 1; i <= 5; i++) h += `<i class="${i <= r ? 'fas' : 'far'} fa-star" aria-hidden="true"></i>`; return h; }
   function initials(n) { if (!n) return '?'; return n.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
   function displayName(n) { if (!n) return 'Anonymous'; const p = n.trim().split(/\s+/); return p.length === 1 ? p[0] : p[0] + ' ' + p[p.length - 1].charAt(0) + '.'; }
   function timeAgo(d) { const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000); if (s < 3600) return Math.floor(s / 60) + 'm ago'; if (s < 86400) return Math.floor(s / 3600) + 'h ago'; if (s < 604800) return Math.floor(s / 86400) + 'd ago'; return Math.floor(s / 604800) + 'w ago'; }
@@ -1562,10 +1758,10 @@ nav.ss-nav {
     .then(data => {
       if (!data.success) throw new Error('Failed');
       const { reviews, stats } = data;
-      if (summary) summary.innerHTML = `<span style="color:#f59e0b;font-weight:800;font-size:1.3rem;">${(stats.avg_rating || 0).toFixed(1)}★</span> from ${stats.total || 0} reviews`;
-      if (statAvg) statAvg.textContent = (stats.avg_rating || 0).toFixed(1) + '★';
+      if (summary) summary.innerHTML = `<span style="color:#f59e0b;font-weight:800;font-size:1.3rem;">${(stats.avg_rating || 0).toFixed(1)} out of 5</span> from ${stats.total || 0} reviews`;
+      if (statAvg) statAvg.textContent = (stats.avg_rating || 0).toFixed(1);
       if (!reviews || reviews.length === 0) {
-        grid.innerHTML = `<div class="text-center py-5" style="grid-column:1/-1;"><i class="fas fa-star fa-3x mb-3" style="color:#bae6fd;"></i><p class="text-muted">No reviews yet. Be the first!</p><a href="/reviews/new" class="btn btn-outline-primary rounded-pill px-4 mt-2"><i class="fas fa-pen me-2"></i>Write a Review</a></div>`;
+        grid.innerHTML = `<div class="text-center py-5" style="grid-column:1/-1;"><i class="fas fa-star fa-3x mb-3" style="color:#bae6fd;" aria-hidden="true"></i><p class="text-muted">No reviews yet. Be the first.</p><a href="/reviews/new" class="btn btn-outline-primary rounded-pill px-4 mt-2"><i class="fas fa-pen me-2" aria-hidden="true"></i>Write a Review</a></div>`;
         return;
       }
       grid.innerHTML = reviews.map(r => `
@@ -1578,7 +1774,7 @@ nav.ss-nav {
               <div class="testimonial-avatar">${initials(r.customer_name)}</div>
               <div>
                 <strong>${displayName(r.customer_name)}</strong>
-                ${r.is_verified ? '<span class="verified-mini"><i class="fas fa-check-circle"></i></span>' : ''}
+                ${r.is_verified ? '<span class="verified-mini"><i class="fas fa-check-circle" aria-hidden="true"></i></span>' : ''}
                 <div style="font-size:0.75rem;color:#64748b;">${timeAgo(r.created_at)}</div>
               </div>
             </div>
