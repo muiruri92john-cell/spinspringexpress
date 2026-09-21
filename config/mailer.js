@@ -9,21 +9,18 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  pool: true,               // reuse connections
+  pool: true,
   maxConnections: 3,
   maxMessages: 100,
-  connectionTimeout: 10000, // 10s
-  greetingTimeout: 10000,
-  socketTimeout: 20000,
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 30000,
   tls: {
-    // cPanel often uses a shared cert; don't hard-fail on hostname mismatch
     rejectUnauthorized: false,
   },
 });
 
-// Verify on startup (non-fatal)
-transporter.verify()
-  .then(() => console.log('✅ SMTP ready:', process.env.SMTP_HOST))
-  .catch((err) => console.error('❌ SMTP verify failed:', err.message));
+// Do NOT verify at startup — cPanel SMTP often rejects verify() but accepts sendMail().
+// Skip verify entirely to avoid false-positive warnings in the log.
 
 module.exports = transporter;

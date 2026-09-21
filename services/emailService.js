@@ -1,13 +1,23 @@
 // services/emailService.js
+const fs = require('fs');
 const transporter = require('../config/mailer');
 const { renderTemplate } = require('./emailTemplates');
 
+const LOG_FILE = '/home/buxbtreu/spinspringexpress/email-debug.log';
+
+function logLine(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  try { fs.appendFileSync(LOG_FILE, line); } catch (e) {}
+  console.log(msg);
+}
+
 /**
  * Core send — accepts optional `db` connection for audit logging.
- * If `db` is not provided, email still sends but is not logged.
+ * If `db` is not provided, email still sends but is not logged to DB.
  */
 async function sendEmail({ to, subject, template, data = {}, replyTo, db }) {
   let logId = null;
+  logLine(`▶ attempt [${template}] → ${to}`);
 
   try {
     if (db) {
@@ -17,10 +27,14 @@ async function sendEmail({ to, subject, template, data = {}, replyTo, db }) {
         [to, subject, template || null]
       );
       logId = logResult.insertId;
+      logLine(`  ↳ queued logId=${logId}`);
     }
 
+    logLine(`  ↳ rendering template`);
     const html = await renderTemplate(template, data);
+    logLine(`  ↳ template rendered (${html.length} bytes)`);
 
+    logLine(`  ↳ calling SMTP`);
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM,
       to,
@@ -36,10 +50,10 @@ async function sendEmail({ to, subject, template, data = {}, replyTo, db }) {
       );
     }
 
-    console.log(`📧 Sent [${template}] → ${to}`);
+    logLine(`  ✅ SENT [${template}] → ${to} (${info.messageId})`);
     return { ok: true, messageId: info.messageId };
   } catch (err) {
-    console.error(`📧 Failed [${template}] → ${to}:`, err.message);
+    logLine(`  ❌ FAILED [${template}] → ${to}: ${err.message}`);
     if (db && logId) {
       await db.execute(
         `UPDATE ss_email_log SET status='failed', error=? WHERE id=?`,
@@ -133,6 +147,15 @@ const sendNewOrderToOwner = (order, customer, owner, db) =>
     db,
   });
 
+const sendNewOrderToAttendant = (order, customer, owner, attendant, db) =>
+  sendEmail({
+    to: attendant.email,
+    subject: `New order ${order.order_number} assigned`,
+    template: 'new-order-attendant',
+    data: { order, customer, owner, attendant },
+    db,
+  });
+
 module.exports = {
   sendEmail,
   sendWelcomeOwner,
@@ -144,4 +167,5 @@ module.exports = {
   sendOrderReady,
   sendOrderCompleted,
   sendNewOrderToOwner,
+  sendNewOrderToAttendant,
 };

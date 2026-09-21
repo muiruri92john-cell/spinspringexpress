@@ -9,6 +9,15 @@ const CustomerModel = require('../models/customer');
 const OrderModel = require('../models/order');
 const bcrypt = require('bcryptjs');
 
+// 🔔 Email service
+const {
+  sendOrderPlaced,
+  sendOrderReady,
+  sendOrderCompleted,
+  sendNewOrderToOwner,
+  sendNewOrderToAttendant,
+} = require('../services/emailService');
+
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -17,6 +26,51 @@ function isAttendant(req, res, next) {
   if (role === 'attendant' || role === 'owner') return next();
   req.flash('error_msg', 'Attendant access required');
   return res.redirect('/attendant-login');
+}
+
+// ─────────────────────────────────────────────────────
+// 🔔 Helper: fetch owner + customer for order emails
+// ─────────────────────────────────────────────────────
+async function lookupParties(db, ownerId, customerId) {
+  let owner = null;
+  let customer = null;
+
+  try {
+    const [owners] = await db.query(
+      'SELECT id, company_name, contact_name, email FROM ss_owners WHERE id = ? LIMIT 1',
+      [ownerId]
+    );
+    if (owners.length) {
+      owner = {
+        company_name: owners[0].company_name,
+        contact_name: owners[0].contact_name,
+        email: owners[0].email,
+      };
+    }
+  } catch (e) {
+    console.error('[lookupParties] owner lookup failed:', e.message);
+  }
+
+  if (customerId) {
+    try {
+      const [custs] = await db.query(
+        'SELECT id, full_name, email, phone FROM ss_customers WHERE id = ? LIMIT 1',
+        [customerId]
+      );
+      if (custs.length) {
+        customer = {
+          id: custs[0].id,
+          full_name: custs[0].full_name,
+          email: custs[0].email,
+          phone: custs[0].phone,
+        };
+      }
+    } catch (e) {
+      console.error('[lookupParties] customer lookup failed:', e.message);
+    }
+  }
+
+  return { owner, customer };
 }
 
 // ═══════════════════════════════════════════════════
@@ -151,13 +205,17 @@ router.post('/attendant/customers', isAttendant, ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// ATTENDANT — CREATE ORDER
+// ATTENDANT — CREATE ORDER  (with emails)
 // ═══════════════════════════════════════════════════
 
 router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
+  console.log('🚨 [route] POST /attendant/orders hit', new Date().toISOString());
+
   const model = new OrderModel(req.db);
   const ownerId = req.session.spinUser.ownerId;
   const { customer_id, device_id, service_type, cycle_type, price, weight_kg } = req.body;
+
+  console.log('🚨 [route] ownerId=', ownerId, 'customer_id=', customer_id, 'device_id=', device_id, 'price=', price);
 
   if (!customer_id) {
     req.flash('error_msg', 'Customer is required');
@@ -185,7 +243,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
   }
 
   try {
-    const { order_number } = await model.create({
+    const { id: orderId, order_number } = await model.create({
       owner_id: ownerId,
       customer_id,
       device_id: device_id || null,
@@ -198,25 +256,103 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
       order_status: 'pending'
     });
 
+    console.log('🚨 [route] Order created:', orderId, order_number);
+
+    // 🔔 Order emails (non-blocking)
+    try {
+      const { owner, customer } = await lookupParties(req.db, ownerId, customer_id);
+      console.log('🚨 [route] lookupParties:', { owner, customer });
+
+      const orderObj = {
+        id: orderId,
+        order_number,
+        price: parseFloat(price) || 0,
+        order_status: 'pending',
+        created_at: new Date(),
+        service_type: service_type || 'wash',
+        weight_kg: weight_kg ? parseFloat(weight_kg) : null,
+      };
+
+      // 1. Customer
+      if (customer && customer.email) {
+        console.log('🚨 [route] sending order-placed to', customer.email);
+        sendOrderPlaced(orderObj, customer, owner, req.db)
+          .catch(e => console.error('order-placed email failed:', e.message));
+      } else {
+        console.log('🚨 [route] SKIP order-placed — customer has no email');
+      }
+
+      // 2. Owner
+      if (owner && owner.email) {
+        console.log('🚨 [route] sending new-order-owner to', owner.email);
+        sendNewOrderToOwner(orderObj, customer || { full_name: 'Walk-in' }, owner, req.db)
+          .catch(e => console.error('new-order-owner email failed:', e.message));
+      } else {
+        console.log('🚨 [route] SKIP new-order-owner — owner has no email');
+      }
+
+      // 3. Attendant
+      if (req.session.spinUser.role === 'attendant' && req.session.spinUser.email) {
+        console.log('🚨 [route] sending new-order-attendant to', req.session.spinUser.email);
+        sendNewOrderToAttendant(
+          orderObj,
+          customer || { full_name: 'Walk-in' },
+          owner || { company_name: 'SpinSpring Express', contact_name: 'Owner' },
+          { email: req.session.spinUser.email, full_name: req.session.spinUser.name },
+          req.db
+        ).catch(e => console.error('new-order-attendant email failed:', e.message));
+      } else {
+        console.log('🚨 [route] SKIP new-order-attendant — role=', req.session.spinUser.role, 'email=', req.session.spinUser.email);
+      }
+    } catch (e) {
+      console.error('Order email lookup failed:', e.message);
+    }
+
     req.flash('success_msg', `✅ Order ${order_number} created`);
     res.redirect('/attendant');
   } catch (e) {
-    console.error(e);
+    console.error('create order failed:', e);
     req.flash('error_msg', 'Failed to create order: ' + e.message);
     res.redirect('/attendant');
   }
 }));
 
 // ═══════════════════════════════════════════════════
-// ATTENDANT — UPDATE ORDER STATUS
+// ATTENDANT — UPDATE ORDER STATUS  (with emails)
 // ═══════════════════════════════════════════════════
 
 router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => {
   const model = new OrderModel(req.db);
   const ownerId = req.session.spinUser.ownerId;
   const { status } = req.body;
+  const orderId = parseInt(req.params.id, 10);
 
-  await model.updateStatus(parseInt(req.params.id, 10), ownerId, status);
+  console.log('🚨 [route] status update:', orderId, '→', status);
+
+  const { changed } = await model.updateStatus(orderId, ownerId, status);
+
+  if (changed > 0) {
+    try {
+      const order = await model.findById(orderId, ownerId);
+      if (order) {
+        const { owner, customer } = await lookupParties(req.db, ownerId, order.customer_id);
+        const orderObj = { ...order, order_status: status };
+
+        if (customer && customer.email && owner && owner.email) {
+          if (status === 'in_progress') {
+            sendOrderReady(orderObj, customer, owner, req.db)
+              .catch(e => console.error('order-ready email failed:', e.message));
+          } else if (status === 'completed') {
+            sendOrderCompleted(orderObj, customer, owner, req.db)
+              .catch(e => console.error('order-completed email failed:', e.message));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Status email lookup failed:', e.message);
+    }
+  }
+
   req.flash('success_msg', 'Order status updated');
   res.redirect('/attendant');
 }));

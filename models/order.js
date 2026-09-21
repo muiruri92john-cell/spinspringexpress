@@ -14,14 +14,15 @@ class OrderModel {
   async create(data) {
     const orderNumber = this.generateOrderNumber();
     const [result] = await this.db.query(
-      `INSERT INTO ss_orders 
-       (order_number, owner_id, customer_id, device_id, location_id,
-        service_type, cycle_type, weight_kg, price, 
+      `INSERT INTO ss_orders
+       (order_number, owner_id, user_id, customer_id, device_id, location_id,
+        service_type, cycle_type, weight_kg, price,
         payment_status, order_status, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         orderNumber,
         data.owner_id,
+        data.owner_id,                       // user_id mirrors owner_id (legacy NOT NULL column)
         data.customer_id || null,
         data.device_id || null,
         data.location_id || null,
@@ -89,7 +90,7 @@ class OrderModel {
                 : '';
 
     const [result] = await this.db.query(
-      `UPDATE ss_orders 
+      `UPDATE ss_orders
        SET order_status = ?${extra}${notes ? ', notes = ?' : ''}
        WHERE id = ? AND owner_id = ?`,
       notes ? [status, notes, id, ownerId] : [status, id, ownerId]

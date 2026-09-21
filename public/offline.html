@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline — SpinSpring Express</title>
+  <meta name="theme-color" content="#0284c7">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    .offline-card {
+      background: #fff;
+      color: #1f2937;
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    }
+    .offline-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 24px;
+      background: #eff6ff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+    h1 { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+    p { color: #6b7280; margin: 0 0 24px; font-size: 15px; line-height: 1.5; }
+    .btn-retry {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      font-size: 15px;
+    }
+    .btn-retry:hover { background: #0369a1; }
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .status.online { color: #10b981; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="offline-icon">📡</div>
+    <h1>You're offline</h1>
+    <p>SpinSpring needs a connection to load your orders. Check your network and try again.</p>
+    <button class="btn-retry" onclick="window.location.reload()">Try Again</button>
+    <div class="status" id="status">Checking connection…</div>
+  </div>
+
+  <script>
+    function updateStatus() {
+      const el = document.getElementById('status');
+      if (navigator.onLine) {
+        el.textContent = '✓ Back online — reloading…';
+        el.className = 'status online';
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        el.textContent = 'Still offline';
+        el.className = 'status';
+      }
+    }
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    updateStatus();
+  </script>
+</body>
+</html>

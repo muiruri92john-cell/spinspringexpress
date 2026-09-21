@@ -19,3 +19,11 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Backups + debug logs
+*.bak
+*.bak2
+*.broken
+*.old
+email-debug.log
+tmp/restart.txt

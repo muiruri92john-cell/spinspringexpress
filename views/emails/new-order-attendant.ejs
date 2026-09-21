@@ -1,0 +1,46 @@
+<%- include('_header', { title: 'New order assigned' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">New order assigned to you</h2>
+
+<p>Hi <%= attendant.full_name %>,</p>
+
+<p>A new laundry order has been placed at <strong><%= owner.company_name %></strong>.</p>
+
+<table cellpadding="10" cellspacing="0" style="border-collapse:collapse;margin:20px 0;background:#fef3c7;border-radius:8px;width:100%;border-left:4px solid #f59e0b;">
+  <tr>
+    <td style="color:#92400e;font-size:13px;">Order Number</td>
+    <td style="font-weight:700;font-family:monospace;color:#92400e;"><%= order.order_number %></td>
+  </tr>
+  <tr>
+    <td style="color:#92400e;font-size:13px;">Customer</td>
+    <td style="font-weight:600;color:#92400e;"><%= customer.full_name || 'Walk-in' %></td>
+  </tr>
+  <% if (customer.phone) { %>
+  <tr>
+    <td style="color:#92400e;font-size:13px;">Phone</td>
+    <td style="font-weight:600;color:#92400e;"><%= customer.phone %></td>
+  </tr>
+  <% } %>
+  <tr>
+    <td style="color:#92400e;font-size:13px;">Service</td>
+    <td style="font-weight:600;color:#92400e;"><%= order.service_type || 'Wash' %></td>
+  </tr>
+  <% if (order.weight_kg) { %>
+  <tr>
+    <td style="color:#92400e;font-size:13px;">Weight</td>
+    <td style="font-weight:600;color:#92400e;"><%= order.weight_kg %> kg</td>
+  </tr>
+  <% } %>
+  <tr>
+    <td style="color:#92400e;font-size:13px;">Amount</td>
+    <td style="font-weight:700;color:#92400e;">KES <%= order.price %></td>
+  </tr>
+</table>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/attendant" style="background:#f59e0b;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Open Dashboard</a>
+</p>
+
+<p style="color:#6b7280;font-size:13px;">Please process this order when the customer arrives.</p>
+
+<%- include('_footer') %>
