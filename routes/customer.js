@@ -13,6 +13,7 @@ const {
   sendNewOrderToOwner,
   sendNewOrderToAttendant,
 } = require('../services/emailService');
+const pushSvc = require('../services/pushService');
 
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -79,13 +80,11 @@ router.get('/customer', isCustomer, ah(async (req, res) => {
   const orders = await model.getOrders(customerId, 20);
   const activeOrders = await model.getActiveOrders(customerId);
 
-  // Available devices at owner's branches
   const [devices] = await req.db.query(
     'SELECT device_id, device_name, location_id FROM ss_devices WHERE owner_id = ? ORDER BY device_name',
     [ownerId]
   );
 
-  // Locations for display
   const [locations] = await req.db.query(
     'SELECT id, location_name FROM ss_locations WHERE owner_id = ? AND is_active = 1',
     [ownerId]
@@ -104,7 +103,7 @@ router.get('/customer', isCustomer, ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// CUSTOMER — PLACE ORDER  (with email notifications)
+// CUSTOMER — PLACE ORDER  (with emails + push)
 // ═══════════════════════════════════════════════════
 
 router.post('/customer/orders', isCustomer, ah(async (req, res) => {
@@ -137,7 +136,7 @@ router.post('/customer/orders', isCustomer, ah(async (req, res) => {
       notes: notes || null
     });
 
-    // 🔔 Order emails (non-blocking — errors logged, never break the request)
+    // 🔔 Emails + 📲 Push (non-blocking)
     try {
       const [custRows] = await req.db.query(
         'SELECT id, full_name, email, phone FROM ss_customers WHERE id = ? LIMIT 1',
@@ -156,6 +155,7 @@ router.post('/customer/orders', isCustomer, ah(async (req, res) => {
       } : null;
 
       const ownerObj = ownerRows[0] ? {
+        id: ownerRows[0].id,
         company_name: ownerRows[0].company_name,
         contact_name: ownerRows[0].contact_name,
         email: ownerRows[0].email,
@@ -183,7 +183,7 @@ router.post('/customer/orders', isCustomer, ah(async (req, res) => {
           .catch(e => console.error('new-order-owner email failed:', e.message));
       }
 
-      // 3. Notify ALL active attendants (customer placed it — no specific attendant)
+      // 3. ALL active attendants
       const [attendants] = await req.db.query(
         `SELECT full_name, email FROM ss_attendants
          WHERE owner_id = ? AND is_active = 1 AND email IS NOT NULL`,
@@ -199,8 +199,32 @@ router.post('/customer/orders', isCustomer, ah(async (req, res) => {
           req.db
         ).catch(e => console.error(`new-order-attendant email failed (${att.email}):`, e.message));
       }
+
+      // 📲 PUSH NOTIFICATIONS
+      if (customerObj && customerObj.id) {
+        pushSvc.notifyCustomer(customerObj.id, {
+          title: '🧺 Order received',
+          body: `${order_number} placed — we'll be in touch`,
+          tag: `order-${order_number}`,
+          data: { url: '/customer' },
+        }, req.db).catch(e => console.error('push customer failed:', e.message));
+      }
+      if (ownerObj && ownerObj.id) {
+        pushSvc.notifyOwner(ownerObj.id, {
+          title: '🆕 New order',
+          body: `${customerObj?.full_name || 'Customer'} — ${order_number}`,
+          tag: `new-order-${order_number}`,
+          data: { url: '/owner/orders' },
+        }, req.db).catch(e => console.error('push owner failed:', e.message));
+      }
+      pushSvc.notifyAllAttendants(ownerId, {
+        title: '🆕 New order',
+        body: `${customerObj?.full_name || 'Customer'} — ${order_number}`,
+        tag: `new-order-${order_number}`,
+        data: { url: '/attendant' },
+      }, req.db).catch(e => console.error('push attendants failed:', e.message));
     } catch (emailErr) {
-      console.error('Customer order email lookup failed:', emailErr.message);
+      console.error('Customer order notification error:', emailErr.message);
     }
 
     req.flash('success_msg', `✅ Order ${order_number} placed! We'll be in touch.`);

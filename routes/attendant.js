@@ -17,6 +17,7 @@ const {
   sendNewOrderToOwner,
   sendNewOrderToAttendant,
 } = require('../services/emailService');
+const pushSvc = require('../services/pushService');
 
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -42,6 +43,7 @@ async function lookupParties(db, ownerId, customerId) {
     );
     if (owners.length) {
       owner = {
+        id: owners[0].id,
         company_name: owners[0].company_name,
         contact_name: owners[0].contact_name,
         email: owners[0].email,
@@ -205,7 +207,7 @@ router.post('/attendant/customers', isAttendant, ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// ATTENDANT — CREATE ORDER  (with emails)
+// ATTENDANT — CREATE ORDER  (with emails + push)
 // ═══════════════════════════════════════════════════
 
 router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
@@ -258,7 +260,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
 
     console.log('🚨 [route] Order created:', orderId, order_number);
 
-    // 🔔 Order emails (non-blocking)
+    // 🔔 Order emails + 📲 Push (non-blocking)
     try {
       const { owner, customer } = await lookupParties(req.db, ownerId, customer_id);
       console.log('🚨 [route] lookupParties:', { owner, customer });
@@ -273,7 +275,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
         weight_kg: weight_kg ? parseFloat(weight_kg) : null,
       };
 
-      // 1. Customer
+      // 1. Customer email
       if (customer && customer.email) {
         console.log('🚨 [route] sending order-placed to', customer.email);
         sendOrderPlaced(orderObj, customer, owner, req.db)
@@ -282,7 +284,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
         console.log('🚨 [route] SKIP order-placed — customer has no email');
       }
 
-      // 2. Owner
+      // 2. Owner email
       if (owner && owner.email) {
         console.log('🚨 [route] sending new-order-owner to', owner.email);
         sendNewOrderToOwner(orderObj, customer || { full_name: 'Walk-in' }, owner, req.db)
@@ -291,7 +293,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
         console.log('🚨 [route] SKIP new-order-owner — owner has no email');
       }
 
-      // 3. Attendant
+      // 3. Attendant email
       if (req.session.spinUser.role === 'attendant' && req.session.spinUser.email) {
         console.log('🚨 [route] sending new-order-attendant to', req.session.spinUser.email);
         sendNewOrderToAttendant(
@@ -303,6 +305,32 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
         ).catch(e => console.error('new-order-attendant email failed:', e.message));
       } else {
         console.log('🚨 [route] SKIP new-order-attendant — role=', req.session.spinUser.role, 'email=', req.session.spinUser.email);
+      }
+
+      // 📲 PUSH NOTIFICATIONS
+      if (customer && customer.id) {
+        pushSvc.notifyCustomer(customer.id, {
+          title: '🧺 Order received',
+          body: `${order_number} queued — we'll notify you when ready`,
+          tag: `order-${order_number}`,
+          data: { url: '/customer' },
+        }, req.db).catch(e => console.error('push customer failed:', e.message));
+      }
+      if (owner && owner.id) {
+        pushSvc.notifyOwner(owner.id, {
+          title: '🆕 New order',
+          body: `${customer?.full_name || 'Customer'} — ${order_number} (KES ${price})`,
+          tag: `new-order-${order_number}`,
+          data: { url: '/owner/orders' },
+        }, req.db).catch(e => console.error('push owner failed:', e.message));
+      }
+      if (req.session.spinUser.role === 'attendant' && req.session.spinUser.id) {
+        pushSvc.notifyAttendant(req.session.spinUser.id, {
+          title: '📥 Order assigned',
+          body: `${order_number} — ${customer?.full_name || 'Walk-in'}`,
+          tag: `assigned-${order_number}`,
+          data: { url: '/attendant' },
+        }, req.db).catch(e => console.error('push attendant failed:', e.message));
       }
     } catch (e) {
       console.error('Order email lookup failed:', e.message);
@@ -318,7 +346,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// ATTENDANT — UPDATE ORDER STATUS  (with emails)
+// ATTENDANT — UPDATE ORDER STATUS  (with emails + push)
 // ═══════════════════════════════════════════════════
 
 router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => {
@@ -338,6 +366,7 @@ router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => 
         const { owner, customer } = await lookupParties(req.db, ownerId, order.customer_id);
         const orderObj = { ...order, order_status: status };
 
+        // Email
         if (customer && customer.email && owner && owner.email) {
           if (status === 'in_progress') {
             sendOrderReady(orderObj, customer, owner, req.db)
@@ -345,6 +374,25 @@ router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => 
           } else if (status === 'completed') {
             sendOrderCompleted(orderObj, customer, owner, req.db)
               .catch(e => console.error('order-completed email failed:', e.message));
+          }
+        }
+
+        // 📲 PUSH on status change
+        if (customer && customer.id) {
+          if (status === 'in_progress') {
+            pushSvc.notifyCustomer(customer.id, {
+              title: '👕 Ready for pickup',
+              body: `Order ${order.order_number} is ready!`,
+              tag: `ready-${order.order_number}`,
+              data: { url: '/customer' },
+            }, req.db).catch(e => console.error('push ready failed:', e.message));
+          } else if (status === 'completed') {
+            pushSvc.notifyCustomer(customer.id, {
+              title: '✅ Order completed',
+              body: `Order ${order.order_number} — receipt ready`,
+              tag: `completed-${order.order_number}`,
+              data: { url: '/customer' },
+            }, req.db).catch(e => console.error('push completed failed:', e.message));
           }
         }
       }

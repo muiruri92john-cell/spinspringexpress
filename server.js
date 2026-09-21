@@ -138,6 +138,10 @@ app.use('/', publicLocationRoutes);
 const reviewRoutes = require('./routes/reviews');
 app.use('/', reviewRoutes);
 
+// Push notifications API
+const pushRoutes = require('./routes/push');
+app.use('/', pushRoutes);
+
 
 const blogRoutes = require('./routes/blog');
 app.use(blogRoutes);
