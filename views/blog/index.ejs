@@ -1,0 +1,37 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Blog | Laundry & Fabric Care Tips | SpinSpring Express',
+  metaDescription: 'Laundry tips, fabric care guides, and updates from SpinSpring Express Nairobi.',
+  canonicalPath: '/blog'
+}) %>
+
+<section class="ss-section" style="background:white; padding-top:100px;">
+  <div class="container">
+    <div class="ss-section-title">
+      <h1 style="color:#0c4a6e;font-weight:800;">Our Blog</h1>
+      <p>Laundry tips, fabric care guides, and updates from the team</p>
+    </div>
+    <div id="allPosts" class="blog-grid"></div>
+  </div>
+</section>
+
+<script>
+fetch('/api/public/posts?owner_id=1&limit=30')
+  .then(r => r.json())
+  .then(data => {
+    const grid = document.getElementById('allPosts');
+    if (!data.success || !data.posts.length) {
+      grid.innerHTML = '<p class="text-muted text-center">No posts yet.</p>';
+      return;
+    }
+    grid.innerHTML = data.posts.map(p => `
+      <a class="blog-card" href="/blog/${p.slug}">
+        <div class="blog-img">${p.featured_image ? `<img src="${p.featured_image}" alt="${p.title}">` : '<i class="fas fa-newspaper"></i>'}</div>
+        <div class="blog-body">
+          <div class="blog-meta">${p.category ? `<span class="cat">${p.category}</span>` : ''}${new Date(p.published_at || p.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+          <h3>${p.title}</h3>
+          <p>${p.excerpt || ''}</p>
+          <span class="read-more">Read more <i class="fas fa-arrow-right"></i></span>
+        </div>
+      </a>`).join('');
+  });
+</script>

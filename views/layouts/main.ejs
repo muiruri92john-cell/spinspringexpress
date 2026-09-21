@@ -6,6 +6,36 @@
     <meta name="google-site-verification" content="bTaWwS-mlv4IvJS6UoM3Q21p2WGOvujV81__1IsXEuA" />
     <%- include('../partials/seo') %>
     <%- include('../partials/analytics') %>
+
+
+    <!-- SEO Meta Tags -->
+  <title><%= typeof pageTitle !== 'undefined' ? pageTitle : 'SpinSpring Express | Laundry & Dry Cleaning in Nairobi' %></title>
+  <meta name="description" content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Professional laundry, dry cleaning, and pickup services across Nairobi. Same-day turnaround, transparent pricing, and 3 convenient locations.' %>">
+  <meta name="keywords" content="laundry Nairobi, dry cleaning Nairobi, laundry pickup delivery, duvet cleaning, curtain cleaning, laundry services Kenya">
+  <meta name="author" content="SpinSpring Express">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://spinspringexpress.co.ke<%= typeof canonicalPath !== 'undefined' ? canonicalPath : '/' %>">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="<%= typeof pageTitle !== 'undefined' ? pageTitle : 'SpinSpring Express | Laundry & Dry Cleaning in Nairobi' %>">
+  <meta property="og:description" content="Professional laundry, dry cleaning, and pickup services across Nairobi. Same-day turnaround and transparent pricing.">
+  <meta property="og:url" content="https://spinspringexpress.co.ke<%= typeof canonicalPath !== 'undefined' ? canonicalPath : '/' %>">
+  <meta property="og:image" content="https://spinspringexpress.co.ke/images/spinspring/hero-image.jpg">
+  <meta property="og:site_name" content="SpinSpring Express">
+  <meta property="og:locale" content="en_KE">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SpinSpring Express | Laundry & Dry Cleaning in Nairobi">
+  <meta name="twitter:description" content="Professional laundry and dry cleaning across Nairobi. Same-day turnaround.">
+  <meta name="twitter:image" content="https://spinspringexpress.co.ke/images/spinspring/hero-image.jpg">
+
+  <!-- Geo -->
+  <meta name="geo.region" content="KE-110">
+  <meta name="geo.placename" content="Nairobi">
+  <meta name="geo.position" content="-1.2921;36.8219">
+  <meta name="ICBM" content="-1.2921, 36.8219">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">

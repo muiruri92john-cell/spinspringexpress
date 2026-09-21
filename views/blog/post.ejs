@@ -1,0 +1,27 @@
+<%- include('../layouts/main', {
+  pageTitle: typeof post !== 'undefined' ? (post.meta_title || post.title) : 'Blog Post',
+  metaDescription: typeof post !== 'undefined' ? (post.meta_description || post.excerpt || '') : '',
+  canonicalPath: '/blog/' + (typeof post !== 'undefined' ? post.slug : '')
+}) %>
+
+<article class="ss-section" style="background:white; padding-top:100px;">
+  <div class="container" style="max-width:800px;">
+    <% if (typeof post !== 'undefined' && post) { %>
+      <div class="blog-meta mb-3">
+        <% if (post.category) { %><span class="cat"><%= post.category %></span><% } %>
+        <span><%= new Date(post.published_at || post.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) %></span>
+        <% if (post.author_name) { %> &middot; By <%= post.author_name %><% } %>
+      </div>
+      <h1 style="color:#0c4a6e;font-weight:800;margin-bottom:20px;"><%= post.title %></h1>
+      <% if (post.featured_image) { %>
+        <img src="<%= post.featured_image %>" alt="<%= post.title %>" style="width:100%;border-radius:16px;margin-bottom:30px;">
+      <% } %>
+      <div class="post-content" style="font-size:1.05rem;line-height:1.8;color:#334155;">
+        <%- post.content %>
+      </div>
+    <% } else { %>
+      <h1>Post not found</h1>
+      <p><a href="/blog">Back to blog</a></p>
+    <% } %>
+  </div>
+</article>

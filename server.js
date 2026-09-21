@@ -138,6 +138,10 @@ app.use('/', publicLocationRoutes);
 const reviewRoutes = require('./routes/reviews');
 app.use('/', reviewRoutes);
 
+
+const blogRoutes = require('./routes/blog');
+app.use(blogRoutes);
+
 // Public find-nearest page
 app.get('/find-location', (req, res) => {
   res.render('spinspring/find-location', {
