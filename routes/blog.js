@@ -87,9 +87,9 @@ router.get('/api/public/posts', async (req, res) => {
     sql += ' ORDER BY published_at DESC, id DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
-    const posts = await db.query(sql, params);
+    const [posts] = await db.query(sql, params);
 
-    const countRows = await db.query(
+    const [countRows] = await db.query(
       `SELECT COUNT(*) AS total FROM blog_posts
        WHERE owner_id = ? AND status = 'published'`,
       [ownerId]
@@ -107,7 +107,7 @@ router.get('/api/public/posts', async (req, res) => {
 router.get('/api/public/posts/:slug', async (req, res) => {
   try {
     const ownerId = parseInt(req.query.owner_id, 10) || 1;
-    const rows = await db.query(
+    const [rows] = await db.query(
       `SELECT * FROM blog_posts
        WHERE owner_id = ? AND slug = ? AND status = 'published'
        LIMIT 1`,
@@ -131,7 +131,7 @@ router.get('/api/public/posts/:slug', async (req, res) => {
 router.get('/api/owner/posts', requireOwner, async (req, res) => {
   try {
     const ownerId = req.owner.id;
-    const posts = await db.query(
+    const [posts] = await db.query(
       `SELECT id, slug, title, category, status,
               published_at, created_at, updated_at
        FROM blog_posts
@@ -150,7 +150,7 @@ router.get('/api/owner/posts', requireOwner, async (req, res) => {
 router.get('/api/owner/posts/:id', requireOwner, async (req, res) => {
   try {
     const ownerId = req.owner.id;
-    const rows = await db.query(
+    const [rows] = await db.query(
       'SELECT * FROM blog_posts WHERE id = ? AND owner_id = ? LIMIT 1',
       [req.params.id, ownerId]
     );
@@ -182,7 +182,7 @@ router.post('/api/owner/posts', requireOwner, async (req, res) => {
 
     // Generate unique slug
     let slug = slugify(title) || ('post-' + Date.now());
-    const existing = await db.query(
+    const [existing] = await db.query(
       'SELECT id FROM blog_posts WHERE slug = ? LIMIT 1',
       [slug]
     );
@@ -191,7 +191,7 @@ router.post('/api/owner/posts', requireOwner, async (req, res) => {
     const finalStatus = status === 'published' ? 'published' : 'draft';
     const publishedAt = finalStatus === 'published' ? new Date() : null;
 
-    const result = await db.query(
+    const [result] = await db.query(
       `INSERT INTO blog_posts
          (owner_id, slug, title, excerpt, content, featured_image,
           category, status, author_name, meta_title, meta_description, published_at)
@@ -213,7 +213,7 @@ router.post('/api/owner/posts', requireOwner, async (req, res) => {
     );
 
     const insertId = result.insertId;
-    const rows = await db.query('SELECT * FROM blog_posts WHERE id = ?', [insertId]);
+    const [rows] = await db.query('SELECT * FROM blog_posts WHERE id = ?', [insertId]);
     res.json({ success: true, post: rows[0] });
   } catch (err) {
     console.error('[blog] create error:', err.message);
@@ -227,7 +227,7 @@ router.put('/api/owner/posts/:id', requireOwner, async (req, res) => {
     const ownerId = req.owner.id;
     const postId = req.params.id;
 
-    const existing = await db.query(
+    const [existing] = await db.query(
       'SELECT * FROM blog_posts WHERE id = ? AND owner_id = ? LIMIT 1',
       [postId, ownerId]
     );
@@ -275,7 +275,7 @@ router.put('/api/owner/posts/:id', requireOwner, async (req, res) => {
       ]
     );
 
-    const rows = await db.query('SELECT * FROM blog_posts WHERE id = ?', [postId]);
+    const [rows] = await db.query('SELECT * FROM blog_posts WHERE id = ?', [postId]);
     res.json({ success: true, post: rows[0] });
   } catch (err) {
     console.error('[blog] update error:', err.message);
@@ -314,7 +314,7 @@ router.get('/blog', (req, res) => {
 router.get('/blog/:slug', async (req, res) => {
   try {
     const ownerId = parseInt(req.query.owner_id, 10) || 1;
-    const rows = await db.query(
+    const [rows] = await db.query(
       `SELECT * FROM blog_posts
        WHERE owner_id = ? AND slug = ? AND status = 'published'
        LIMIT 1`,
