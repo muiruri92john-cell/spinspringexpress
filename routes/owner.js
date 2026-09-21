@@ -11,6 +11,14 @@ const CustomerModel = require('../models/customer');
 const bcrypt = require('bcryptjs');
 const { isOwner } = require('../middleware/auth');
 
+// 🔔 Email service
+const {
+  sendWelcomeOwner,
+  sendWelcomeAttendant,
+  sendWelcomeCustomer,
+  sendCustomerPasswordReset,
+} = require('../services/emailService');
+
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -20,10 +28,9 @@ const ah = (fn) => (req, res, next) =>
 
 router.get('/register', (req, res) => {
   if (req.session.spinUser) return res.redirect('/owner');
-  
-  // Check if invite code was provided in query
+
   const inviteCode = req.query.invite || '';
-  
+
   res.render('spinspring/owner-register', {
     title: 'Register Company - SpinSpring Express',
     user: null,
@@ -37,9 +44,9 @@ router.post('/register', ah(async (req, res) => {
   const model = new OwnerModel(req.db);
   const inviteModel = new InviteModel(req.db);
 
-  const { 
-    company_name, contact_name, email, password, password2, 
-    phone, address, city, invite_code 
+  const {
+    company_name, contact_name, email, password, password2,
+    phone, address, city, invite_code
   } = req.body;
 
   // ═══════════════════════════════════════════════════
@@ -72,7 +79,6 @@ router.post('/register', ah(async (req, res) => {
     return res.redirect('/register?invite=' + encodeURIComponent(invite_code));
   }
 
-  // Check email isn't already used
   const existing = await model.findByEmail(email);
   if (existing) {
     req.flash('error_msg', 'Email already registered');
@@ -87,16 +93,22 @@ router.post('/register', ah(async (req, res) => {
       company_name, contact_name, email, phone, password, address, city
     });
 
-    // Record the invite code used
     await req.db.query(
       'UPDATE ss_owners SET invite_code_used = ? WHERE id = ?',
       [invite_code.trim(), ownerId]
     );
 
-    // Mark invite as used
     await inviteModel.use(invite_code.trim(), ownerId);
 
-    req.flash('success_msg', '✅ Company registered! Please login.');
+    // 🔔 Send welcome email (non-blocking)
+    sendWelcomeOwner({
+      id: ownerId,
+      email,
+      contact_name,
+      company_name,
+    }).catch((e) => console.error('Welcome owner email failed:', e.message));
+
+    req.flash('success_msg', '✅ Company registered! Check your email and login.');
     res.redirect('/login');
   } catch (e) {
     console.error('Register error:', e);
@@ -256,10 +268,6 @@ router.post('/owner/settings/password', isOwner, ah(async (req, res) => {
 // LOCATIONS MANAGEMENT
 // ═══════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════
-// LOCATIONS MANAGEMENT
-// ═══════════════════════════════════════════════════
-
 router.get('/owner/locations', isOwner, ah(async (req, res) => {
   const ownerId = req.session.spinUser.id;
   const [locations] = await req.db.query(
@@ -374,11 +382,23 @@ router.post('/owner/attendants', isOwner, ah(async (req, res) => {
   }
 
   try {
-    await model.create(ownerId, {
+    const { id: attendantId } = await model.create(ownerId, {
       full_name, email, phone, pin_code,
       location_id: location_id || null
     });
-    req.flash('success_msg', `✅ Attendant "${full_name}" created`);
+
+    // 🔔 Send attendant welcome email (non-blocking)
+    sendWelcomeAttendant(
+      { id: attendantId, full_name, email, pin_code },
+      {
+        company_name: req.session.spinUser.company,
+        contact_name: req.session.spinUser.name,
+      }
+    ).catch((e) => console.error('Welcome attendant email failed:', e.message));
+
+    req.flash('success_msg',
+      `✅ Attendant "${full_name}" created — welcome email sent`
+    );
     res.redirect('/owner/attendants');
   } catch (e) {
     console.error(e);
@@ -449,14 +469,23 @@ router.post('/owner/customers', isOwner, ah(async (req, res) => {
       : Math.random().toString(36).slice(-8);
 
     const hash = await bcrypt.hash(plainPassword, 10);
-    const { customer_unique_id } = await model.create(ownerId, {
+    const { customer_unique_id, id: customerId } = await model.create(ownerId, {
       full_name, email, phone, address,
       location_id: location_id || null
     }, hash);
 
+    // 🔔 Send customer welcome email with their password (non-blocking)
+    sendWelcomeCustomer(
+      { id: customerId, full_name, email, customer_unique_id },
+      {
+        company_name: req.session.spinUser.company,
+        contact_name: req.session.spinUser.name,
+      },
+      plainPassword
+    ).catch((e) => console.error('Welcome customer email failed:', e.message));
+
     req.flash('success_msg',
-      `✅ Customer "${full_name}" created. ID: ${customer_unique_id}` +
-      (password ? '' : ` — Initial password: ${plainPassword}`)
+      `✅ Customer "${full_name}" created — welcome email sent with login details`
     );
     res.redirect('/owner/customers');
   } catch (e) {
@@ -490,8 +519,18 @@ router.post('/owner/customers/:id/reset-password', isOwner, ah(async (req, res) 
     [hash, customer.id, ownerId]
   );
 
+  // 🔔 Email the new password directly to the customer
+  sendCustomerPasswordReset(
+    { id: customer.id, full_name: customer.full_name, email: customer.email },
+    {
+      company_name: req.session.spinUser.company,
+      contact_name: req.session.spinUser.name,
+    },
+    newPassword
+  ).catch((e) => console.error('Customer password reset email failed:', e.message));
+
   req.flash('success_msg',
-    `Password reset for ${customer.full_name}: ${newPassword} (share with them)`
+    `✅ New password emailed to ${customer.full_name} (${customer.email})`
   );
   res.redirect('/owner/customers');
 }));
@@ -542,7 +581,6 @@ router.get('/api/owner/stats', isOwner, ah(async (req, res) => {
   const stats = await model.getDashboardStats(req.session.spinUser.id);
   res.json({ success: true, stats, timestamp: new Date().toISOString() });
 }));
-
 
 // ═══════════════════════════════════════════════════
 // INVITE CODE MANAGEMENT
@@ -609,7 +647,6 @@ router.post('/owner/invites/:id/delete', isOwner, ah(async (req, res) => {
   res.redirect('/owner/invites');
 }));
 
-// Quick API to validate code
 router.get('/api/invite/validate', ah(async (req, res) => {
   const model = new InviteModel(req.db);
   const { code, type } = req.query;
@@ -619,6 +656,5 @@ router.get('/api/invite/validate', ah(async (req, res) => {
   const result = await model.validate(code.trim(), type || 'owner');
   res.json(result);
 }));
-
 
 module.exports = router;

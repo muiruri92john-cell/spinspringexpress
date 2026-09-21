@@ -1,0 +1,25 @@
+<%- include('_header', { title: 'Welcome to SpinSpring Express' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">Welcome aboard, <%= owner.contact_name %>! 🎉</h2>
+
+<p>Your company <strong><%= owner.company_name %></strong> is now live on <%= appName %>.</p>
+
+<p>Here's what you can do right away:</p>
+<ul style="line-height:1.8;">
+  <li>Add attendants and customers from your dashboard</li>
+  <li>Create and track laundry orders</li>
+  <li>View reports and manage your business</li>
+</ul>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/login"
+     style="background:#0ea5e9;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">
+    Go to Dashboard
+  </a>
+</p>
+
+<p style="color:#6b7280;font-size:13px;">
+  If you didn't create this account, you can safely ignore this email.
+</p>
+
+<%- include('_footer') %>

@@ -1,0 +1,40 @@
+<!-- views/emails/_layout.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : appName %></title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <tr>
+            <td style="background:#0ea5e9;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:600;">
+                <%= appName %>
+              </h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <%- body %>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px;background:#f9fafb;color:#6b7280;font-size:12px;text-align:center;">
+              &copy; <%= year %> <%= appName %> &middot;
+              <a href="<%= appUrl %>" style="color:#0ea5e9;text-decoration:none;"><%= appUrl.replace(/^https?:\/\//,'') %></a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
