@@ -5,6 +5,14 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 
+// 🔔 Email service
+const {
+  sendOrderPlaced,
+  sendOrderReady,
+  sendOrderCompleted,
+  sendNewOrderToOwner,
+} = require('../services/emailService');
+
 // Async wrapper
 const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -17,6 +25,60 @@ const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch
     ))
   );
 });
+
+// ============ EMAIL HELPERS ============
+/**
+ * Look up customer + owner objects for order emails.
+ * Handles both `customer_id` (unique string) and `customer_name` (full name).
+ */
+async function lookupOrderParties(db, { ownerId, customerRef }) {
+  let owner = null;
+  try {
+    const [[o]] = await db.query(
+      'SELECT id, company_name, contact_name, email FROM ss_owners WHERE id = ? LIMIT 1',
+      [ownerId]
+    );
+    if (o) owner = { company_name: o.company_name, contact_name: o.contact_name, email: o.email };
+  } catch (e) { /* ss_owners may not exist for legacy ss_users accounts */ }
+
+  if (!owner) {
+    try {
+      const [[u]] = await db.query(
+        'SELECT id, business_name, full_name, email FROM ss_users WHERE id = ? LIMIT 1',
+        [ownerId]
+      );
+      if (u) owner = { company_name: u.business_name || 'SpinSpring Express', contact_name: u.full_name, email: u.email };
+    } catch (e) { /* ignore */ }
+  }
+
+  let customer = null;
+  if (customerRef && customerRef !== 'walk-in') {
+    try {
+      const [[c]] = await db.query(
+        'SELECT id, full_name, email FROM ss_customers WHERE customer_unique_id = ? OR id = ? OR full_name = ? LIMIT 1',
+        [customerRef, customerRef, customerRef]
+      );
+      if (c) customer = { id: c.id, full_name: c.full_name, email: c.email };
+    } catch (e) { /* ignore */ }
+  }
+
+  return { owner, customer };
+}
+
+function fireOrderEmails({ order, owner, customer, db, tag }) {
+  try {
+    if (customer && customer.email) {
+      sendOrderPlaced(order, customer, owner, db)
+        .catch(e => console.error(`[${tag}] order-placed email failed:`, e.message));
+    }
+    if (owner && owner.email) {
+      sendNewOrderToOwner(order, customer || { full_name: 'Walk-in' }, owner, db)
+        .catch(e => console.error(`[${tag}] new-order-owner email failed:`, e.message));
+    }
+  } catch (e) {
+    console.error(`[${tag}] email dispatch error:`, e.message);
+  }
+}
 
 // ============ AUTH MIDDLEWARE ============
 function isAuth(req, res, next) {
@@ -129,8 +191,6 @@ router.post('/login', async (req, res) => {
 });
 
 // ============ QUOTE CALCULATOR ============
-
-// Serve pricing data (for AJAX)
 router.get('/api/pricing', async (req, res) => {
   try {
     const [services] = await req.db.query('SELECT * FROM ss_pricing WHERE is_active = 1 ORDER BY id');
@@ -141,7 +201,6 @@ router.get('/api/pricing', async (req, res) => {
   }
 });
 
-// Calculate quote (server-side authoritative pricing)
 router.post('/api/quote/calculate', async (req, res) => {
   try {
     const { items = [], addons = [], express = false, pickup = 'none' } = req.body;
@@ -262,7 +321,6 @@ router.post('/api/quote/calculate', async (req, res) => {
   }
 });
 
-// Save quote (visible to owner in admin panel)
 router.post('/api/quote/save', async (req, res) => {
   try {
     const { items, addons, express, pickup, total, customer_name, customer_phone, customer_email, location_id } = req.body;
@@ -410,7 +468,6 @@ router.get('/api/owner/quotes', isOwner, async (req, res) => {
 });
 
 // ============ MACHINE CONTROL PARAMETERS ============
-
 router.get('/api/machine/:deviceId/params', isAuth, async (req, res) => {
   try {
     const { deviceId } = req.params;
@@ -639,8 +696,6 @@ router.post('/api/machine/:deviceId/dispense', isAuth, isAttendant, async (req, 
       [deviceId, creditsInt * p.pulses_per_credit, p.pulse_width_ms, p.pulse_gap_ms, creditsInt, reason, order_number]
     );
 
-    // NOTE: no longer incrementing current_credit_minutes here.
-    // The ESP32 is the source of truth — its heartbeat writes back via /api/sync.
     await req.db.query(
       'UPDATE ss_machine_params SET total_pulses_sent = total_pulses_sent + ?, last_pulse_at = NOW() WHERE device_id = ?',
       [creditsInt * p.pulses_per_credit, deviceId]
@@ -805,7 +860,7 @@ router.get('/attendant', isAttendant, ah(async (req, res) => {
   });
 }));
 
-// Create Order
+// Create Order — with email notification
 router.post('/attendant/orders', isAttendant, async (req, res) => {
   try {
     const { device_id, customer_id, service_type, cycle_type, price, weight_kg } = req.body;
@@ -840,7 +895,21 @@ router.post('/attendant/orders', isAttendant, async (req, res) => {
       [orderNumber, device_id, ownerId, customer_id || 'walk-in', service_type || 'wash', cycle_type || 'wash', isNaN(weight) ? null : weight, pricePerKg, weightPrice, finalPrice]
     );
 
-    // Queue the start command with a proper JSON payload
+    // 🔔 Order emails — non-blocking
+    try {
+      const { owner, customer } = await lookupOrderParties(req.db, { ownerId, customerRef: customer_id });
+      const orderObj = {
+        order_number: orderNumber,
+        price: finalPrice,
+        order_status: 'queued',
+        created_at: new Date(),
+      };
+      fireOrderEmails({ order: orderObj, owner, customer, db: req.db, tag: 'attendant/orders' });
+    } catch (e) {
+      console.error('[attendant/orders] email lookup failed:', e.message);
+    }
+
+    // Queue the start command
     try {
       const cmdValue = JSON.stringify({
         credits: 1,
@@ -863,7 +932,7 @@ router.post('/attendant/orders', isAttendant, async (req, res) => {
   }
 });
 
-// Order status update
+// Order status update — with email notification
 router.post('/order/:id/status', isAttendant, async (req, res) => {
   try {
     const { status } = req.body;
@@ -880,6 +949,26 @@ router.post('/order/:id/status', isAttendant, async (req, res) => {
     }
     const extra = status === 'completed' ? ', end_time = NOW()' : (status === 'in_progress' ? ', start_time = NOW()' : '');
     await req.db.query(`UPDATE ss_orders SET order_status = ?${extra} WHERE id = ?`, [status, req.params.id]);
+
+    // 🔔 Status-change emails — non-blocking
+    try {
+      const o = rows[0];
+      const { owner, customer } = await lookupOrderParties(req.db, { ownerId, customerRef: o.customer_name });
+      const orderObj = { ...o, order_status: status };
+
+      if (customer && customer.email && owner && owner.email) {
+        if (status === 'in_progress') {
+          sendOrderReady(orderObj, customer, owner, req.db)
+            .catch(e => console.error('[status] order-ready email failed:', e.message));
+        } else if (status === 'completed') {
+          sendOrderCompleted(orderObj, customer, owner, req.db)
+            .catch(e => console.error('[status] order-completed email failed:', e.message));
+        }
+      }
+    } catch (e) {
+      console.error('[status] email lookup failed:', e.message);
+    }
+
     if (status === 'completed') {
       const o = rows[0];
       try {
@@ -958,7 +1047,7 @@ router.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
-// ============ RECEIPT GENERATION ============
+// ============ RECEIPT GENERATION (also creates an order) ============
 router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
   try {
     const {
@@ -981,11 +1070,13 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
 
     let customerName = 'Walk-in';
     let customerPhone = '';
+    let customerEmail = null;
     if (customer_id && customer_id !== 'walk-in') {
       const [customers] = await req.db.query('SELECT * FROM ss_customers WHERE customer_unique_id = ?', [customer_id]);
       if (customers.length > 0) {
         customerName = customers[0].full_name;
         customerPhone = customers[0].phone || '';
+        customerEmail = customers[0].email || null;
       }
     }
 
@@ -999,6 +1090,21 @@ router.post('/attendant/generate-receipt', isAttendant, async (req, res) => {
       "INSERT INTO ss_orders (order_number, device_id, user_id, customer_name, service_type, cycle_type, price, payment_status, order_status) VALUES (?, ?, ?, ?, 'wash', 'wash', ?, 'paid', 'queued')",
       [orderNumber, device_id, req.session.spinUser.ownerId || req.session.spinUser.id, customer_id, totalAmount]
     );
+
+    // 🔔 Order emails — non-blocking
+    try {
+      const ownerId = req.session.spinUser.ownerId || req.session.spinUser.id;
+      const { owner, customer } = await lookupOrderParties(req.db, { ownerId, customerRef: customer_id });
+      const orderObj = {
+        order_number: orderNumber,
+        price: totalAmount,
+        order_status: 'queued',
+        created_at: new Date(),
+      };
+      fireOrderEmails({ order: orderObj, owner, customer, db: req.db, tag: 'generate-receipt' });
+    } catch (e) {
+      console.error('[generate-receipt] email lookup failed:', e.message);
+    }
 
     if (customer_id && customer_id !== 'walk-in') {
       await req.db.query(
@@ -1138,11 +1244,6 @@ router.post('/api/sync', ah(async (req, res) => {
     );
   } catch (e) { console.error('heartbeat log failed:', e.message); }
 
-  // ── Credit sync ──
-  // ESP32 is the source of truth, EXCEPT for a short grace window right
-  // after a dispense command is queued. This prevents both:
-  //   (a) the ESP32 wiping credits via a reboot (old bug), and
-  //   (b) the DB getting stuck on a phantom value (previous bug).
   if (typeof data.current_credit === 'number') {
     const espCredit = data.current_credit || 0;
     let finalCredit = espCredit;

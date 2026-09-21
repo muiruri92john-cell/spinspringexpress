@@ -100,13 +100,13 @@ router.post('/register', ah(async (req, res) => {
 
     await inviteModel.use(invite_code.trim(), ownerId);
 
-    // 🔔 Send welcome email (non-blocking)
+    // 🔔 Send welcome email (non-blocking) — passes req.db for audit log
     sendWelcomeOwner({
       id: ownerId,
       email,
       contact_name,
       company_name,
-    }).catch((e) => console.error('Welcome owner email failed:', e.message));
+    }, req.db).catch((e) => console.error('Welcome owner email failed:', e.message));
 
     req.flash('success_msg', '✅ Company registered! Check your email and login.');
     res.redirect('/login');
@@ -387,13 +387,14 @@ router.post('/owner/attendants', isOwner, ah(async (req, res) => {
       location_id: location_id || null
     });
 
-    // 🔔 Send attendant welcome email (non-blocking)
+    // 🔔 Send attendant welcome email (non-blocking) — passes req.db for audit log
     sendWelcomeAttendant(
       { id: attendantId, full_name, email, pin_code },
       {
         company_name: req.session.spinUser.company,
         contact_name: req.session.spinUser.name,
-      }
+      },
+      req.db
     ).catch((e) => console.error('Welcome attendant email failed:', e.message));
 
     req.flash('success_msg',
@@ -474,14 +475,15 @@ router.post('/owner/customers', isOwner, ah(async (req, res) => {
       location_id: location_id || null
     }, hash);
 
-    // 🔔 Send customer welcome email with their password (non-blocking)
+    // 🔔 Send customer welcome email with password (non-blocking) — passes req.db
     sendWelcomeCustomer(
       { id: customerId, full_name, email, customer_unique_id },
       {
         company_name: req.session.spinUser.company,
         contact_name: req.session.spinUser.name,
       },
-      plainPassword
+      plainPassword,
+      req.db
     ).catch((e) => console.error('Welcome customer email failed:', e.message));
 
     req.flash('success_msg',
@@ -519,14 +521,15 @@ router.post('/owner/customers/:id/reset-password', isOwner, ah(async (req, res) 
     [hash, customer.id, ownerId]
   );
 
-  // 🔔 Email the new password directly to the customer
+  // 🔔 Email the new password directly to the customer — passes req.db
   sendCustomerPasswordReset(
     { id: customer.id, full_name: customer.full_name, email: customer.email },
     {
       company_name: req.session.spinUser.company,
       contact_name: req.session.spinUser.name,
     },
-    newPassword
+    newPassword,
+    req.db
   ).catch((e) => console.error('Customer password reset email failed:', e.message));
 
   req.flash('success_msg',
