@@ -115,22 +115,6 @@ router.post('/customer/orders', isCustomer, ah(async (req, res) => {
       if (devices.length) location_id = devices[0].location_id;
     }
 
-    // Fallback: default to owner's primary branch when no device selected
-    if (!location_id) {
-      const [primary] = await req.db.query(
-        'SELECT id FROM ss_locations WHERE owner_id = ? AND is_primary = 1 LIMIT 1',
-        [ownerId]
-      );
-      if (primary.length) location_id = primary[0].id;
-      else {
-        const [any] = await req.db.query(
-          'SELECT id FROM ss_locations WHERE owner_id = ? AND is_active = 1 LIMIT 1',
-          [ownerId]
-        );
-        if (any.length) location_id = any[0].id;
-      }
-    }
-
     const needsDelivery = delivery_choice === 'delivery';
 
     const { id: orderId, order_number } = await model.create({

@@ -160,40 +160,17 @@ async function dispatchDeliveryForOrder(db, { orderId, ownerId }) {
     return { ok: false, error: 'Customer has no default delivery address / GPS' };
   }
 
-  // Load source branch (with fallback to primary)
-  let branch = null;
-  if (order.location_id) {
-    const [branchRows] = await db.query(
-      `SELECT id, location_name, address_line1, latitude, longitude
-       FROM ss_locations WHERE id = ? LIMIT 1`,
-      [order.location_id]
-    );
-    branch = branchRows[0];
+  // 4. Load source branch (where the laundry is now)
+  const [branchRows] = await db.query(
+    `SELECT id, location_name, address_line1, latitude, longitude
+     FROM ss_locations WHERE id = ? LIMIT 1`,
+    [order.location_id]
+  );
+  if (!branchRows.length || !branchRows[0].latitude) {
+    return { ok: false, error: 'Branch has no GPS coordinates' };
   }
+  const branch = branchRows[0];
 
-  // Fallback 1: owner's primary branch (with GPS)
-  if (!branch || !branch.latitude) {
-    const [primaryRows] = await db.query(
-      `SELECT id, location_name, address_line1, latitude, longitude
-       FROM ss_locations WHERE owner_id = ? AND is_primary = 1 AND latitude IS NOT NULL LIMIT 1`,
-      [ownerId]
-    );
-    branch = primaryRows[0];
-  }
-
-  // Fallback 2: any active branch with GPS
-  if (!branch || !branch.latitude) {
-    const [anyRows] = await db.query(
-      `SELECT id, location_name, address_line1, latitude, longitude
-       FROM ss_locations WHERE owner_id = ? AND is_active = 1 AND latitude IS NOT NULL LIMIT 1`,
-      [ownerId]
-    );
-    branch = anyRows[0];
-  }
-
-  if (!branch || !branch.latitude) {
-    return { ok: false, error: 'No branch with GPS — set coordinates in Settings → Locations' };
-  }
   // 5. Create the delivery request
   const { createDeliveryRequest } = module.exports;
   const result = await createDeliveryRequest(db, {
@@ -298,40 +275,17 @@ async function dispatchDeliveryForOrder(db, { orderId, ownerId }) {
     return { ok: false, error: 'Customer has no default GPS address' };
   }
 
-  // Load source branch (with fallback to primary)
-  let branch = null;
-  if (order.location_id) {
-    const [branchRows] = await db.query(
-      `SELECT id, location_name, address_line1, latitude, longitude
-       FROM ss_locations WHERE id = ? LIMIT 1`,
-      [order.location_id]
-    );
-    branch = branchRows[0];
+  // 2. Load source branch
+  const [branchRows] = await db.query(
+    `SELECT id, location_name, address_line1, latitude, longitude
+     FROM ss_locations WHERE id = ? LIMIT 1`,
+    [order.location_id]
+  );
+  if (!branchRows.length || !branchRows[0].latitude) {
+    return { ok: false, error: 'Branch has no GPS coordinates' };
   }
+  const branch = branchRows[0];
 
-  // Fallback 1: owner's primary branch (with GPS)
-  if (!branch || !branch.latitude) {
-    const [primaryRows] = await db.query(
-      `SELECT id, location_name, address_line1, latitude, longitude
-       FROM ss_locations WHERE owner_id = ? AND is_primary = 1 AND latitude IS NOT NULL LIMIT 1`,
-      [ownerId]
-    );
-    branch = primaryRows[0];
-  }
-
-  // Fallback 2: any active branch with GPS
-  if (!branch || !branch.latitude) {
-    const [anyRows] = await db.query(
-      `SELECT id, location_name, address_line1, latitude, longitude
-       FROM ss_locations WHERE owner_id = ? AND is_active = 1 AND latitude IS NOT NULL LIMIT 1`,
-      [ownerId]
-    );
-    branch = anyRows[0];
-  }
-
-  if (!branch || !branch.latitude) {
-    return { ok: false, error: 'No branch with GPS — set coordinates in Settings → Locations' };
-  }
   // 3. Create delivery request
   const result = await createDeliveryRequest(db, {
     ownerId,
