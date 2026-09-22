@@ -1,0 +1,35 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Rider Login - SpinSpring Express',
+  metaDescription: 'Login to your rider dashboard',
+  canonicalPath: '/rider-login'
+}) %>
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <h1 class="h3 mb-4 text-center">Rider Login</h1>
+
+          <% if (typeof error_msg !== 'undefined' && error_msg.length) { %>
+            <div class="alert alert-danger"><%= error_msg[0] %></div>
+          <% } %>
+
+          <form method="POST" action="/rider-login">
+            <div class="mb-3">
+              <label class="form-label">Phone</label>
+              <input type="tel" name="phone" class="form-control" placeholder="07XXXXXXXX" required autofocus>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">PIN</label>
+              <input type="password" name="pin_code" class="form-control" inputmode="numeric" pattern="[0-9]*" maxlength="8" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2">Login</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

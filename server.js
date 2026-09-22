@@ -142,6 +142,10 @@ app.use('/', reviewRoutes);
 const pushRoutes = require('./routes/push');
 app.use('/', pushRoutes);
 
+// Rider routes
+const riderRoutes = require('./routes/riders');
+app.use('/', riderRoutes);
+
 
 const blogRoutes = require('./routes/blog');
 app.use(blogRoutes);

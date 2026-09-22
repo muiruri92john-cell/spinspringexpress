@@ -1,0 +1,128 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Riders - SpinSpring Express',
+  canonicalPath: '/owner/riders'
+}) %>
+
+<style>
+.rider-row { border-left: 4px solid #94a3b8; background: #f8fafc; }
+.rider-row.available { border-left-color: #10b981; background: #ecfdf5; }
+.rider-row.off { border-left-color: #ef4444; background: #fef2f2; }
+</style>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="h3 mb-1">🚴 Riders</h1>
+      <div class="text-muted small">Manage your delivery team</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="/owner" class="btn btn-outline-secondary btn-sm">← Dashboard</a>
+      <a href="/owner/riders/new" class="btn btn-primary btn-sm">+ Add Rider</a>
+    </div>
+  </div>
+
+  <% if (typeof error_msg !== 'undefined' && error_msg.length) { %>
+    <div class="alert alert-danger"><%= error_msg[0] %></div>
+  <% } %>
+  <% if (typeof success_msg !== 'undefined' && success_msg.length) { %>
+    <div class="alert alert-success"><%= success_msg[0] %></div>
+  <% } %>
+
+  <!-- Stats -->
+  <div class="row g-2 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <div class="h4 mb-0"><%= stats.total_riders || 0 %></div>
+        <small class="text-muted">Total Riders</small>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <div class="h4 mb-0 text-success"><%= stats.available_now || 0 %></div>
+        <small class="text-muted">Available Now</small>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <div class="h4 mb-0"><%= stats.total_deliveries || 0 %></div>
+        <small class="text-muted">Deliveries</small>
+      </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center"><div class="card-body py-3">
+        <div class="h4 mb-0 text-primary">KES <%= Math.round(stats.total_earnings || 0) %></div>
+        <small class="text-muted">Total Earnings</small>
+      </div></div>
+    </div>
+  </div>
+
+  <% if (!riders || !riders.length) { %>
+    <div class="card text-center py-5">
+      <div class="card-body">
+        <div style="font-size: 3rem;">🚴</div>
+        <h5 class="mt-2">No riders yet</h5>
+        <p class="text-muted">Add your first rider to start receiving delivery requests.</p>
+        <a href="/owner/riders/new" class="btn btn-primary">Add First Rider</a>
+      </div>
+    </div>
+  <% } else { %>
+    <% riders.forEach(function(r) { 
+      const rowClass = !r.is_active ? 'off' : (r.is_available ? 'available' : '');
+      const statusText = !r.is_active ? 'Disabled' : (r.is_available ? 'Available' : 'Off duty');
+      const statusColor = !r.is_active ? 'secondary' : (r.is_available ? 'success' : 'warning');
+    %>
+      <div class="card mb-3 rider-row <%= rowClass %>">
+        <div class="card-body">
+          <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+            <div>
+              <h5 class="mb-1">
+                <%= r.full_name %>
+                <span class="badge bg-<%= statusColor %> ms-2"><%= statusText %></span>
+              </h5>
+              <div class="text-muted small">
+                📞 <%= r.phone %>
+                <% if (r.email) { %> · ✉️ <%= r.email %><% } %>
+              </div>
+              <div class="text-muted small">
+                🏍️ <%= r.vehicle_type %>
+                <% if (r.vehicle_plate) { %> · <%= r.vehicle_plate %><% } %>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="small"><strong><%= r.total_deliveries || 0 %></strong> deliveries</div>
+              <div class="small text-primary">KES <%= Math.round(r.total_earnings || 0) %></div>
+              <% if (r.rating) { %><div class="small">★ <%= r.rating %></div><% } %>
+            </div>
+          </div>
+
+          <% if (r.last_seen_at) { %>
+            <div class="small text-muted mb-2">
+              📍 Last seen: <%= new Date(r.last_seen_at).toLocaleString() %>
+            </div>
+          <% } %>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <form method="POST" action="/owner/riders/<%= r.id %>/toggle" class="d-inline">
+              <button class="btn btn-sm btn-outline-<%= r.is_active ? 'warning' : 'success' %>">
+                <%= r.is_active ? 'Disable' : 'Enable' %>
+              </button>
+            </form>
+
+            <form method="POST" action="/owner/riders/<%= r.id %>/reset-pin" class="d-inline"
+                  onsubmit="return confirm('Reset PIN for <%= r.full_name %>?')">
+              <button class="btn btn-sm btn-outline-primary">Reset PIN</button>
+            </form>
+
+            <form method="POST" action="/owner/riders/<%= r.id %>/delete" class="d-inline"
+                  onsubmit="return confirm('Delete <%= r.full_name %> permanently?')">
+              <button class="btn btn-sm btn-outline-danger">Delete</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+</div>
+
+</body>
+</html>

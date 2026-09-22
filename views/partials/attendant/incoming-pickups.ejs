@@ -1,0 +1,25 @@
+<% if (typeof incomingPickups !== 'undefined' && incomingPickups.length) { %>
+<div class="card shadow-sm mb-3" style="border-left: 4px solid #f59e0b;">
+  <div class="card-body">
+    <h6 class="mb-3">📥 Incoming Pickups (<%= incomingPickups.length %>)</h6>
+    <% incomingPickups.forEach(function(p) { %>
+      <div class="border rounded p-2 mb-2" style="background:#fffbeb;">
+        <div class="d-flex justify-content-between mb-1">
+          <strong class="small">#<%= p.id %> · <%= p.customer_name || 'Customer' %></strong>
+          <span class="badge bg-<%= 
+            p.status === 'picked_up' ? 'primary' : 
+            p.status === 'in_transit' ? 'warning' : 'info'
+          %>"><%= p.status %></span>
+        </div>
+        <div class="small text-muted">
+          👤 Rider: <%= p.rider_name || '?' %>
+          <% if (p.distance_km) { %> · <%= p.distance_km %> km<% } %>
+        </div>
+        <% if (p.weight_kg) { %>
+          <div class="small">⚖️ <%= p.weight_kg %> kg</div>
+        <% } %>
+      </div>
+    <% }); %>
+  </div>
+</div>
+<% } %>

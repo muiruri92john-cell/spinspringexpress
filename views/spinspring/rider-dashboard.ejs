@@ -1,0 +1,167 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Rider Dashboard - SpinSpring Express',
+  metaDescription: 'Your rider dashboard',
+  canonicalPath: '/rider'
+}) %>
+
+<style>
+.rider-header { background: #0284c7; color: white; padding: 20px; margin: -1rem -1rem 1.5rem; }
+.rider-status-toggle { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.rider-status-dot { width: 12px; height: 12px; border-radius: 50%; background: #ef4444; }
+.rider-status-dot.on { background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3); }
+.req-card { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+.active-card { border-left: 4px solid #0284c7; background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 12px; }
+.stat-box { text-align: center; padding: 12px; background: #f8fafc; border-radius: 8px; }
+</style>
+
+<div class="container py-3">
+  <div class="rider-header rounded-3">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h1 class="h4 mb-1"><%= user.name %></h1>
+        <div style="opacity: 0.9; font-size: 0.9rem;"><%= user.ownerCompany || 'SpinSpring' %></div>
+      </div>
+      <a href="/rider-logout" class="btn btn-sm btn-light">Logout</a>
+    </div>
+
+    <div class="rider-status-toggle">
+      <div class="rider-status-dot <%= rider.is_available ? 'on' : '' %>" id="statusDot"></div>
+      <span id="statusText"><%= rider.is_available ? 'Available' : 'Off duty' %></span>
+      <button class="btn btn-sm btn-light ms-auto" id="toggleAvail">
+        <%= rider.is_available ? 'Go Off Duty' : 'Go On Duty' %>
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-3">
+    <div class="col-6">
+      <div class="stat-box">
+        <div class="h4 mb-0"><%= rider.total_deliveries || 0 %></div>
+        <small class="text-muted">Deliveries</small>
+      </div>
+    </div>
+    <div class="col-6">
+      <div class="stat-box">
+        <div class="h4 mb-0">KES <%= Math.round(rider.total_earnings || 0) %></div>
+        <small class="text-muted">Earned</small>
+      </div>
+    </div>
+  </div>
+
+  <% if (pending && pending.length) { %>
+    <h2 class="h5 mt-4 mb-3">🔔 New Requests</h2>
+    <% pending.forEach(function(r) { %>
+      <div class="req-card">
+        <div class="d-flex justify-content-between mb-2">
+          <strong><%= r.request_type === 'pickup' ? 'Pickup' : r.request_type === 'delivery' ? 'Delivery' : 'Bike Send' %></strong>
+          <span class="badge bg-warning text-dark">KES <%= r.quoted_fee || '?' %></span>
+        </div>
+        <div style="font-size: 0.9rem;">
+          <div>📍 <%= r.from_address || 'Pickup point' %></div>
+          <div>🎯 <%= r.to_address || 'Drop-off point' %></div>
+          <% if (r.distance_km) { %><div class="text-muted small"><%= r.distance_km %> km</div><% } %>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <form method="POST" action="/rider/requests/<%= r.id %>/accept" class="flex-fill">
+            <button class="btn btn-success w-100">Accept</button>
+          </form>
+          <form method="POST" action="/rider/requests/<%= r.id %>/decline" class="flex-fill">
+            <button class="btn btn-outline-secondary w-100">Decline</button>
+          </form>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+
+  <% if (active && active.length) { %>
+    <h2 class="h5 mt-4 mb-3">🚴 Active Trips</h2>
+    <% active.forEach(function(r) { %>
+      <div class="active-card">
+        <div class="d-flex justify-content-between mb-2">
+          <strong><%= r.request_type %></strong>
+          <span class="badge bg-primary"><%= r.status %></span>
+        </div>
+        <div style="font-size: 0.9rem;">
+          <div>👤 <%= r.customer_name || 'Customer' %></div>
+          <div>📍 <%= r.from_address %></div>
+          <div>🎯 <%= r.to_address %></div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <% if (r.status === 'accepted') { %>
+            <form method="POST" action="/rider/requests/<%= r.id %>/picked-up" class="flex-fill">
+              <button class="btn btn-primary w-100">Mark Picked Up</button>
+            </form>
+          <% } else if (r.status === 'picked_up') { %>
+            <form method="POST" action="/rider/requests/<%= r.id %>/in-transit" class="flex-fill">
+              <button class="btn btn-primary w-100">In Transit</button>
+            </form>
+          <% } else if (r.status === 'in_transit') { %>
+            <form method="POST" action="/rider/requests/<%= r.id %>/delivered" class="flex-fill">
+              <button class="btn btn-success w-100">Mark Delivered</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+
+  <% if ((!pending || !pending.length) && (!active || !active.length)) { %>
+    <div class="text-center py-5 text-muted">
+      <div style="font-size: 3rem;">🚴</div>
+      <p>No active requests right now</p>
+      <p class="small">Toggle availability above to start receiving requests</p>
+    </div>
+  <% } %>
+</div>
+
+<script>
+// Availability toggle
+document.getElementById('toggleAvail')?.addEventListener('click', async function() {
+  const btn = this;
+  const isOn = btn.textContent.trim() === 'Go Off Duty';
+  const newState = isOn ? '0' : '1';
+
+  btn.disabled = true;
+  try {
+    const r = await fetch('/rider/availability', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ available: newState })
+    });
+    const data = await r.json();
+    if (data.ok) location.reload();
+  } catch (e) {
+    alert('Failed: ' + e.message);
+    btn.disabled = false;
+  }
+});
+
+// Location tracking (every 30s while on duty)
+const isAvailable = <%= rider.is_available ? 'true' : 'false' %>;
+if (isAvailable && navigator.geolocation) {
+  const pushLocation = () => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          await fetch('/rider/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            })
+          });
+        } catch (e) { /* silent */ }
+      },
+      (err) => console.warn('Location error:', err.message),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 20000 }
+    );
+  };
+  pushLocation();
+  setInterval(pushLocation, 30000);
+}
+</script>
+
+</body>
+</html>

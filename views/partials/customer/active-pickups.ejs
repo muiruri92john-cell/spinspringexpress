@@ -1,0 +1,37 @@
+<% if (typeof activePickups !== 'undefined' && activePickups.length) { %>
+<div class="card shadow-sm mb-3" style="border-left: 4px solid #0284c7;">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0">🚴 Active Pickups</h6>
+      <a href="/customer/pickups" class="small text-decoration-none">View all →</a>
+    </div>
+    <% activePickups.forEach(function(p) { %>
+      <a href="/customer/pickups/<%= p.id %>" class="text-decoration-none text-dark d-block mb-2">
+        <div class="d-flex justify-content-between align-items-start p-2 rounded" style="background:#f0f9ff;">
+          <div style="flex: 1; min-width: 0;">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-<%= 
+                p.status === 'assigned' || p.status === 'accepted' ? 'info' : 
+                p.status === 'picked_up' ? 'primary' : 
+                p.status === 'in_transit' ? 'warning' : 'secondary'
+              %>"><%= p.status %></span>
+              <small class="text-muted">#<%= p.id %></small>
+            </div>
+            <div class="small"><%= p.from_address %></div>
+            <% if (p.rider_name) { %>
+              <div class="small text-muted mt-1">👤 <%= p.rider_name %></div>
+            <% } else { %>
+              <div class="small text-warning mt-1">⏳ Finding rider...</div>
+            <% } %>
+          </div>
+          <div class="text-end small ms-2">
+            <% if (p.quoted_fee) { %>
+              <div class="fw-bold">KES <%= p.final_fee || p.negotiated_fee || p.quoted_fee %></div>
+            <% } %>
+          </div>
+        </div>
+      </a>
+    <% }); %>
+  </div>
+</div>
+<% } %>

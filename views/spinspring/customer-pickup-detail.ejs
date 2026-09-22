@@ -1,0 +1,69 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Track Pickup #' + request.id,
+  canonicalPath: '/customer/pickups/' + request.id
+}) %>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h5 mb-0">Pickup #<%= request.id %></h1>
+    <a href="/customer/pickups" class="btn btn-sm btn-outline-secondary">Back</a>
+  </div>
+
+  <div class="card mb-3 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between mb-3">
+        <span class="badge bg-primary fs-6"><%= request.status %></span>
+        <% if (request.quoted_fee) { %>
+          <strong>KES <%= request.quoted_fee %></strong>
+        <% } %>
+      </div>
+
+      <div class="mb-2">
+        <div class="text-muted small">From</div>
+        <div><%= request.from_address %></div>
+      </div>
+      <div>
+        <div class="text-muted small">To</div>
+        <div><%= request.to_address %></div>
+      </div>
+    </div>
+  </div>
+
+  <% if (rider) { %>
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Your rider</div>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong><%= rider.full_name %></strong>
+            <div class="text-muted small"><%= rider.vehicle_type %> · <%= rider.vehicle_plate %></div>
+          </div>
+          <a href="tel:<%= rider.phone %>" class="btn btn-success btn-sm">📞 Call</a>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="alert alert-info">⏳ Finding a rider...</div>
+  <% } %>
+
+  <div id="statusUpdates" class="text-muted small text-center py-3">
+    Status auto-updates when rider changes.
+  </div>
+</div>
+
+<script>
+// Poll status every 5 seconds
+setInterval(async () => {
+  try {
+    const r = await fetch('/api/customer/pickup-status/<%= request.id %>');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (data.status && data.status !== '<%= request.status %>') {
+      window.location.reload();
+    }
+  } catch (e) {}
+}, 5000);
+</script>
+
+</body>
+</html>

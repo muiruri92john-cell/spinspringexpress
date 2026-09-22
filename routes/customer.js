@@ -14,6 +14,10 @@ const {
   sendNewOrderToAttendant,
 } = require('../services/emailService');
 const pushSvc = require('../services/pushService');
+const RiderModel = require('../models/rider');
+const DeliveryRequestModel = require('../models/deliveryRequest');
+const riderService = require('../services/riderService');
+const { calculateFee, haversineKm } = require('../services/pricingService');
 
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -88,6 +92,13 @@ router.get('/customer', isCustomer, ah(async (req, res) => {
   const [locations] = await req.db.query(
     'SELECT id, location_name FROM ss_locations WHERE owner_id = ? AND is_active = 1',
     [ownerId]
+  );
+
+  // Load active pickups
+  const drModel2 = new DeliveryRequestModel(req.db);
+  const allPickups = await drModel2.listByCustomer(customerId);
+  res.locals.activePickups = allPickups.filter(p =>
+    ['pending','assigning','assigned','accepted','picked_up','in_transit'].includes(p.status)
   );
 
   res.render('spinspring/customer-dashboard', {
@@ -276,5 +287,153 @@ router.get('/customer-logout', (req, res) => {
   req.flash('success_msg', 'Logged out');
   res.redirect('/customer-login');
 });
+
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER — REQUEST PICKUP (page)
+// ═══════════════════════════════════════════════════
+
+router.get('/customer/request-pickup', isCustomer, ah(async (req, res) => {
+  const customerId = req.session.spinUser.id;
+  const ownerId = req.session.spinUser.ownerId;
+
+  const [customerRows] = await req.db.query(
+    'SELECT * FROM ss_customers WHERE id = ? LIMIT 1',
+    [customerId]
+  );
+  const customer = customerRows[0] || {};
+
+  const [locations] = await req.db.query(
+    'SELECT id, location_name, address_line1 AS address, city, latitude, longitude FROM ss_locations WHERE owner_id = ? AND is_active = 1 ORDER BY is_primary DESC, location_name',
+    [ownerId]
+  );
+
+  res.render('spinspring/customer-request-pickup', {
+    title: 'Request Pickup - SpinSpring Express',
+    user: req.session.spinUser,
+    customer,
+    locations,
+  });
+}));
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER — SUBMIT PICKUP REQUEST
+// ═══════════════════════════════════════════════════
+
+router.post('/customer/pickups', isCustomer, ah(async (req, res) => {
+  const customerId = req.session.spinUser.id;
+  const ownerId = req.session.spinUser.ownerId;
+  const {
+    pickup_address, pickup_lat, pickup_lng,
+    dropoff_location_id, weight_kg, notes,
+  } = req.body;
+
+  if (!pickup_address || !pickup_lat || !pickup_lng || !dropoff_location_id) {
+    req.flash('error_msg', 'Address, GPS, and destination are required');
+    return res.redirect('/customer/request-pickup');
+  }
+
+  const [locs] = await req.db.query(
+    'SELECT id, location_name, address_line1 AS address, city, latitude, longitude FROM ss_locations WHERE id = ? AND owner_id = ? LIMIT 1',
+    [dropoff_location_id, ownerId]
+  );
+  if (!locs.length) {
+    req.flash('error_msg', 'Invalid destination');
+    return res.redirect('/customer/request-pickup');
+  }
+  const dest = locs[0];
+
+  const result = await riderService.createPickupRequest(req.db, {
+    ownerId,
+    customerId,
+    from: {
+      address: pickup_address,
+      lat: parseFloat(pickup_lat),
+      lng: parseFloat(pickup_lng),
+    },
+    to: {
+      location_id: dest.id,
+      address: dest.address || dest.location_name,
+      lat: dest.latitude,
+      lng: dest.longitude,
+    },
+    weight_kg: weight_kg ? parseFloat(weight_kg) : null,
+    notes: notes || null,
+  });
+
+  if (result.auto_assigned) {
+    req.flash('success_msg', `✅ Pickup requested! Rider assigned. Fee: KES ${result.quoted_fee}`);
+  } else {
+    req.flash('success_msg', `✅ Pickup requested! Finding a rider... Fee: KES ${result.quoted_fee || 'TBD'}`);
+  }
+
+  res.redirect('/customer/pickups/' + result.request_id);
+}));
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER — MY PICKUPS LIST
+// ═══════════════════════════════════════════════════
+
+router.get('/customer/pickups', isCustomer, ah(async (req, res) => {
+  const customerId = req.session.spinUser.id;
+  const drModel = new DeliveryRequestModel(req.db);
+  const requests = await drModel.listByCustomer(customerId);
+
+  res.render('spinspring/customer-pickups', {
+    title: 'My Pickups - SpinSpring Express',
+    user: req.session.spinUser,
+    requests,
+  });
+}));
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER — PICKUP DETAIL / TRACKING
+// ═══════════════════════════════════════════════════
+
+router.get('/customer/pickups/:id', isCustomer, ah(async (req, res) => {
+  const customerId = req.session.spinUser.id;
+  const drModel = new DeliveryRequestModel(req.db);
+  const request = await drModel.findById(parseInt(req.params.id, 10));
+
+  if (!request || request.customer_id !== customerId) {
+    req.flash('error_msg', 'Request not found');
+    return res.redirect('/customer/pickups');
+  }
+
+  let rider = null;
+  if (request.rider_id) {
+    const riderModel = new RiderModel(req.db);
+    rider = await riderModel.findById(request.rider_id);
+  }
+
+  res.render('spinspring/customer-pickup-detail', {
+    title: 'Track Pickup - SpinSpring Express',
+    user: req.session.spinUser,
+    request,
+    rider,
+  });
+}));
+
+// ═══════════════════════════════════════════════════
+// CUSTOMER — PICKUP STATUS API (JSON polling)
+// ═══════════════════════════════════════════════════
+
+router.get('/api/customer/pickup-status/:id', isCustomer, ah(async (req, res) => {
+  const customerId = req.session.spinUser.id;
+  const [rows] = await req.db.query(
+    `SELECT dr.id, dr.status, dr.rider_id, dr.quoted_fee, dr.negotiated_fee, dr.final_fee,
+            r.full_name AS rider_name, r.phone AS rider_phone,
+            r.current_lat AS rider_lat, r.current_lng AS rider_lng
+     FROM ss_delivery_requests dr
+     LEFT JOIN ss_riders r ON r.id = dr.rider_id
+     WHERE dr.id = ? AND dr.customer_id = ?
+     LIMIT 1`,
+    [req.params.id, customerId]
+  );
+
+  if (!rows.length) return res.status(404).json({ error: 'Not found' });
+
+  res.json(rows[0]);
+}));
 
 module.exports = router;

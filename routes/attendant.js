@@ -153,6 +153,30 @@ router.get('/attendant', isAttendant, ah(async (req, res) => {
     [ownerId]
   );
 
+  // Load incoming pickups + ready for delivery
+  const [incomingPickups] = await req.db.query(
+    `SELECT dr.*, c.full_name AS customer_name, r.full_name AS rider_name
+     FROM ss_delivery_requests dr
+     LEFT JOIN ss_customers c ON c.id = dr.customer_id
+     LEFT JOIN ss_riders r ON r.id = dr.rider_id
+     WHERE dr.owner_id = ? AND dr.request_type = 'pickup'
+     AND dr.status IN ('assigned','accepted','picked_up','in_transit')
+     ORDER BY dr.created_at DESC LIMIT 10`,
+    [ownerId]
+  );
+  const [readyForDelivery] = await req.db.query(
+    `SELECT o.id, o.order_number, o.price, o.order_status,
+            c.full_name AS customer_name, c.phone AS customer_phone
+     FROM ss_orders o
+     LEFT JOIN ss_customers c ON c.id = o.customer_id
+     WHERE o.owner_id = ? AND o.order_status = 'completed'
+     AND o.delivery_request_id IS NULL
+     ORDER BY o.created_at DESC LIMIT 10`,
+    [ownerId]
+  );
+  res.locals.incomingPickups = incomingPickups;
+  res.locals.readyForDelivery = readyForDelivery;
+
   res.render('spinspring/attendant-dashboard', {
     title: 'Attendant Dashboard - SpinSpring Express',
     user: req.session.spinUser,

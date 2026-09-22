@@ -1,0 +1,75 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Add Rider - SpinSpring Express',
+  canonicalPath: '/owner/riders/new'
+}) %>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Add New Rider</h1>
+    <a href="/owner/riders" class="btn btn-outline-secondary btn-sm">← Back</a>
+  </div>
+
+  <% if (typeof error_msg !== 'undefined' && error_msg.length) { %>
+    <div class="alert alert-danger"><%= error_msg[0] %></div>
+  <% } %>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="POST" action="/owner/riders">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+            <input type="text" name="full_name" class="form-control" required
+                   placeholder="e.g. John Mwangi" autofocus>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Phone <span class="text-danger">*</span></label>
+            <input type="tel" name="phone" class="form-control" required
+                   placeholder="0711111111">
+            <small class="text-muted">Used for rider login (with PIN)</small>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Email (optional)</label>
+            <input type="email" name="email" class="form-control"
+                   placeholder="rider@example.com">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">PIN (4-8 digits) <span class="text-danger">*</span></label>
+            <input type="text" name="pin_code" class="form-control" required
+                   pattern="[0-9]{4,8}" maxlength="8" inputmode="numeric"
+                   placeholder="e.g. 1234">
+            <small class="text-muted">Rider will use this with their phone to log in</small>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Vehicle Type</label>
+            <select name="vehicle_type" class="form-select">
+              <option value="bike" selected>Motorcycle / Boda</option>
+              <option value="car">Car</option>
+              <option value="van">Van</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Vehicle Plate (optional)</label>
+            <input type="text" name="vehicle_plate" class="form-control"
+                   placeholder="e.g. KMAB 123" style="text-transform: uppercase;">
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Save Rider</button>
+          <a href="/owner/riders" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+<%- include('../layouts/main', {
+  pageTitle: 'My Pickups - SpinSpring Express',
+  canonicalPath: '/customer/pickups'
+}) %>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">My Pickups</h1>
+    <a href="/customer/request-pickup" class="btn btn-primary btn-sm">+ New Pickup</a>
+  </div>
+
+  <% if (!requests.length) { %>
+    <div class="text-center py-5 text-muted">
+      <div style="font-size: 3rem;">📦</div>
+      <p>No pickups yet</p>
+      <a href="/customer/request-pickup" class="btn btn-outline-primary">Request your first pickup</a>
+    </div>
+  <% } else { %>
+    <% requests.forEach(function(r) { %>
+      <a href="/customer/pickups/<%= r.id %>" class="text-decoration-none text-dark">
+        <div class="card mb-2 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+              <strong><%= r.request_type.toUpperCase() %> #<%= r.id %></strong>
+              <span class="badge bg-<%= 
+                r.status === 'delivered' ? 'success' : 
+                r.status === 'cancelled' ? 'secondary' : 
+                r.status === 'assigned' || r.status === 'accepted' ? 'info' : 'warning'
+              %>"><%= r.status %></span>
+            </div>
+            <div class="small text-muted">
+              <div>📍 <%= r.from_address %></div>
+              <div>🎯 <%= r.to_address %></div>
+            </div>
+            <% if (r.final_fee || r.quoted_fee) { %>
+              <div class="mt-2 fw-bold">KES <%= r.final_fee || r.negotiated_fee || r.quoted_fee %></div>
+            <% } %>
+          </div>
+        </div>
+      </a>
+    <% }); %>
+  <% } %>
+</div>
+
+</body>
+</html>

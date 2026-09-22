@@ -9,6 +9,7 @@ const OwnerModel = require('../models/owner');
 const AttendantModel = require('../models/attendant');
 const CustomerModel = require('../models/customer');
 const bcrypt = require('bcryptjs');
+const RiderModel = require('../models/rider');
 const { isOwner } = require('../middleware/auth');
 
 // 🔔 Email service
@@ -198,6 +199,27 @@ router.get('/owner', isOwner, ah(async (req, res) => {
     model.listCustomers(ownerId, 10),
     model.listRecentOrders(ownerId, 10)
   ]);
+
+  // Load riders + active deliveries
+  const [riders2] = await req.db.query(
+    `SELECT id, full_name, phone, vehicle_type, vehicle_plate, is_active, is_available,
+            total_deliveries, total_earnings, current_lat, current_lng, last_seen_at
+     FROM ss_riders WHERE owner_id = ?
+     ORDER BY is_available DESC, full_name ASC`,
+    [ownerId]
+  );
+  const [activeDeliveries] = await req.db.query(
+    `SELECT dr.*, c.full_name AS customer_name, r.full_name AS rider_name
+     FROM ss_delivery_requests dr
+     LEFT JOIN ss_customers c ON c.id = dr.customer_id
+     LEFT JOIN ss_riders r ON r.id = dr.rider_id
+     WHERE dr.owner_id = ?
+     AND dr.status IN ('pending','assigning','assigned','accepted','picked_up','in_transit')
+     ORDER BY dr.created_at DESC LIMIT 20`,
+    [ownerId]
+  );
+  res.locals.riders = riders2;
+  res.locals.activeDeliveries = activeDeliveries;
 
   res.render('spinspring/owner-dashboard', {
     title: `${owner.company_name} - Owner Dashboard`,
@@ -658,6 +680,112 @@ router.get('/api/invite/validate', ah(async (req, res) => {
 
   const result = await model.validate(code.trim(), type || 'owner');
   res.json(result);
+}));
+
+
+// ═══════════════════════════════════════════════════
+// OWNER — RIDERS MANAGEMENT
+// ═══════════════════════════════════════════════════
+
+router.get('/owner/riders', isOwner, ah(async (req, res) => {
+  const ownerId = req.session.spinUser.id;
+  const riderModel = new RiderModel(req.db);
+  const [riders, stats] = await Promise.all([
+    riderModel.listByOwner(ownerId),
+    riderModel.getStats(ownerId),
+  ]);
+
+  res.render('spinspring/owner-riders', {
+    title: 'Riders - SpinSpring Express',
+    user: req.session.spinUser,
+    riders,
+    stats,
+  });
+}));
+
+router.get('/owner/riders/new', isOwner, (req, res) => {
+  res.render('spinspring/owner-rider-form', {
+    title: 'Add Rider - SpinSpring Express',
+    user: req.session.spinUser,
+    rider: null,
+    editMode: false,
+  });
+});
+
+router.post('/owner/riders', isOwner, ah(async (req, res) => {
+  const riderModel = new RiderModel(req.db);
+  const ownerId = req.session.spinUser.id;
+  const { full_name, email, phone, pin_code, vehicle_type, vehicle_plate } = req.body;
+
+  if (!full_name || !phone || !pin_code) {
+    req.flash('error_msg', 'Name, phone, and PIN are required');
+    return res.redirect('/owner/riders/new');
+  }
+
+  if (pin_code.length < 4 || pin_code.length > 8) {
+    req.flash('error_msg', 'PIN must be 4-8 digits');
+    return res.redirect('/owner/riders/new');
+  }
+
+  // Check phone not already used
+  const existing = await riderModel.findByPhone(phone);
+  if (existing) {
+    req.flash('error_msg', 'Phone number already registered for a rider');
+    return res.redirect('/owner/riders/new');
+  }
+
+  try {
+    const { id: riderId } = await riderModel.create(ownerId, {
+      full_name,
+      email: email || null,
+      phone,
+      pin_code,
+      vehicle_type: vehicle_type || 'bike',
+      vehicle_plate: vehicle_plate || null,
+    });
+
+    req.flash('success_msg',
+      `✅ Rider "${full_name}" created. Phone: ${phone} · PIN: ${pin_code}`
+    );
+    res.redirect('/owner/riders');
+  } catch (e) {
+    console.error('Rider create failed:', e.message);
+    req.flash('error_msg', 'Failed to create rider: ' + e.message);
+    res.redirect('/owner/riders/new');
+  }
+}));
+
+router.post('/owner/riders/:id/toggle', isOwner, ah(async (req, res) => {
+  const riderModel = new RiderModel(req.db);
+  await riderModel.toggleActive(parseInt(req.params.id, 10), req.session.spinUser.id);
+  req.flash('success_msg', 'Rider status updated');
+  res.redirect('/owner/riders');
+}));
+
+router.post('/owner/riders/:id/reset-pin', isOwner, ah(async (req, res) => {
+  const riderModel = new RiderModel(req.db);
+  const ownerId = req.session.spinUser.id;
+  const rider = await riderModel.findById(parseInt(req.params.id, 10), ownerId);
+
+  if (!rider) {
+    req.flash('error_msg', 'Rider not found');
+    return res.redirect('/owner/riders');
+  }
+
+  const newPin = String(Math.floor(1000 + Math.random() * 9000)); // 4-digit
+  await riderModel.changePin(rider.id, newPin);
+
+  req.flash('success_msg',
+    `✅ New PIN for ${rider.full_name}: ${newPin} (share via WhatsApp)`
+  );
+  res.redirect('/owner/riders');
+}));
+
+router.post('/owner/riders/:id/delete', isOwner, ah(async (req, res) => {
+  const riderModel = new RiderModel(req.db);
+  await riderModel.delete(parseInt(req.params.id, 10), req.session.spinUser.id);
+  req.flash('success_msg', 'Rider deleted');
+  res.redirect('/owner/riders');
 }));
 
 module.exports = router;

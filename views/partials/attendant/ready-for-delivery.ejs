@@ -1,0 +1,22 @@
+<% if (typeof readyForDelivery !== 'undefined' && readyForDelivery.length) { %>
+<div class="card shadow-sm mb-3" style="border-left: 4px solid #10b981;">
+  <div class="card-body">
+    <h6 class="mb-3">📤 Ready for Delivery (<%= readyForDelivery.length %>)</h6>
+    <% readyForDelivery.forEach(function(o) { %>
+      <div class="border rounded p-2 mb-2" style="background:#ecfdf5;">
+        <div class="d-flex justify-content-between mb-1">
+          <strong class="small"><%= o.order_number %></strong>
+          <span class="small">KES <%= o.price %></span>
+        </div>
+        <div class="small text-muted">
+          👤 <%= o.customer_name || 'Customer' %>
+          <% if (o.customer_phone) { %> · 📞 <%= o.customer_phone %><% } %>
+        </div>
+        <form method="POST" action="/attendant/orders/<%= o.id %>/dispatch-rider" class="mt-2">
+          <button class="btn btn-sm btn-success w-100">🚴 Send via rider</button>
+        </form>
+      </div>
+    <% }); %>
+  </div>
+</div>
+<% } %>

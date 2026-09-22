@@ -1,0 +1,36 @@
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0">🚴 Riders</h6>
+      <a href="/owner/riders" class="small text-decoration-none">Manage →</a>
+    </div>
+    <% if (typeof riders !== 'undefined' && riders.length) { %>
+      <div class="row g-2">
+        <% riders.slice(0, 4).forEach(function(r) { %>
+          <div class="col-6">
+            <div class="p-2 rounded" style="background:#f8fafc;border-left:3px solid <%= r.is_available && r.is_active ? '#10b981' : '#94a3b8' %>;">
+              <div class="small fw-bold text-truncate"><%= r.full_name %></div>
+              <div class="small text-muted text-truncate"><%= r.vehicle_type %> · <%= r.vehicle_plate || '—' %></div>
+              <div class="small">
+                <% if (r.is_available && r.is_active) { %>
+                  <span class="text-success">● Available</span>
+                <% } else { %>
+                  <span class="text-muted">● Off duty</span>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+      <% if (riders.length > 4) { %>
+        <div class="small text-muted mt-2 text-center">+ <%= riders.length - 4 %> more</div>
+      <% } %>
+    <% } else { %>
+      <div class="text-center text-muted py-3">
+        <div style="font-size: 2rem;">🚴</div>
+        <p class="small mb-2">No riders yet</p>
+        <a href="/owner/riders" class="btn btn-sm btn-primary">Add first rider</a>
+      </div>
+    <% } %>
+  </div>
+</div>

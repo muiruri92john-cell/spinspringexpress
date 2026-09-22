@@ -1,0 +1,179 @@
+<%- include('../layouts/main', {
+  pageTitle: 'Request Pickup - SpinSpring Express',
+  metaDescription: 'Request a laundry pickup',
+  canonicalPath: '/customer/request-pickup'
+}) %>
+
+<style>
+.address-input { font-size: 16px; } /* prevent zoom on iOS */
+.fee-display { background: #f0f9ff; border-left: 4px solid #0284c7; padding: 16px; border-radius: 8px; }
+.map-container { height: 250px; background: #e5e7eb; border-radius: 8px; overflow: hidden; }
+</style>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Request Laundry Pickup</h1>
+    <a href="/customer" class="btn btn-sm btn-outline-secondary">Back</a>
+  </div>
+
+  <form method="POST" action="/customer/pickups" id="pickupForm">
+    <!-- Pickup address -->
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <label class="form-label fw-bold">📍 Pickup Address</label>
+        <div class="d-flex gap-2 mb-2">
+          <input type="text" name="pickup_address" id="pickupAddress" class="form-control address-input" 
+                 placeholder="Enter your address" required
+                 value="<%= customer.default_address || '' %>">
+          <button type="button" class="btn btn-outline-primary" id="useGPS" title="Use my current location">📍</button>
+        </div>
+        <div class="map-container" id="map"></div>
+        <small class="text-muted">Tap 📍 to auto-detect your location</small>
+        <input type="hidden" name="pickup_lat" id="pickupLat" value="<%= customer.default_lat || '' %>">
+        <input type="hidden" name="pickup_lng" id="pickupLng" value="<%= customer.default_lng || '' %>">
+      </div>
+    </div>
+
+    <!-- Destination -->
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <label class="form-label fw-bold">🎯 Deliver to Branch</label>
+        <select name="dropoff_location_id" id="dropoffLocation" class="form-select" required>
+          <option value="">Choose branch...</option>
+          <% locations.forEach(function(l) { %>
+            <option value="<%= l.id %>" data-lat="<%= l.latitude || '' %>" data-lng="<%= l.longitude || '' %>">
+              <%= l.location_name %> — <%= l.address %>
+            </option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+
+    <!-- Weight + Notes -->
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label fw-bold">Est. Weight</label>
+            <select name="weight_kg" class="form-select">
+              <option value="3">~3 kg</option>
+              <option value="5" selected>~5 kg</option>
+              <option value="10">~10 kg</option>
+              <option value="15">~15 kg</option>
+              <option value="20">~20 kg</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-bold">Pickup Time</label>
+            <select class="form-select" disabled>
+              <option>Now</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Notes (optional)</label>
+          <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Call when at gate"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fee -->
+    <div class="fee-display mb-3">
+      <div class="d-flex justify-content-between">
+        <span>Estimated delivery fee:</span>
+        <strong id="feeDisplay">KSh —</strong>
+      </div>
+      <small class="text-muted">Final fee may be negotiated with rider</small>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" id="submitBtn">
+      Request Pickup
+    </button>
+
+    <p class="text-muted small text-center">Payment is made directly to the rider in cash.</p>
+  </form>
+</div>
+
+<script>
+let map = null;
+let marker = null;
+
+// Simple map placeholder using OpenStreetMap if Leaflet is available, else skip
+// For now, just handle GPS + fee calculation
+
+document.getElementById('useGPS').addEventListener('click', function() {
+  if (!navigator.geolocation) {
+    alert('GPS not supported');
+    return;
+  }
+
+  this.disabled = true;
+  this.textContent = '...';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      document.getElementById('pickupLat').value = pos.coords.latitude;
+      document.getElementById('pickupLng').value = pos.coords.longitude;
+      // Reverse-geocode not implemented — user still needs to type address
+      alert('Location captured! Please type your address (for the rider).');
+      this.disabled = false;
+      this.textContent = '📍';
+      updateFee();
+    },
+    (err) => {
+      alert('Could not get location: ' + err.message);
+      this.disabled = false;
+      this.textContent = '📍';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+document.getElementById('dropoffLocation').addEventListener('change', updateFee);
+
+function updateFee() {
+  const lat = parseFloat(document.getElementById('pickupLat').value);
+  const lng = parseFloat(document.getElementById('pickupLng').value);
+  const sel = document.getElementById('dropoffLocation');
+  const opt = sel.options[sel.selectedIndex];
+  const toLat = parseFloat(opt.dataset.lat);
+  const toLng = parseFloat(opt.dataset.lng);
+
+  if (!lat || !lng || !toLat || !toLng) {
+    document.getElementById('feeDisplay').textContent = 'KSh —';
+    return;
+  }
+
+  // Straight-line distance (Haversine)
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(toLat - lat);
+  const dLng = toRad(toLng - lng);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat)) * Math.cos(toRad(toLat)) * Math.sin(dLng/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+
+  // Same formula as server: base 100 + 50/km, min 200
+  const fee = Math.max(200, Math.round(100 + distance * 50));
+  document.getElementById('feeDisplay').textContent = `KSh ${fee} (~${distance.toFixed(1)} km)`;
+}
+
+// Form submit — validate GPS coords present
+document.getElementById('pickupForm').addEventListener('submit', function(e) {
+  const lat = document.getElementById('pickupLat').value;
+  const lng = document.getElementById('pickupLng').value;
+  if (!lat || !lng) {
+    e.preventDefault();
+    alert('Please tap the 📍 button to capture your pickup location');
+    return;
+  }
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Submitting...';
+});
+
+// Update fee on load if we have coordinates
+window.addEventListener('load', updateFee);
+</script>
+
+</body>
+</html>
