@@ -1,0 +1,26 @@
+<%- include('_header', { title: 'Out for delivery' }) %>
+
+<h2 style="margin-top:0;color:#0f172a;">Your laundry is on the way! 🚴</h2>
+
+<p>Hi <%= customer.full_name %>,</p>
+
+<p>Order <strong><%= order.order_number %></strong> has been picked up by your rider and is on the way.</p>
+
+<% if (rider) { %>
+<table cellpadding="10" cellspacing="0" style="border-collapse:collapse;margin:20px 0;background:#f0f9ff;border-radius:8px;width:100%;border-left:4px solid #0ea5e9;">
+  <tr>
+    <td style="color:#0369a1;font-size:13px;">Rider</td>
+    <td style="font-weight:600;color:#0369a1;"><%= rider.full_name %></td>
+  </tr>
+  <tr>
+    <td style="color:#0369a1;font-size:13px;">Phone</td>
+    <td style="font-weight:600;color:#0369a1;"><%= rider.phone %></td>
+  </tr>
+</table>
+<% } %>
+
+<p style="text-align:center;margin:32px 0;">
+  <a href="<%= appUrl %>/customer/pickups" style="background:#0ea5e9;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;">Track Delivery</a>
+</p>
+
+<%- include('_footer') %>

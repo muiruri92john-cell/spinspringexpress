@@ -139,14 +139,13 @@ router.get('/attendant', isAttendant, ah(async (req, res) => {
      FROM ss_orders o
      LEFT JOIN ss_customers c ON o.customer_id = c.id
      LEFT JOIN ss_devices d ON o.device_id = d.device_id
-     WHERE o.owner_id = ? AND o.order_status IN ('pending','queued','in_progress','completed')
-     ORDER BY o.created_at DESC
-     LIMIT 50`,
+     WHERE o.owner_id = ? AND o.order_status IN ('pending','queued','in_progress')
+     ORDER BY o.created_at DESC`,
     [ownerId]
   );
 
   const [stats] = await req.db.query(
-    `SELECT
+    `SELECT 
       COUNT(*) AS total_orders,
       SUM(order_status IN ('pending','queued','in_progress')) AS active_orders,
       SUM(order_status = 'completed') AS completed_orders,
@@ -161,9 +160,8 @@ router.get('/attendant', isAttendant, ah(async (req, res) => {
      FROM ss_delivery_requests dr
      LEFT JOIN ss_customers c ON c.id = dr.customer_id
      LEFT JOIN ss_riders r ON r.id = dr.rider_id
-     WHERE dr.owner_id = ?
-       AND dr.request_type = 'pickup'
-       AND dr.status IN ('assigned','accepted','picked_up','in_transit')
+     WHERE dr.owner_id = ? AND dr.request_type = 'pickup'
+     AND dr.status IN ('assigned','accepted','picked_up','in_transit')
      ORDER BY dr.created_at DESC LIMIT 10`,
     [ownerId]
   );
@@ -172,9 +170,8 @@ router.get('/attendant', isAttendant, ah(async (req, res) => {
             c.full_name AS customer_name, c.phone AS customer_phone
      FROM ss_orders o
      LEFT JOIN ss_customers c ON c.id = o.customer_id
-     WHERE o.owner_id = ?
-       AND o.order_status = 'completed'
-       AND o.delivery_request_id IS NULL
+     WHERE o.owner_id = ? AND o.order_status = 'completed'
+     AND o.delivery_request_id IS NULL
      ORDER BY o.created_at DESC LIMIT 10`,
     [ownerId]
   );
@@ -235,19 +232,24 @@ router.post('/attendant/customers', isAttendant, ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// ATTENDANT — CREATE ORDER  (emails + push)
+// ATTENDANT — CREATE ORDER  (with emails + push)
 // ═══════════════════════════════════════════════════
 
 router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
+  console.log('🚨 [route] POST /attendant/orders hit', new Date().toISOString());
+
   const model = new OrderModel(req.db);
   const ownerId = req.session.spinUser.ownerId;
   const { customer_id, device_id, service_type, cycle_type, price, weight_kg } = req.body;
+
+  console.log('🚨 [route] ownerId=', ownerId, 'customer_id=', customer_id, 'device_id=', device_id, 'price=', price);
 
   if (!customer_id) {
     req.flash('error_msg', 'Customer is required');
     return res.redirect('/attendant');
   }
 
+  // Verify customer belongs to this owner
   const [customers] = await req.db.query(
     'SELECT id FROM ss_customers WHERE id = ? AND owner_id = ?',
     [customer_id, ownerId]
@@ -257,6 +259,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
     return res.redirect('/attendant');
   }
 
+  // Get device location
   let location_id = null;
   if (device_id) {
     const [devices] = await req.db.query(
@@ -280,9 +283,12 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
       order_status: 'pending'
     });
 
-    // 🔔 Emails + 📲 Push (non-blocking)
+    console.log('🚨 [route] Order created:', orderId, order_number);
+
+    // 🔔 Order emails + 📲 Push (non-blocking)
     try {
       const { owner, customer } = await lookupParties(req.db, ownerId, customer_id);
+      console.log('🚨 [route] lookupParties:', { owner, customer });
 
       const orderObj = {
         id: orderId,
@@ -294,15 +300,27 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
         weight_kg: weight_kg ? parseFloat(weight_kg) : null,
       };
 
+      // 1. Customer email
       if (customer && customer.email) {
+        console.log('🚨 [route] sending order-placed to', customer.email);
         sendOrderPlaced(orderObj, customer, owner, req.db)
           .catch(e => console.error('order-placed email failed:', e.message));
+      } else {
+        console.log('🚨 [route] SKIP order-placed — customer has no email');
       }
+
+      // 2. Owner email
       if (owner && owner.email) {
+        console.log('🚨 [route] sending new-order-owner to', owner.email);
         sendNewOrderToOwner(orderObj, customer || { full_name: 'Walk-in' }, owner, req.db)
           .catch(e => console.error('new-order-owner email failed:', e.message));
+      } else {
+        console.log('🚨 [route] SKIP new-order-owner — owner has no email');
       }
+
+      // 3. Attendant email
       if (req.session.spinUser.role === 'attendant' && req.session.spinUser.email) {
+        console.log('🚨 [route] sending new-order-attendant to', req.session.spinUser.email);
         sendNewOrderToAttendant(
           orderObj,
           customer || { full_name: 'Walk-in' },
@@ -310,27 +328,37 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
           { email: req.session.spinUser.email, full_name: req.session.spinUser.name },
           req.db
         ).catch(e => console.error('new-order-attendant email failed:', e.message));
+      } else {
+        console.log('🚨 [route] SKIP new-order-attendant — role=', req.session.spinUser.role, 'email=', req.session.spinUser.email);
       }
 
-      // Push
+      // 📲 PUSH NOTIFICATIONS
       if (customer && customer.id) {
         pushSvc.notifyCustomer(customer.id, {
           title: '🧺 Order received',
-          body: `${order_number} queued`,
+          body: `${order_number} queued — we'll notify you when ready`,
           tag: `order-${order_number}`,
           data: { url: '/customer' },
-        }, req.db).catch(() => {});
+        }, req.db).catch(e => console.error('push customer failed:', e.message));
       }
       if (owner && owner.id) {
         pushSvc.notifyOwner(owner.id, {
           title: '🆕 New order',
-          body: `${customer?.full_name || 'Customer'} — ${order_number}`,
+          body: `${customer?.full_name || 'Customer'} — ${order_number} (KES ${price})`,
           tag: `new-order-${order_number}`,
-          data: { url: '/owner' },
-        }, req.db).catch(() => {});
+          data: { url: '/owner/orders' },
+        }, req.db).catch(e => console.error('push owner failed:', e.message));
       }
-    } catch (emailErr) {
-      console.error('Order notification error:', emailErr.message);
+      if (req.session.spinUser.role === 'attendant' && req.session.spinUser.id) {
+        pushSvc.notifyAttendant(req.session.spinUser.id, {
+          title: '📥 Order assigned',
+          body: `${order_number} — ${customer?.full_name || 'Walk-in'}`,
+          tag: `assigned-${order_number}`,
+          data: { url: '/attendant' },
+        }, req.db).catch(e => console.error('push attendant failed:', e.message));
+      }
+    } catch (e) {
+      console.error('Order email lookup failed:', e.message);
     }
 
     req.flash('success_msg', `✅ Order ${order_number} created`);
@@ -343,7 +371,7 @@ router.post('/attendant/orders', isAttendant, ah(async (req, res) => {
 }));
 
 // ═══════════════════════════════════════════════════
-// ATTENDANT — UPDATE ORDER STATUS  (emails + push + auto-dispatch)
+// ATTENDANT — UPDATE ORDER STATUS  (with emails + push)
 // ═══════════════════════════════════════════════════
 
 router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => {
@@ -351,6 +379,8 @@ router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => 
   const ownerId = req.session.spinUser.ownerId;
   const { status } = req.body;
   const orderId = parseInt(req.params.id, 10);
+
+  console.log('🚨 [route] status update:', orderId, '→', status);
 
   const { changed } = await model.updateStatus(orderId, ownerId, status);
 
@@ -372,7 +402,7 @@ router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => 
           }
         }
 
-        // Push
+        // 📲 PUSH on status change
         if (customer && customer.id) {
           if (status === 'in_progress') {
             pushSvc.notifyCustomer(customer.id, {
@@ -380,42 +410,14 @@ router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => 
               body: `Order ${order.order_number} is ready!`,
               tag: `ready-${order.order_number}`,
               data: { url: '/customer' },
-            }, req.db).catch(() => {});
+            }, req.db).catch(e => console.error('push ready failed:', e.message));
           } else if (status === 'completed') {
             pushSvc.notifyCustomer(customer.id, {
               title: '✅ Order completed',
               body: `Order ${order.order_number} — receipt ready`,
               tag: `completed-${order.order_number}`,
               data: { url: '/customer' },
-            }, req.db).catch(() => {});
-          }
-        }
-
-        // 🚴 Auto-dispatch delivery if customer prefers delivery
-        if (status === 'completed' && order.customer_id) {
-          try {
-            const [custRows] = await req.db.query(
-              'SELECT id, full_name, email, phone, prefer_delivery, default_address, default_lat, default_lng FROM ss_customers WHERE id = ? LIMIT 1',
-              [order.customer_id]
-            );
-            const cust = custRows[0];
-            if (cust && cust.prefer_delivery === 1 && cust.default_lat && cust.default_lng) {
-              const result = await riderService.dispatchDeliveryForOrder(req.db, {
-                orderId: order.id,
-                ownerId,
-              });
-              console.log('🚴 Delivery dispatched:', result);
-              if (result.ok && !result.assigned && owner && owner.id) {
-                pushSvc.notifyOwner(owner.id, {
-                  title: '⚠️ No rider available',
-                  body: `Order ${order.order_number} needs manual delivery assignment`,
-                  tag: `no-rider-${order.order_number}`,
-                  data: { url: '/owner/deliveries' },
-                }, req.db).catch(() => {});
-              }
-            }
-          } catch (dispatchErr) {
-            console.error('Delivery dispatch failed:', dispatchErr.message);
+            }, req.db).catch(e => console.error('push completed failed:', e.message));
           }
         }
       }
@@ -425,35 +427,6 @@ router.post('/attendant/orders/:id/status', isAttendant, ah(async (req, res) => 
   }
 
   req.flash('success_msg', 'Order status updated');
-  res.redirect('/attendant');
-}));
-
-// ═══════════════════════════════════════════════════
-// ATTENDANT — MANUAL DISPATCH RIDER
-// ═══════════════════════════════════════════════════
-
-router.post('/attendant/orders/:id/dispatch-rider', isAttendant, ah(async (req, res) => {
-  const ownerId = req.session.spinUser.ownerId;
-  const orderId = parseInt(req.params.id, 10);
-
-  try {
-    const result = await riderService.dispatchDeliveryForOrder(req.db, {
-      orderId,
-      ownerId,
-    });
-
-    if (result.ok && result.assigned) {
-      req.flash('success_msg', `✅ Rider assigned — delivery #${result.delivery_id}`);
-    } else if (result.ok && !result.assigned) {
-      req.flash('error_msg', `Delivery created but no rider available — assign manually`);
-    } else {
-      req.flash('error_msg', `Failed: ${result.error}`);
-    }
-  } catch (e) {
-    console.error('Dispatch failed:', e);
-    req.flash('error_msg', 'Dispatch failed: ' + e.message);
-  }
-
   res.redirect('/attendant');
 }));
 
